@@ -1,0 +1,27 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1779703470405,
+      "tag": "0000_modern_marvel_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1779712487140,
+      "tag": "0001_huge_magma",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779718764627,
+      "tag": "0002_gifted_marvel_boy",
+      "breakpoints": true
+    }
+  ]
+}

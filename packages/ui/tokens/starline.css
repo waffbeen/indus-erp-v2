@@ -1,0 +1,83 @@
+/* ==========================================================================
+   THEME PRESET: "Starline" (Variant 08 — alternate, NOT currently active)
+   --------------------------------------------------------------------------
+   Kept here so the system supports swapping themes without rebuilding.
+   To activate: change ../tokens/index.css @import to this file.
+   OR: render <body data-theme="starline"> for runtime per-user theming.
+   ========================================================================== */
+
+[data-theme="starline"] {
+
+  /* -------- BRAND -------- */
+  --frame:           #EFEDED;
+  --frame-2:         #E5E2E2;
+  --primary:         #1F1D2B;     /* dark slate ink — primary text/CTA */
+  --primary-hover:   #2D2A3F;
+  --primary-fg:      #FFFFFF;
+
+  /* -------- SURFACES -------- */
+  --bg:              #FFFFFF;
+  --surface:         #F6F4F4;
+  --surface-2:       #EAE7E7;
+  --border:          #EAE7E7;
+  --border-strong:   #D6D2D2;
+
+  /* -------- TEXT -------- */
+  --text:            #1F1D2B;
+  --text-on-dark:    #FFFFFF;
+  --muted:           #7A7785;
+  --muted-2:         #A09EAC;
+
+  /* -------- PASTEL TINTS -------- */
+  --tint-teal:       #C8E6D2;     /* re-mapped to mint for starline */
+  --tint-teal-2:     #ABD4B8;
+  --tint-teal-fg:    #1F7A4A;
+
+  --tint-peach:      #FFE9B3;     /* butter */
+  --tint-peach-2:    #F7D58D;
+  --tint-peach-fg:   #8A5C00;
+
+  --tint-sand:       #FBD5DA;     /* blush */
+  --tint-sand-fg:    #9B2C45;
+
+  --tint-mint:       #C8E6D2;
+  --tint-mint-fg:    #1F7A4A;
+
+  --tint-lilac:      #DCD3F3;
+  --tint-lilac-fg:   #4F3B96;
+
+  --tint-blush:      #FBD5DA;
+  --tint-blush-fg:   #9B2C45;
+
+  /* -------- ACCENTS (Starline's signature lime) -------- */
+  --accent-orange:   #D9F549;     /* neon lime as the standout accent */
+  --accent-orange-fg:#1F1D2B;
+
+  /* -------- SEMANTIC STATUS -------- */
+  --success:         #10B981;
+  --success-bg:      #D1FAE5;
+  --success-fg:      #047857;
+
+  --warning:         #F59E0B;
+  --warning-bg:      #FEF3C7;
+  --warning-fg:      #92400E;
+
+  --danger:          #EF4444;
+  --danger-bg:       #FEE2E2;
+  --danger-fg:       #B91C1C;
+
+  --info:            #8B5CF6;
+  --info-bg:         #EDE9FE;
+  --info-fg:         #5B21B6;
+
+  /* -------- RADII (Starline goes even more rounded) -------- */
+  --radius-sm:       10px;
+  --radius-md:       14px;
+  --radius-lg:       18px;
+  --radius-xl:       22px;
+  --radius-2xl:      26px;
+  --radius-pill:     999px;
+
+  /* Other tokens inherit from Circle preset if not overridden,
+     so always load circle.css FIRST when supporting multi-theme runtime. */
+}

@@ -1,0 +1,27 @@
+{
+  "name": "indus-erp-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered Procurement & Inventory SaaS — multi-tenant rebuild of the legacy VB.NET ERP",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @indus/api db:generate",
+    "db:migrate": "pnpm --filter @indus/api db:migrate",
+    "db:studio": "pnpm --filter @indus/api db:studio",
+    "clean": "turbo run clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5"
+  }
+}

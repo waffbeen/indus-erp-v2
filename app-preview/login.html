@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Indus ERP — Sign in</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="stylesheet" href="../packages/ui/base.css" />
+<style>
+  /* Page-local layout — but ALL colors/radii/fonts pulled from packages/ui tokens */
+  body { background: var(--frame); min-height: 100vh; }
+  .auth-shell {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 980px;
+    border-radius: var(--radius-2xl);
+    background: var(--bg);
+    box-shadow: var(--shadow-dark);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 580px;
+  }
+  @media (max-width: 760px) { .auth-card { grid-template-columns: 1fr; min-height: 0; } }
+  .scene { display: none; }
+  @media (min-width: 761px) { .scene { display: block; } }
+
+  /* Theme switcher (top-right corner, on dark frame) */
+  .theme-switcher {
+    position: fixed; top: 16px; right: 16px; z-index: 50;
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-pill);
+    padding: 4px;
+  }
+  .theme-chip {
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  .theme-chip:hover { color: white; }
+  .theme-chip.active { background: white; color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- Theme switcher — proves global theming -->
+<div class="theme-switcher" id="theme-switcher">
+  <span class="theme-chip active" data-theme="circle">Circle</span>
+  <span class="theme-chip" data-theme="starline">Starline</span>
+</div>
+
+<div class="auth-shell">
+  <div class="auth-card">
+
+    <!-- Left: form -->
+    <div class="p-12 flex flex-col justify-center">
+      <a href="../design-exploration/index.html" class="inline-flex items-center gap-1 text-xs text-muted hover:opacity-70 mb-10 self-start">
+        <i data-lucide="arrow-left"></i> Back to exploration
+      </a>
+
+      <div class="flex items-center gap-2 mb-10">
+        <div class="h-9 w-9 rounded-2xl grid place-items-center" style="background:var(--primary);color:var(--primary-fg)">
+          <i data-lucide="flower-2"></i>
+        </div>
+        <span class="font-semibold tracking-tight">Indus</span>
+      </div>
+
+      <h1 class="display text-4xl mb-2">Welcome back</h1>
+      <p class="text-sm text-muted mb-8">Sign in to your procurement workspace.</p>
+
+      <form class="space-y-4" onsubmit="event.preventDefault(); alert('Wired to backend on next step.')">
+        <div>
+          <label class="label">Work email</label>
+          <div class="relative">
+            <input class="input pl-11" type="email" placeholder="ramesh@acme.in" autocomplete="email" required />
+            <i data-lucide="mail" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" style="width:18px;height:18px"></i>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="label !mb-0">Password</label>
+            <a href="#" class="text-xs font-semibold" style="color:var(--primary)">Forgot?</a>
+          </div>
+          <div class="relative">
+            <input class="input pl-11" type="password" placeholder="••••••••" autocomplete="current-password" required />
+            <i data-lucide="lock" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" style="width:18px;height:18px"></i>
+          </div>
+        </div>
+
+        <label class="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" class="rounded" />
+          Keep me signed in for 7 days
+        </label>
+
+        <button type="submit" class="btn btn-primary btn-lg w-full justify-center">
+          Sign in <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="mt-8 text-center text-xs text-muted">
+        New to Indus? <a href="#" class="font-semibold" style="color:var(--primary)">Request access</a>
+      </div>
+    </div>
+
+    <!-- Right: scene -->
+    <div class="scene gradient-teal relative overflow-hidden">
+      <div class="absolute inset-0 p-10 flex flex-col text-on-dark">
+        <p class="text-xs font-semibold tracking-[0.2em] uppercase opacity-80">Indus ERP v2</p>
+
+        <div class="mt-auto">
+          <p class="display text-3xl leading-tight max-w-xs" style="color:#1F3D3A">
+            Procurement<br/>that's effortless,<br/>insights that are<br/>instant.
+          </p>
+          <p class="mt-4 text-sm max-w-xs" style="color:#2A5048">
+            PR → PO → GRN in 2 clicks. Multi-level approvals. Real-time spend.
+          </p>
+        </div>
+
+        <!-- Floating illustration -->
+        <svg viewBox="0 0 320 200" class="absolute right-0 top-1/2 -translate-y-1/2 w-[280px] h-[200px] opacity-95">
+          <ellipse cx="160" cy="180" rx="80" ry="6" fill="#5A7B76" opacity="0.3"/>
+          <rect x="100" y="120" width="120" height="14" rx="5" fill="#E8C5A8"/>
+          <rect x="105" y="134" width="6" height="48" fill="#C9A887"/>
+          <rect x="209" y="134" width="6" height="48" fill="#C9A887"/>
+          <rect x="208" y="50" width="14" height="80" rx="6" fill="#F4D7C2"/>
+          <circle cx="170" cy="60" r="20" fill="#F2D3B3"/>
+          <path d="M158 52 Q170 38 182 52" stroke="#3D2817" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <rect x="152" y="78" width="44" height="50" rx="6" fill="#D8946A"/>
+          <rect x="150" y="108" width="56" height="32" rx="3" fill="#2E4250"/>
+          <rect x="154" y="112" width="48" height="24" rx="2" fill="#5C7C8A"/>
+          <circle cx="240" cy="20" r="14" fill="none" stroke="white" stroke-width="2.5" opacity="0.85"/>
+          <circle cx="245" cy="15" r="4" fill="white" opacity="0.9"/>
+          <line x1="230" y1="40" x2="240" y2="60" stroke="white" stroke-width="2" opacity="0.6"/>
+        </svg>
+
+        <!-- bottom strip -->
+        <div class="absolute left-10 bottom-10 right-10 flex items-center gap-4 text-xs" style="color:#2A5048">
+          <span>🇮🇳 Made for Indian businesses</span>
+          <span>•</span>
+          <span>GST + e-Invoice ready</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  if (window.lucide) lucide.createIcons();
+
+  // Theme switcher — demonstrates global theming
+  const chips = document.querySelectorAll('.theme-chip');
+  chips.forEach(chip => chip.addEventListener('click', () => {
+    chips.forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    document.body.setAttribute('data-theme', chip.dataset.theme);
+    // re-render icons in case stroke needs refresh
+    if (window.lucide) lucide.createIcons();
+  }));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Variant 06 — Mercury Emerald</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --primary: #10B981;
+    --primary-hover: #059669;
+    --primary-soft: #ECFDF5;
+    --accent: #0F172A;
+    --bg: #FFFFFF;
+    --surface: #F5F7F4;
+    --text: #0F172A;
+    --muted: #64748B;
+    --border: #E2E8F0;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #DC2626;
+  }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; }
+  .surface { background: var(--surface); }
+  .border-faint { border-color: var(--border); }
+  .text-muted { color: var(--muted); }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--surface); }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { background: var(--surface); color: var(--text); }
+  .btn-dark { background: var(--accent); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .card { background: white; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 3px rgba(15,23,42,0.04); }
+  .input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: white; }
+  .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; }
+  .badge-success { background: var(--primary-soft); color: #047857; }
+  .badge-warning { background: #FEF3C7; color: #92400E; }
+  .badge-danger { background: #FEE2E2; color: #B91C1C; }
+  .badge-info { background: #E0F2FE; color: #075985; }
+  .label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="sticky top-0 z-40 border-b border-faint bg-white">
+  <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-xs text-muted hover:text-slate-900">← All variants</a>
+      <span class="text-xs text-slate-300">/</span>
+      <span class="text-sm font-semibold">Variant 06 — Mercury Emerald</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="h-5 w-5 rounded-lg" style="background:#10B981"></span>
+      <span class="h-5 w-5 rounded-lg surface border border-faint"></span>
+      <span class="h-5 w-5 rounded-lg" style="background:#0F172A"></span>
+    </div>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-6 py-10 space-y-14">
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Login Page</h2>
+    <div class="card overflow-hidden grid md:grid-cols-2 min-h-[480px]">
+      <div class="p-12 flex flex-col justify-center">
+        <div class="flex items-center gap-2 mb-10">
+          <div class="h-9 w-9 rounded-xl grid place-items-center text-white font-bold" style="background:#10B981">I</div>
+          <span class="font-semibold tracking-tight">Indus</span>
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight mb-2">Welcome back.</h1>
+        <p class="text-sm text-muted mb-8">Procurement that actually works.</p>
+        <form class="space-y-4">
+          <div><label class="label">Work email</label><input class="input" type="email" placeholder="you@company.in" /></div>
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="label !mb-0">Password</label>
+              <a href="#" class="text-xs font-medium" style="color:#10B981">Forgot?</a>
+            </div>
+            <input class="input" type="password" />
+          </div>
+          <button type="button" class="btn-primary w-full px-4 py-2.5 rounded-lg text-sm font-semibold">Sign in</button>
+          <div class="my-4 flex items-center gap-3 text-xs text-muted">
+            <div class="flex-1 h-px" style="background:var(--border)"></div><span>OR</span><div class="flex-1 h-px" style="background:var(--border)"></div>
+          </div>
+          <button class="btn-secondary w-full px-4 py-2.5 rounded-lg text-sm font-medium">Continue with Google</button>
+        </form>
+        <p class="mt-8 text-xs text-muted text-center">No account? <a href="#" class="font-semibold" style="color:#10B981">Request access</a></p>
+      </div>
+      <div class="hidden md:block relative overflow-hidden" style="background: radial-gradient(circle at 70% 30%, #ECFDF5 0%, #F5F7F4 60%);">
+        <div class="absolute inset-0 p-10 flex flex-col justify-center">
+          <p class="text-xs font-semibold uppercase tracking-widest text-muted">Stat of the day</p>
+          <p class="mt-3 text-4xl font-bold tracking-tight">₹12,40,000</p>
+          <p class="text-sm text-muted">spent across 248 POs this month</p>
+          <div class="mt-8 card p-5 max-w-sm">
+            <p class="text-xs text-muted">Top spend category</p>
+            <p class="mt-1 font-semibold">Raw Materials</p>
+            <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div><p class="font-bold">62%</p><p class="text-[10px] text-muted">of total</p></div>
+              <div><p class="font-bold">14</p><p class="text-[10px] text-muted">vendors</p></div>
+              <div><p class="font-bold">₹7.7L</p><p class="text-[10px] text-muted">spend</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Dashboard Home</h2>
+    <div class="card overflow-hidden">
+      <div class="h-14 border-b border-faint px-5 flex items-center justify-between bg-white">
+        <div class="flex items-center gap-2">
+          <div class="h-7 w-7 rounded-lg grid place-items-center text-white font-bold text-sm" style="background:#10B981">I</div>
+          <span class="text-sm font-semibold">Acme</span>
+          <span class="text-xs text-muted">/ Mumbai</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <input class="input !py-1.5 !w-64 text-sm" placeholder="Search..." />
+          <button class="btn-secondary px-2.5 py-1.5 rounded-lg text-sm">🔔</button>
+          <div class="h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold" style="background:#10B981">RK</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-[210px_1fr]">
+        <aside class="border-r border-faint p-3 surface min-h-[470px]">
+          <nav class="space-y-0.5 text-sm">
+            <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg font-medium text-white" style="background:#10B981"><span>◉</span> Dashboard</a>
+            <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-muted hover:bg-white hover:text-slate-900"><span>○</span> Requisitions</a>
+            <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-muted hover:bg-white hover:text-slate-900"><span>○</span> Purchase Orders</a>
+            <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-muted hover:bg-white hover:text-slate-900"><span>○</span> Approvals <span class="badge badge-warning ml-auto">3</span></a>
+            <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-muted hover:bg-white hover:text-slate-900"><span>○</span> Vendors</a>
+            <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-muted hover:bg-white hover:text-slate-900"><span>○</span> Items</a>
+            <div class="pt-3 mt-3 border-t border-faint">
+              <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-muted hover:bg-white hover:text-slate-900"><span>○</span> Reports</a>
+              <a class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-muted hover:bg-white hover:text-slate-900"><span>○</span> Settings</a>
+            </div>
+          </nav>
+        </aside>
+
+        <div class="p-6 space-y-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">Dashboard</h2>
+              <p class="text-sm text-muted">May 2026 · 23 days in</p>
+            </div>
+            <div class="flex gap-2">
+              <button class="btn-secondary px-3 py-2 rounded-lg text-sm font-medium">Export</button>
+              <button class="btn-primary px-3.5 py-2 rounded-lg text-sm font-semibold">+ New Requisition</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div class="card p-4"><p class="text-[11px] text-muted uppercase tracking-wider font-semibold">Monthly spend</p><p class="text-2xl font-bold mt-1 tabular-nums">₹12.4L</p><p class="text-xs mt-1.5"><span class="badge badge-success">↑ 12%</span></p></div>
+            <div class="card p-4"><p class="text-[11px] text-muted uppercase tracking-wider font-semibold">Open POs</p><p class="text-2xl font-bold mt-1 tabular-nums">48</p><p class="text-xs mt-1.5"><span class="badge badge-warning">9 overdue</span></p></div>
+            <div class="card p-4"><p class="text-[11px] text-muted uppercase tracking-wider font-semibold">Approval time</p><p class="text-2xl font-bold mt-1 tabular-nums">2.1d</p><p class="text-xs mt-1.5"><span class="badge badge-success">↓ 18%</span></p></div>
+            <div class="card p-4"><p class="text-[11px] text-muted uppercase tracking-wider font-semibold">Active vendors</p><p class="text-2xl font-bold mt-1 tabular-nums">142</p><p class="text-xs mt-1.5 text-muted">+4 this mo</p></div>
+          </div>
+
+          <div class="card">
+            <div class="flex items-center justify-between p-4 border-b border-faint">
+              <h3 class="font-semibold text-sm">Pending Approvals</h3>
+              <div class="flex gap-2">
+                <button class="btn-ghost text-xs px-2 py-1 rounded">Filter</button>
+                <a href="#" class="text-xs font-medium" style="color:#10B981">View all →</a>
+              </div>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="text-[11px] uppercase tracking-wider text-muted surface">
+                <tr><th class="text-left px-4 py-2 font-semibold">PR #</th><th class="text-left px-4 py-2 font-semibold">Requester</th><th class="text-left px-4 py-2 font-semibold">Amount</th><th class="text-left px-4 py-2 font-semibold">Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr class="border-t border-faint hover:surface"><td class="px-4 py-2.5 font-mono text-xs">PR-2451</td><td class="px-4 py-2.5">Suresh K.</td><td class="px-4 py-2.5 font-semibold tabular-nums">₹48,200</td><td class="px-4 py-2.5"><span class="badge badge-warning">Pending</span></td><td class="px-4 py-2.5 text-right"><button class="btn-ghost text-xs px-2 py-1 rounded">→</button></td></tr>
+                <tr class="border-t border-faint hover:surface"><td class="px-4 py-2.5 font-mono text-xs">PR-2450</td><td class="px-4 py-2.5">Priya M.</td><td class="px-4 py-2.5 font-semibold tabular-nums">₹12,500</td><td class="px-4 py-2.5"><span class="badge badge-info">L2 review</span></td><td class="px-4 py-2.5 text-right"><button class="btn-ghost text-xs px-2 py-1 rounded">→</button></td></tr>
+                <tr class="border-t border-faint hover:surface"><td class="px-4 py-2.5 font-mono text-xs">PR-2449</td><td class="px-4 py-2.5">Anil G.</td><td class="px-4 py-2.5 font-semibold tabular-nums">₹2,01,400</td><td class="px-4 py-2.5"><span class="badge badge-danger">Escalated</span></td><td class="px-4 py-2.5 text-right"><button class="btn-ghost text-xs px-2 py-1 rounded">→</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Components</h2>
+    <div class="card p-6 space-y-6">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Buttons</p>
+        <div class="flex flex-wrap gap-2">
+          <button class="btn-primary px-3.5 py-2 rounded-lg text-sm font-semibold">Primary</button>
+          <button class="btn-dark px-3.5 py-2 rounded-lg text-sm font-semibold">Dark</button>
+          <button class="btn-secondary px-3.5 py-2 rounded-lg text-sm font-medium">Secondary</button>
+          <button class="btn-ghost px-3.5 py-2 rounded-lg text-sm font-medium">Ghost</button>
+          <button class="btn-danger px-3.5 py-2 rounded-lg text-sm font-semibold">Destructive</button>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Inputs</p>
+        <div class="grid sm:grid-cols-3 gap-3">
+          <div><label class="label">Item name</label><input class="input" placeholder="Bearing 6204-ZZ" /></div>
+          <div><label class="label">Quantity</label><input class="input" type="number" value="50" /></div>
+          <div><label class="label">Vendor</label><select class="input"><option>Acme Steel</option></select></div>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Badges</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="badge badge-success">● Active</span><span class="badge badge-warning">● Pending</span>
+          <span class="badge badge-danger">● Rejected</span><span class="badge badge-info">● Approved</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Modal</p>
+        <button class="btn-primary px-3.5 py-2 rounded-lg text-sm font-semibold" onclick="document.getElementById('m').showModal()">Open modal</button>
+        <dialog id="m" class="rounded-xl p-0 backdrop:bg-slate-900/40 max-w-md w-full">
+          <div class="p-6">
+            <h3 class="text-lg font-bold tracking-tight">Approve PR-2451?</h3>
+            <p class="mt-1 text-sm text-muted">From Suresh K. for ₹48,200. Will create draft PO.</p>
+            <div class="mt-4"><label class="label">Note (optional)</label><textarea class="input" rows="3"></textarea></div>
+          </div>
+          <div class="px-6 py-4 border-t border-faint surface flex justify-end gap-2 rounded-b-xl">
+            <button class="btn-secondary px-3.5 py-2 rounded-lg text-sm font-medium" onclick="document.getElementById('m').close()">Cancel</button>
+            <button class="btn-primary px-3.5 py-2 rounded-lg text-sm font-semibold" onclick="document.getElementById('m').close()">Approve</button>
+          </div>
+        </dialog>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Design Tokens</h2>
+    <div class="card p-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div><div class="h-14 rounded-lg" style="background:#10B981"></div><p class="mt-2 text-xs font-mono">#10B981</p><p class="text-xs text-muted">Primary (Emerald)</p></div>
+        <div><div class="h-14 rounded-lg" style="background:#0F172A"></div><p class="mt-2 text-xs font-mono">#0F172A</p><p class="text-xs text-muted">Accent (Slate)</p></div>
+        <div><div class="h-14 rounded-lg surface border border-faint"></div><p class="mt-2 text-xs font-mono">#F5F7F4</p><p class="text-xs text-muted">Surface</p></div>
+        <div><div class="h-14 rounded-lg" style="background:#E2E8F0"></div><p class="mt-2 text-xs font-mono">#E2E8F0</p><p class="text-xs text-muted">Border</p></div>
+      </div>
+      <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Font</p><p>Inter</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Radius</p><p>8–10px</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Shadow</p><p>Soft elevation</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Vibe</p><p>Fintech polish, modern</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="text-center pt-4 pb-10">
+    <a href="index.html" class="text-sm font-semibold" style="color:#10B981">← Back to all variants</a>
+  </div>
+</main>
+
+</body>
+</html>

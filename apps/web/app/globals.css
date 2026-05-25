@@ -1,0 +1,9 @@
+/* Design system — single source of truth for colors, fonts, radii, shadows. */
+@import "@indus/ui/base.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Page chrome — outside the inner app card */
+html, body { background: var(--frame); min-height: 100vh; }

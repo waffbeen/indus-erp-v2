@@ -1,0 +1,209 @@
+/* ==========================================================================
+   Base styles — typography, reset bits, shared utilities
+   Loaded AFTER tokens. Anything that should be theme-aware reads from vars.
+   ========================================================================== */
+
+@import "./tokens/index.css";
+
+html, body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* Display type — for big numbers, hero headings */
+.display {
+  letter-spacing: var(--tracking-display);
+  font-weight: 700;
+}
+
+/* Lucide icon defaults — line style, rounded caps */
+[data-lucide] {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ==========================================================================
+   Semantic helper classes — use these in production, NOT raw hex
+   ========================================================================== */
+
+/* Surfaces */
+.surface-bg       { background: var(--bg); }
+.surface-1        { background: var(--surface); }
+.surface-2        { background: var(--surface-2); }
+.surface-frame    { background: var(--frame); }
+.surface-frame-2  { background: var(--frame-2); }
+
+/* Text colors */
+.text-default     { color: var(--text); }
+.text-muted       { color: var(--muted); }
+.text-muted-2     { color: var(--muted-2); }
+.text-on-dark     { color: var(--text-on-dark); }
+.text-primary     { color: var(--primary); }
+.text-danger      { color: var(--danger); }
+.text-danger-fg   { color: var(--danger-fg); }
+.text-success     { color: var(--success); }
+.text-warning     { color: var(--warning); }
+
+/* Borders */
+.border-faint     { border-color: var(--border); }
+.border-strong    { border-color: var(--border-strong); }
+.border-danger    { border-color: var(--danger); }
+.border-danger-fg { border-color: var(--danger-fg); }
+
+/* Backgrounds (semantic) */
+.bg-danger        { background: var(--danger); }
+.bg-danger-bg     { background: var(--danger-bg); }
+.bg-success       { background: var(--success); }
+.bg-success-bg    { background: var(--success-bg); }
+.bg-warning-bg    { background: var(--warning-bg); }
+.bg-info-bg       { background: var(--info-bg); }
+.bg-primary       { background: var(--primary); }
+.bg-frame         { background: var(--frame); }
+.bg-bg            { background: var(--bg); }
+.bg-surface       { background: var(--surface); }
+.bg-surface-2     { background: var(--surface-2); }
+
+/* Tint backgrounds */
+.bg-tint-teal   { background: var(--tint-teal); }
+.bg-tint-peach  { background: var(--tint-peach); }
+.bg-tint-mint   { background: var(--tint-mint); }
+.bg-tint-lilac  { background: var(--tint-lilac); }
+.bg-tint-blush  { background: var(--tint-blush); }
+.bg-tint-sand   { background: var(--tint-sand); }
+.text-tint-teal-fg   { color: var(--tint-teal-fg); }
+.text-tint-peach-fg  { color: var(--tint-peach-fg); }
+.text-tint-mint-fg   { color: var(--tint-mint-fg); }
+.text-tint-lilac-fg  { color: var(--tint-lilac-fg); }
+.text-tint-blush-fg  { color: var(--tint-blush-fg); }
+.text-on-dark        { color: var(--text-on-dark); }
+
+/* Buttons — pill-shaped, theme-driven */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.btn-sm { padding: 6px 12px; font-size: 12px; gap: 6px; }
+.btn-lg { padding: 14px 24px; font-size: 14px; gap: 10px; }
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+.btn-primary:hover { background: var(--primary-hover); }
+
+.btn-ghost {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-ghost:hover { background: var(--surface); }
+
+.btn-quiet {
+  background: transparent;
+  color: var(--muted);
+}
+.btn-quiet:hover { background: var(--surface); color: var(--text); }
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--primary-fg);
+}
+.btn-danger:hover { background: color-mix(in srgb, var(--danger) 88%, black); }
+
+.btn-disabled, .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Cards */
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+.card-lg { border-radius: var(--radius-2xl); }
+
+/* KPI tint cards */
+.kpi { padding: 18px; border-radius: var(--radius-xl); }
+.kpi-teal   { background: var(--tint-teal);  color: var(--tint-teal-fg); }
+.kpi-peach  { background: var(--tint-peach); color: var(--tint-peach-fg); }
+.kpi-sand   { background: var(--tint-sand);  color: var(--tint-sand-fg); }
+.kpi-mint   { background: var(--tint-mint);  color: var(--tint-mint-fg); }
+.kpi-lilac  { background: var(--tint-lilac); color: var(--tint-lilac-fg); }
+.kpi-blush  { background: var(--tint-blush); color: var(--tint-blush-fg); }
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+.input::placeholder { color: var(--muted-2); }
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+}
+.badge-success { background: var(--success-bg); color: var(--success-fg); }
+.badge-warning { background: var(--warning-bg); color: var(--warning-fg); }
+.badge-danger  { background: var(--danger-bg);  color: var(--danger-fg);  }
+.badge-info    { background: var(--info-bg);    color: var(--info-fg);    }
+.badge-tint-peach { background: var(--tint-peach); color: var(--tint-peach-fg); }
+.badge-tint-lilac { background: var(--tint-lilac); color: var(--tint-lilac-fg); }
+.badge-tint-mint  { background: var(--tint-mint);  color: var(--tint-mint-fg);  }
+.badge-tint-blush { background: var(--tint-blush); color: var(--tint-blush-fg); }
+
+/* Focus visible — accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

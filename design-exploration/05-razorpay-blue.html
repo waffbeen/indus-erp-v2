@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Variant 05 — Razorpay Blue</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --primary: #3B82F6;
+    --primary-hover: #2563EB;
+    --primary-soft: #EFF6FF;
+    --bg: #FFFFFF;
+    --surface: #F7F8FA;
+    --text: #0B1B36;
+    --muted: #525F7F;
+    --border: #E5E9F0;
+    --success: #00C176;
+    --warning: #FF9F1C;
+    --danger: #E63946;
+  }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+  .surface { background: var(--surface); }
+  .border-faint { border-color: var(--border); }
+  .text-muted { color: var(--muted); }
+  .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(59,130,246,0.25); }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--surface); }
+  .btn-ghost { background: transparent; color: var(--text); }
+  .btn-ghost:hover { background: var(--surface); }
+  .btn-danger { background: var(--danger); color: white; }
+  .card { background: white; border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 2px 8px rgba(11,27,54,0.04); }
+  .input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 14px; background: white; }
+  .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59,130,246,0.12); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: 11px; font-weight: 600; border-radius: 999px; }
+  .badge-success { background: #E7FAF1; color: #007048; }
+  .badge-warning { background: #FFF3E0; color: #B05C00; }
+  .badge-danger { background: #FCE7EA; color: #9D1B26; }
+  .badge-info { background: var(--primary-soft); color: var(--primary); }
+  .label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="sticky top-0 z-40 border-b border-faint bg-white">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-xs text-muted hover:text-slate-900">← All variants</a>
+      <span class="text-xs text-slate-300">/</span>
+      <span class="text-sm font-semibold">Variant 05 — Razorpay Blue</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="h-5 w-5 rounded-md" style="background:#3B82F6"></span>
+      <span class="h-5 w-5 rounded-md surface border border-faint"></span>
+      <span class="h-5 w-5 rounded-md bg-white border border-faint"></span>
+    </div>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-6 py-10 space-y-14">
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Login Page</h2>
+    <div class="card overflow-hidden grid md:grid-cols-2 min-h-[500px]">
+      <div class="p-12 flex flex-col justify-center">
+        <div class="flex items-center gap-2 mb-10">
+          <div class="h-10 w-10 rounded-xl grid place-items-center text-white font-bold text-lg" style="background:linear-gradient(135deg,#3B82F6,#6366F1)">I</div>
+          <span class="font-bold text-lg">Indus</span>
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight mb-2">Sign in</h1>
+        <p class="text-sm text-muted mb-8">Welcome back. Procurement zero-effort.</p>
+        <form class="space-y-4">
+          <div><label class="label">Work email</label><input class="input" type="email" placeholder="ramesh@acme.in" /></div>
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="label !mb-0">Password</label>
+              <a href="#" class="text-xs font-semibold" style="color:#3B82F6">Forgot?</a>
+            </div>
+            <input class="input" type="password" />
+          </div>
+          <button type="button" class="btn-primary w-full px-5 py-3 rounded-xl text-sm font-semibold">Sign in →</button>
+        </form>
+        <p class="mt-8 text-xs text-muted text-center">New here? <a href="#" class="font-semibold" style="color:#3B82F6">Request access</a></p>
+      </div>
+      <div class="hidden md:block relative overflow-hidden" style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 60%,#BFDBFE 100%);">
+        <div class="absolute inset-0 p-12 flex flex-col justify-center">
+          <div class="space-y-4">
+            <div class="card p-5">
+              <div class="flex items-center justify-between"><p class="text-xs font-semibold text-muted">Monthly spend</p><span class="badge badge-success">↑ 12%</span></div>
+              <p class="text-3xl font-bold mt-2 tracking-tight">₹12,40,000</p>
+              <div class="mt-3 h-1.5 rounded-full surface"><div class="h-full rounded-full" style="width:62%;background:linear-gradient(90deg,#3B82F6,#6366F1)"></div></div>
+              <p class="mt-1.5 text-[11px] text-muted">62% of ₹20L budget used</p>
+            </div>
+            <div class="card p-5">
+              <p class="text-xs font-semibold text-muted mb-2">Quick stats</p>
+              <div class="grid grid-cols-3 gap-3 text-center">
+                <div><p class="text-xl font-bold">248</p><p class="text-[10px] text-muted">POs</p></div>
+                <div><p class="text-xl font-bold">94%</p><p class="text-[10px] text-muted">On time</p></div>
+                <div><p class="text-xl font-bold">142</p><p class="text-[10px] text-muted">Vendors</p></div>
+              </div>
+            </div>
+            <p class="text-xs text-muted text-center">Live preview of your dashboard</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Dashboard Home</h2>
+    <div class="card overflow-hidden">
+      <div class="h-16 border-b border-faint px-6 flex items-center justify-between bg-white">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-xl grid place-items-center text-white font-bold" style="background:linear-gradient(135deg,#3B82F6,#6366F1)">I</div>
+          <div>
+            <p class="text-sm font-bold">Acme Industries</p>
+            <p class="text-[11px] text-muted">Mumbai Unit · Procurement</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <input class="input !py-2 !w-72" placeholder="Search PRs, POs, vendors..." />
+          <button class="btn-secondary px-3 py-2 rounded-xl text-sm font-medium">🔔 <span class="ml-1 badge badge-danger">3</span></button>
+          <div class="h-9 w-9 rounded-full grid place-items-center text-white text-sm font-bold" style="background:linear-gradient(135deg,#3B82F6,#6366F1)">RK</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-[220px_1fr]">
+        <aside class="border-r border-faint p-4 min-h-[480px] bg-white">
+          <nav class="space-y-1 text-sm">
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl font-semibold text-white" style="background:linear-gradient(135deg,#3B82F6,#6366F1)"><span>🏠</span> Dashboard</a>
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-muted hover:bg-surface hover:text-slate-900"><span>📋</span> Requisitions</a>
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-muted hover:bg-surface hover:text-slate-900"><span>🛒</span> Purchase Orders</a>
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-muted hover:bg-surface hover:text-slate-900"><span>✅</span> Approvals <span class="badge badge-warning ml-auto">3</span></a>
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-muted hover:bg-surface hover:text-slate-900"><span>👥</span> Vendors</a>
+            <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-muted hover:bg-surface hover:text-slate-900"><span>📦</span> Items</a>
+            <div class="pt-3 mt-3 border-t border-faint">
+              <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-muted hover:bg-surface hover:text-slate-900"><span>📊</span> Reports</a>
+              <a class="flex items-center gap-3 px-3 py-2 rounded-xl text-muted hover:bg-surface hover:text-slate-900"><span>⚙️</span> Settings</a>
+            </div>
+          </nav>
+        </aside>
+
+        <div class="p-7 space-y-6 surface">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight">Good morning, Ramesh 👋</h2>
+              <p class="text-sm text-muted">Yahan hai aapke aaj ke kaam.</p>
+            </div>
+            <button class="btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold">+ New Requisition</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="card p-5">
+              <div class="flex items-center justify-between"><p class="text-xs font-semibold text-muted uppercase tracking-wider">Monthly spend</p><span class="badge badge-success">↑ 12%</span></div>
+              <p class="text-3xl font-bold mt-2 tracking-tight">₹12.4L</p>
+              <div class="mt-3 h-1 rounded-full surface"><div class="h-full rounded-full" style="width:62%;background:#3B82F6"></div></div>
+            </div>
+            <div class="card p-5">
+              <div class="flex items-center justify-between"><p class="text-xs font-semibold text-muted uppercase tracking-wider">Open POs</p><span class="badge badge-warning">9 late</span></div>
+              <p class="text-3xl font-bold mt-2 tracking-tight">48</p>
+              <p class="text-xs text-muted mt-2">↑ 4% from April</p>
+            </div>
+            <div class="card p-5">
+              <div class="flex items-center justify-between"><p class="text-xs font-semibold text-muted uppercase tracking-wider">Avg approval</p><span class="badge badge-success">↓ 18%</span></div>
+              <p class="text-3xl font-bold mt-2 tracking-tight">2.1d</p>
+              <p class="text-xs text-muted mt-2">Improving steadily</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="flex items-center justify-between p-5 border-b border-faint">
+              <h3 class="font-bold text-base">Pending Approvals</h3>
+              <a href="#" class="text-xs font-semibold" style="color:#3B82F6">View all →</a>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="text-[11px] uppercase tracking-wider text-muted">
+                <tr><th class="text-left px-5 py-3 font-semibold">PR #</th><th class="text-left px-5 py-3 font-semibold">Requester</th><th class="text-left px-5 py-3 font-semibold">Amount</th><th class="text-left px-5 py-3 font-semibold">Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr class="border-t border-faint hover:bg-blue-50/30"><td class="px-5 py-3 font-mono text-xs">PR-2451</td><td class="px-5 py-3">Suresh K.</td><td class="px-5 py-3 font-bold">₹48,200</td><td class="px-5 py-3"><span class="badge badge-warning">Pending</span></td><td class="px-5 py-3 text-right"><button class="btn-secondary text-xs px-3 py-1 rounded-lg">Review</button></td></tr>
+                <tr class="border-t border-faint hover:bg-blue-50/30"><td class="px-5 py-3 font-mono text-xs">PR-2450</td><td class="px-5 py-3">Priya M.</td><td class="px-5 py-3 font-bold">₹12,500</td><td class="px-5 py-3"><span class="badge badge-info">L2 review</span></td><td class="px-5 py-3 text-right"><button class="btn-secondary text-xs px-3 py-1 rounded-lg">Review</button></td></tr>
+                <tr class="border-t border-faint hover:bg-blue-50/30"><td class="px-5 py-3 font-mono text-xs">PR-2449</td><td class="px-5 py-3">Anil G.</td><td class="px-5 py-3 font-bold">₹2,01,400</td><td class="px-5 py-3"><span class="badge badge-danger">Escalated</span></td><td class="px-5 py-3 text-right"><button class="btn-secondary text-xs px-3 py-1 rounded-lg">Review</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Components</h2>
+    <div class="card p-6 space-y-6">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Buttons</p>
+        <div class="flex flex-wrap gap-2.5">
+          <button class="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold">Primary</button>
+          <button class="btn-secondary px-4 py-2.5 rounded-xl text-sm font-medium">Secondary</button>
+          <button class="btn-ghost px-4 py-2.5 rounded-xl text-sm font-medium">Ghost</button>
+          <button class="btn-danger px-4 py-2.5 rounded-xl text-sm font-semibold">Destructive</button>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Inputs</p>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div><label class="label">Item name</label><input class="input" placeholder="Bearing 6204-ZZ" /></div>
+          <div><label class="label">Quantity</label><input class="input" type="number" value="50" /></div>
+          <div><label class="label">Vendor</label><select class="input"><option>Acme Steel</option></select></div>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Badges</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="badge badge-success">✓ Active</span><span class="badge badge-warning">⏱ Pending</span>
+          <span class="badge badge-danger">✕ Rejected</span><span class="badge badge-info">Approved</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Modal</p>
+        <button class="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold" onclick="document.getElementById('m').showModal()">Open modal</button>
+        <dialog id="m" class="rounded-2xl p-0 backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm max-w-md w-full">
+          <div class="p-7">
+            <h3 class="text-xl font-bold tracking-tight">Approve PR-2451?</h3>
+            <p class="mt-2 text-sm text-muted">From Suresh K. for ₹48,200. Will auto-create draft PO.</p>
+            <div class="mt-5"><label class="label">Note (optional)</label><textarea class="input" rows="3"></textarea></div>
+          </div>
+          <div class="px-7 py-5 border-t border-faint surface flex justify-end gap-2 rounded-b-2xl">
+            <button class="btn-secondary px-4 py-2.5 rounded-xl text-sm font-medium" onclick="document.getElementById('m').close()">Cancel</button>
+            <button class="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold" onclick="document.getElementById('m').close()">Approve</button>
+          </div>
+        </dialog>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Design Tokens</h2>
+    <div class="card p-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div><div class="h-14 rounded-xl" style="background:linear-gradient(135deg,#3B82F6,#6366F1)"></div><p class="mt-2 text-xs font-mono">#3B82F6</p><p class="text-xs text-muted">Primary gradient</p></div>
+        <div><div class="h-14 rounded-xl surface border border-faint"></div><p class="mt-2 text-xs font-mono">#F7F8FA</p><p class="text-xs text-muted">Surface</p></div>
+        <div><div class="h-14 rounded-xl" style="background:#0B1B36"></div><p class="mt-2 text-xs font-mono">#0B1B36</p><p class="text-xs text-muted">Text</p></div>
+        <div><div class="h-14 rounded-xl" style="background:#E5E9F0"></div><p class="mt-2 text-xs font-mono">#E5E9F0</p><p class="text-xs text-muted">Border</p></div>
+      </div>
+      <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Font</p><p>Inter (semibold-heavy)</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Radius</p><p>12–16px (rounded)</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Shadow</p><p>Soft + glow on primary</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-1">Vibe</p><p>Indian SaaS confidence</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="text-center pt-4 pb-10">
+    <a href="index.html" class="text-sm font-semibold" style="color:#3B82F6">← Back to all variants</a>
+  </div>
+</main>
+
+</body>
+</html>

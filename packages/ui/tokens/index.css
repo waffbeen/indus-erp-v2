@@ -1,0 +1,17 @@
+/* ==========================================================================
+   Design Tokens Entry Point
+   --------------------------------------------------------------------------
+   This file is what apps import. The single line below controls which theme
+   is active by default. To swap themes:
+
+     1. Change which preset is imported below, OR
+     2. Keep multiple imports and use <body data-theme="..."> at runtime.
+
+   The Circle theme also fills :root so it's the implicit fallback when no
+   [data-theme] attribute is set.
+   ========================================================================== */
+
+@import "./circle.css";       /* ← ACTIVE theme (Variant 07). Default for :root + [data-theme="circle"] */
+@import "./starline.css";     /* ← Loaded but inert until <body data-theme="starline"> is set */
+
+/* Future themes: add a file in this folder and @import it here. */

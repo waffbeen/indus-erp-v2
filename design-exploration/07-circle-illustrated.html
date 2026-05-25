@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Variant 07 — Circle Illustrated</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  /* ===== THEME TOKENS — CHANGE THESE TO RE-COLOR THE WHOLE APP ===== */
+  :root {
+    /* Brand */
+    --frame: #3F5666;          /* outer dark canvas */
+    --frame-2: #2E4250;        /* deeper accent */
+    --primary: #2F5C68;        /* dark teal CTA */
+    --primary-hover: #244750;
+
+    /* Surfaces */
+    --bg: #FFFFFF;             /* inner card bg */
+    --surface: #F7F9FB;
+    --border: #EEF1F4;
+
+    /* Text */
+    --text: #1B2733;
+    --muted: #6B7888;
+
+    /* Pastel tints for KPI cards */
+    --tint-teal: #B7D3D2;      /* hero card */
+    --tint-teal-2: #DCE7E2;
+    --tint-peach: #F4D7C2;     /* popularity card */
+    --tint-peach-2: #F9E7D6;
+    --tint-sand: #F1ECDF;
+    --tint-mint: #DEEEDB;
+    --tint-lilac: #E4DDF0;
+
+    /* Accents */
+    --accent-orange: #F2994A;
+    --success: #2EAB5F;
+    --danger: #E5544B;
+  }
+
+  /* ===== TYPOGRAPHY — Apple system font stack ===== */
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
+    font-feature-settings: "ss01", "cv11", "tnum";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .display { letter-spacing: -0.03em; font-weight: 700; }
+
+  /* ===== UTILITIES ===== */
+  .frame   { background: var(--frame); }
+  .muted   { color: var(--muted); }
+  .border-faint { border-color: var(--border); }
+
+  .pill-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-ghost { background: white; color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface); }
+
+  /* Icon helper */
+  [data-lucide] { width: 18px; height: 18px; stroke-width: 1.75; }
+
+  /* Hero illustration scene */
+  .scene-bg { background: linear-gradient(135deg, #BFD9D8 0%, #A8C3C0 60%, #93B0AB 100%); }
+  .scene-peach { background: linear-gradient(135deg, #F4D7C2 0%, #EBC4A6 100%); }
+
+  /* Gauge arc */
+  .gauge { transform: rotate(-90deg); }
+</style>
+</head>
+<body class="frame min-h-screen">
+
+<!-- Sticky chooser header (outside the frame) -->
+<div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-faint">
+  <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-xs muted hover:text-slate-900">← All variants</a>
+      <span class="text-xs text-slate-300">/</span>
+      <span class="text-sm font-semibold">Variant 07 — Circle Illustrated <span class="text-xs font-medium muted ml-1">(matches your ref 1)</span></span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="h-5 w-5 rounded" style="background:#3F5666"></span>
+      <span class="h-5 w-5 rounded" style="background:#B7D3D2"></span>
+      <span class="h-5 w-5 rounded" style="background:#F4D7C2"></span>
+      <span class="h-5 w-5 rounded bg-white border border-faint"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP FRAME ===================== -->
+<div class="px-8 pt-8 pb-12">
+<div class="max-w-7xl mx-auto bg-white rounded-[28px] shadow-2xl overflow-hidden grid grid-cols-[110px_1fr] min-h-[820px]">
+
+  <!-- =============== SIDEBAR (dark) =============== -->
+  <aside class="text-white flex flex-col items-center py-6" style="background:var(--frame);">
+    <div class="mb-10">
+      <div class="h-9 w-9 rounded-xl grid place-items-center" style="background:rgba(255,255,255,0.08);">
+        <i data-lucide="flower-2"></i>
+      </div>
+      <p class="text-[11px] mt-1.5 text-center opacity-80 font-medium tracking-wide">Indus</p>
+    </div>
+
+    <nav class="flex-1 flex flex-col gap-1.5 items-center w-full px-3">
+      <a class="group flex flex-col items-center gap-1 py-2 w-full rounded-xl hover:bg-white/5">
+        <i data-lucide="bar-chart-3" class="opacity-60"></i>
+        <span class="text-[10px] opacity-60 font-medium">Spend</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 py-2 w-full rounded-xl bg-white text-slate-900">
+        <i data-lucide="layout-dashboard"></i>
+        <span class="text-[10px] font-semibold">Overview</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 py-2 w-full rounded-xl hover:bg-white/5">
+        <i data-lucide="file-text" class="opacity-60"></i>
+        <span class="text-[10px] opacity-60 font-medium">PRs</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 py-2 w-full rounded-xl hover:bg-white/5">
+        <i data-lucide="shopping-cart" class="opacity-60"></i>
+        <span class="text-[10px] opacity-60 font-medium">POs</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 py-2 w-full rounded-xl hover:bg-white/5">
+        <i data-lucide="check-circle-2" class="opacity-60"></i>
+        <span class="text-[10px] opacity-60 font-medium">Approve</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 py-2 w-full rounded-xl hover:bg-white/5">
+        <i data-lucide="settings" class="opacity-60"></i>
+        <span class="text-[10px] opacity-60 font-medium">Settings</span>
+      </a>
+    </nav>
+
+    <div class="mt-4">
+      <div class="h-10 w-10 rounded-xl overflow-hidden grid place-items-center text-sm font-semibold" style="background:linear-gradient(135deg,#F4D7C2,#E5B594); color:#5C3B1E;">RK</div>
+    </div>
+  </aside>
+
+  <!-- =============== MAIN =============== -->
+  <main class="bg-white">
+
+    <!-- Top bar -->
+    <header class="flex items-center justify-between px-8 h-20">
+      <button class="h-10 w-10 rounded-full bg-white border border-faint grid place-items-center shadow-sm">
+        <i data-lucide="chevron-left"></i>
+      </button>
+
+      <nav class="flex items-center gap-10">
+        <a class="text-xs font-semibold tracking-[0.18em] uppercase text-slate-900 relative">
+          Dashboard
+          <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full" style="background:var(--primary)"></span>
+        </a>
+        <a class="text-xs font-semibold tracking-[0.18em] uppercase muted hover:text-slate-900">Insights</a>
+        <a class="text-xs font-semibold tracking-[0.18em] uppercase muted hover:text-slate-900">Activity</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <div class="flex -space-x-2">
+          <div class="h-8 w-8 rounded-full ring-2 ring-white" style="background:linear-gradient(135deg,#F4D7C2,#E5B594);"></div>
+          <div class="h-8 w-8 rounded-full ring-2 ring-white" style="background:linear-gradient(135deg,#B7D3D2,#94B5B3);"></div>
+          <div class="h-8 w-8 rounded-full ring-2 ring-white" style="background:linear-gradient(135deg,#E4DDF0,#C9BCE2);"></div>
+        </div>
+        <span class="text-sm font-medium muted">12 members</span>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="px-8 pb-8 space-y-6">
+
+      <!-- Row 1: hero + popularity -->
+      <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+
+        <!-- HERO TINTED CARD -->
+        <div class="rounded-[26px] p-7 relative overflow-hidden scene-bg">
+          <div class="relative z-10 max-w-[55%]">
+            <p class="text-white/90 text-sm font-medium">PRs raised today</p>
+            <p class="display text-white text-[88px] leading-none mt-1">12</p>
+
+            <div class="mt-7 space-y-3 max-w-xs">
+              <div class="flex items-center gap-3 bg-white/25 backdrop-blur-sm rounded-2xl px-3.5 py-2.5">
+                <div class="h-8 w-8 rounded-xl bg-white/40 grid place-items-center text-white"><i data-lucide="star"></i></div>
+                <div>
+                  <p class="text-[11px] text-white/90 font-medium">Approval rate</p>
+                  <p class="text-base text-white font-semibold leading-tight">93%</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 bg-white/25 backdrop-blur-sm rounded-2xl px-3.5 py-2.5">
+                <div class="h-8 w-8 rounded-xl bg-white/40 grid place-items-center text-white"><i data-lucide="trending-up"></i></div>
+                <div>
+                  <p class="text-[11px] text-white/90 font-medium">Avg time</p>
+                  <p class="text-base text-white font-semibold leading-tight">2.1 days</p>
+                </div>
+              </div>
+            </div>
+
+            <button class="pill-btn btn-primary mt-7">
+              View full statistics <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Illustration (CSS-only) -->
+          <div class="absolute right-2 bottom-0 w-[42%] h-full pointer-events-none">
+            <svg viewBox="0 0 280 320" class="w-full h-full">
+              <!-- floor plant -->
+              <ellipse cx="60" cy="295" rx="22" ry="4" fill="#7E9B97" opacity="0.4"/>
+              <path d="M60 295 L60 240" stroke="#4A6661" stroke-width="2.5"/>
+              <ellipse cx="55" cy="245" rx="11" ry="20" fill="#4A6661"/>
+              <ellipse cx="65" cy="252" rx="10" ry="18" fill="#5C7C76"/>
+              <!-- chair -->
+              <rect x="120" y="200" width="100" height="14" rx="4" fill="#E8C5A8"/>
+              <rect x="125" y="214" width="6" height="60" fill="#C9A887"/>
+              <rect x="209" y="214" width="6" height="60" fill="#C9A887"/>
+              <rect x="220" y="120" width="14" height="100" rx="6" fill="#F4D7C2"/>
+              <!-- person -->
+              <circle cx="160" cy="120" r="20" fill="#F2D3B3"/>
+              <path d="M148 110 Q160 95 172 110" stroke="#3D2817" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <rect x="142" y="138" width="42" height="58" rx="6" fill="#D8946A"/>
+              <rect x="158" y="170" width="38" height="12" rx="4" fill="#3D2817" transform="rotate(-10 177 176)"/>
+              <!-- laptop -->
+              <rect x="138" y="178" width="56" height="32" rx="3" fill="#2E4250"/>
+              <rect x="142" y="182" width="48" height="24" rx="2" fill="#5C7C8A"/>
+              <!-- floating orbs -->
+              <circle cx="210" cy="60" r="16" fill="none" stroke="white" stroke-width="2.5" opacity="0.8"/>
+              <circle cx="215" cy="55" r="4" fill="white" opacity="0.9"/>
+              <line x1="200" y1="80" x2="210" y2="100" stroke="white" stroke-width="2" opacity="0.6"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- APPROVAL VELOCITY (peach) -->
+        <div class="rounded-[26px] p-6 scene-peach relative overflow-hidden">
+          <p class="text-[#5C3B1E] font-semibold">Approval velocity</p>
+          <div class="flex items-end gap-3 mt-2">
+            <p class="display text-[#3D2410] text-[68px] leading-none">87</p>
+            <span class="mb-2 text-[11px] font-semibold rounded-full bg-white/70 text-[#5C3B1E] px-2 py-0.5">+2</span>
+            <!-- Gauge -->
+            <svg class="ml-auto" width="100" height="60" viewBox="0 0 100 60">
+              <path d="M 10 55 A 40 40 0 0 1 90 55" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.5"/>
+              <path d="M 10 55 A 40 40 0 0 1 75 25" stroke="var(--accent-orange)" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <circle cx="75" cy="25" r="5" fill="white" stroke="var(--accent-orange)" stroke-width="2"/>
+            </svg>
+          </div>
+          <p class="mt-5 text-sm text-[#5C3B1E]/80 leading-relaxed">
+            Velocity bana hua hai pichhle hafte se. <strong class="text-[#3D2410]">Keep approving</strong> faster — your team's waiting!
+          </p>
+          <div class="mt-5 bg-white/70 backdrop-blur rounded-2xl p-3 flex items-center gap-3">
+            <div class="h-9 w-9 rounded-xl grid place-items-center" style="background:var(--accent-orange)">
+              <i data-lucide="zap" class="text-white"></i>
+            </div>
+            <p class="text-xs flex-1 text-[#3D2410] leading-snug">Learn how to streamline multi-level approvals.</p>
+            <button class="h-9 w-9 rounded-full grid place-items-center text-white" style="background:var(--accent-orange)">
+              <i data-lucide="play"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: 3 cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Finance perf -->
+        <div>
+          <h3 class="text-sm font-semibold mb-3">Monthly Spend</h3>
+          <div class="rounded-[22px] border border-faint p-5" style="background:var(--surface)">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <div class="h-9 w-9 rounded-xl grid place-items-center" style="background:var(--primary)"><i data-lucide="indian-rupee" class="text-white"></i></div>
+                  <div>
+                    <p class="text-2xl font-bold tracking-tight">12,40,000</p>
+                    <p class="text-[11px] muted">Monthly spend</p>
+                  </div>
+                </div>
+              </div>
+              <button class="h-8 w-8 rounded-xl bg-white border border-faint grid place-items-center"><i data-lucide="calendar"></i></button>
+            </div>
+            <!-- bar chart -->
+            <div class="mt-5 flex items-end justify-between gap-2 h-24">
+              <div class="flex flex-col items-center gap-1.5 flex-1"><div class="w-full rounded-t-md" style="height:38%;background:#CBDBD9"></div><span class="text-[10px] muted font-medium">DEC</span></div>
+              <div class="flex flex-col items-center gap-1.5 flex-1"><div class="w-full rounded-t-md" style="height:52%;background:#A8C3C0"></div><span class="text-[10px] muted font-medium">JAN</span></div>
+              <div class="flex flex-col items-center gap-1.5 flex-1"><div class="w-full rounded-t-md" style="height:42%;background:#A8C3C0"></div><span class="text-[10px] muted font-medium">FEB</span></div>
+              <div class="flex flex-col items-center gap-1.5 flex-1"><div class="w-full rounded-t-md" style="height:65%;background:#7AA29D"></div><span class="text-[10px] muted font-medium">MAR</span></div>
+              <div class="flex flex-col items-center gap-1.5 flex-1"><div class="w-full rounded-t-md" style="height:55%;background:#7AA29D"></div><span class="text-[10px] muted font-medium">APR</span></div>
+              <div class="flex flex-col items-center gap-1.5 flex-1"><div class="w-full rounded-t-md" style="height:82%;background:var(--primary)"></div><span class="text-[10px] font-semibold">MAY</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top vendors -->
+        <div>
+          <h3 class="text-sm font-semibold mb-3">Top Vendors</h3>
+          <div class="rounded-[22px] border border-faint p-5 space-y-3" style="background:var(--surface)">
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 rounded-full" style="background:linear-gradient(135deg,#F4D7C2,#E5B594);"></div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">Acme Steel Pvt Ltd</p>
+                <p class="text-[11px] muted flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full" style="background:var(--success)"></span> Active</p>
+              </div>
+              <div class="px-2.5 py-1 rounded-lg bg-white border border-faint text-xs font-bold">4.7</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 rounded-full" style="background:linear-gradient(135deg,#E4DDF0,#C9BCE2);"></div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">Bharat Industries</p>
+                <p class="text-[11px] muted flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full" style="background:var(--success)"></span> Active</p>
+              </div>
+              <div class="px-2.5 py-1 rounded-lg bg-white border border-faint text-xs font-bold">4.3</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="h-10 w-10 rounded-full" style="background:linear-gradient(135deg,#DEEEDB,#B5D6AF);"></div>
+              <div class="flex-1">
+                <p class="text-sm font-semibold">Reliance Polymers</p>
+                <p class="text-[11px] muted">2 minutes ago</p>
+              </div>
+              <div class="px-2.5 py-1 rounded-lg" style="background:var(--tint-peach);"><span class="text-xs font-bold text-[#5C3B1E]">4.4</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spend by region -->
+        <div>
+          <h3 class="text-sm font-semibold mb-3">Spend by region</h3>
+          <div class="rounded-[22px] border border-faint p-5 relative" style="background:var(--surface); min-height:180px;">
+            <!-- India map (stylized dots) -->
+            <svg viewBox="0 0 240 160" class="w-full h-full">
+              <!-- Stylized India outline -->
+              <path d="M80 30 Q60 50 50 80 Q45 100 55 125 L75 140 Q100 150 130 145 Q160 135 175 115 Q185 90 175 65 Q160 40 130 30 Z" fill="none" stroke="#D6DEE6" stroke-width="1.5" stroke-dasharray="2 3"/>
+              <!-- city dots -->
+              <circle cx="80" cy="75" r="4" fill="var(--primary)"/>
+              <circle cx="80" cy="75" r="14" fill="var(--primary)" opacity="0.15"/>
+              <circle cx="130" cy="55" r="3" fill="#A8C3C0"/>
+              <circle cx="130" cy="55" r="10" fill="#A8C3C0" opacity="0.2"/>
+              <circle cx="145" cy="110" r="3" fill="#A8C3C0"/>
+              <circle cx="145" cy="110" r="10" fill="#A8C3C0" opacity="0.2"/>
+            </svg>
+            <!-- tooltip -->
+            <div class="absolute right-4 top-8 bg-white rounded-2xl px-3 py-2 shadow-md border border-faint flex items-center gap-2">
+              <div class="h-8 w-8 rounded-lg" style="background:var(--tint-teal)"></div>
+              <div>
+                <p class="text-xs font-semibold">Mumbai</p>
+                <p class="text-[10px] muted">62% · ₹7.7L</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Components section -->
+      <div class="rounded-[22px] border border-faint p-6 space-y-5" style="background:var(--surface)">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wider muted mb-3">Buttons</p>
+          <div class="flex flex-wrap gap-2.5">
+            <button class="pill-btn btn-primary">Primary action</button>
+            <button class="pill-btn btn-ghost">Secondary</button>
+            <button class="pill-btn" style="background:transparent;color:var(--muted)">Ghost</button>
+            <button class="pill-btn" style="background:var(--danger);color:white">Reject</button>
+            <button class="pill-btn btn-primary opacity-50 cursor-not-allowed">Disabled</button>
+          </div>
+        </div>
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wider muted mb-3">Modal</p>
+          <button class="pill-btn btn-primary" onclick="document.getElementById('m').showModal()"><i data-lucide="check-circle-2"></i> Open approval modal</button>
+          <dialog id="m" class="rounded-3xl p-0 backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm max-w-md w-full">
+            <div class="p-7">
+              <div class="h-12 w-12 rounded-2xl scene-peach grid place-items-center mb-4"><i data-lucide="check-circle-2"></i></div>
+              <h3 class="display text-2xl">Approve PR-2451?</h3>
+              <p class="mt-2 text-sm muted leading-relaxed">From Suresh K. for ₹48,200. A draft PO will be created automatically and routed to your L2 reviewer.</p>
+            </div>
+            <div class="px-7 py-5 border-t border-faint flex justify-end gap-2" style="background:var(--surface)">
+              <button class="pill-btn btn-ghost" onclick="document.getElementById('m').close()">Cancel</button>
+              <button class="pill-btn btn-primary" onclick="document.getElementById('m').close()">Confirm approval</button>
+            </div>
+          </dialog>
+        </div>
+      </div>
+
+      <!-- Login preview -->
+      <div>
+        <h3 class="text-sm font-semibold mb-3">Login preview</h3>
+        <div class="rounded-[24px] overflow-hidden grid md:grid-cols-2 border border-faint">
+          <div class="p-10 bg-white flex flex-col justify-center">
+            <div class="flex items-center gap-2 mb-8">
+              <div class="h-9 w-9 rounded-xl grid place-items-center text-white" style="background:var(--primary)"><i data-lucide="flower-2"></i></div>
+              <span class="font-semibold tracking-tight">Indus</span>
+            </div>
+            <h1 class="display text-3xl mb-1">Welcome back</h1>
+            <p class="text-sm muted mb-6">Sign in to your procurement workspace</p>
+            <form class="space-y-3">
+              <div>
+                <label class="text-xs font-semibold uppercase tracking-wider muted">Work email</label>
+                <input class="mt-1.5 w-full px-4 py-3 rounded-2xl border border-faint focus:outline-none focus:border-slate-400" placeholder="ramesh@acme.in"/>
+              </div>
+              <div>
+                <label class="text-xs font-semibold uppercase tracking-wider muted">Password</label>
+                <input type="password" class="mt-1.5 w-full px-4 py-3 rounded-2xl border border-faint focus:outline-none focus:border-slate-400" />
+              </div>
+              <button type="button" class="pill-btn btn-primary w-full justify-center mt-2">Sign in <i data-lucide="arrow-right"></i></button>
+            </form>
+          </div>
+          <div class="hidden md:block scene-bg relative">
+            <svg viewBox="0 0 280 320" class="w-full h-full">
+              <ellipse cx="140" cy="295" rx="60" ry="6" fill="#7E9B97" opacity="0.3"/>
+              <rect x="80" y="190" width="140" height="14" rx="5" fill="#E8C5A8"/>
+              <rect x="85" y="204" width="6" height="80" fill="#C9A887"/>
+              <rect x="209" y="204" width="6" height="80" fill="#C9A887"/>
+              <rect x="80" y="100" width="14" height="100" rx="6" fill="#F4D7C2"/>
+              <circle cx="180" cy="100" r="22" fill="#F2D3B3"/>
+              <path d="M168 92 Q180 76 192 92" stroke="#3D2817" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <rect x="160" y="120" width="46" height="62" rx="6" fill="#D8946A"/>
+              <rect x="160" y="168" width="62" height="36" rx="3" fill="#2E4250"/>
+              <rect x="165" y="173" width="52" height="26" rx="2" fill="#5C7C8A"/>
+              <circle cx="80" cy="50" r="14" fill="none" stroke="white" stroke-width="2.5" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+</div>
+
+<!-- Tokens info -->
+<div class="max-w-7xl mx-auto px-8 pb-12 text-white/80 text-xs">
+  <p class="font-semibold mb-2 tracking-wider uppercase">Design tokens (change in :root to retheme)</p>
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-3 font-mono text-[11px]">
+    <div><span class="inline-block h-3 w-3 rounded mr-1 align-middle" style="background:#3F5666"></span> --frame</div>
+    <div><span class="inline-block h-3 w-3 rounded mr-1 align-middle" style="background:#2F5C68"></span> --primary</div>
+    <div><span class="inline-block h-3 w-3 rounded mr-1 align-middle" style="background:#B7D3D2"></span> --tint-teal</div>
+    <div><span class="inline-block h-3 w-3 rounded mr-1 align-middle" style="background:#F4D7C2"></span> --tint-peach</div>
+    <div><span class="inline-block h-3 w-3 rounded mr-1 align-middle" style="background:#F2994A"></span> --accent-orange</div>
+    <div><span class="inline-block h-3 w-3 rounded mr-1 align-middle bg-white border border-white/30"></span> --bg</div>
+  </div>
+  <p class="mt-3 opacity-60">Font: Apple system stack (SF Pro Display/Text → Inter fallback) · Icons: Lucide (SF Symbols-equivalent) · Radius: 22–28px on cards</p>
+  <div class="mt-6"><a href="index.html" class="underline">← Back to all variants</a></div>
+</div>
+
+<script>
+  if (window.lucide && window.lucide.createIcons) lucide.createIcons();
+</script>
+
+</body>
+</html>

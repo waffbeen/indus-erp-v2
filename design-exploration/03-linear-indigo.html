@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Variant 03 — Linear Indigo</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --primary: #5E6AD2;
+    --primary-hover: #4E5AC2;
+    --primary-soft: #EDEEFC;
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --text: #1B1F23;
+    --muted: #6B7280;
+    --border: #E5E7EB;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+  }
+  body { font-family: 'Inter', system-ui, sans-serif; letter-spacing: -0.011em; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; font-size: 14px; }
+  .surface { background: var(--surface); }
+  .border-faint { border-color: var(--border); }
+  .text-muted { color: var(--muted); }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--bg); }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { background: var(--primary-soft); color: var(--primary); }
+  .btn-danger { background: var(--danger); color: white; }
+  .card { background: white; border: 1px solid var(--border); border-radius: 6px; }
+  .input { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: white; }
+  .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(94,106,210,0.15); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; font-size: 11px; font-weight: 500; border-radius: 4px; }
+  .badge-success { background: #ECFDF5; color: #047857; }
+  .badge-warning { background: #FEF3C7; color: #92400E; }
+  .badge-danger { background: #FEE2E2; color: #B91C1C; }
+  .badge-info { background: var(--primary-soft); color: var(--primary); }
+  .label { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 4px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="sticky top-0 z-40 border-b border-faint bg-white">
+  <div class="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-xs text-muted hover:text-slate-900">← All variants</a>
+      <span class="text-xs text-slate-300">/</span>
+      <span class="text-sm font-semibold">Variant 03 — Linear Indigo</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="h-5 w-5 rounded" style="background:#5E6AD2"></span>
+      <span class="h-5 w-5 rounded" style="background:#FAFAFA;border:1px solid #E5E7EB"></span>
+      <span class="h-5 w-5 rounded bg-white border border-faint"></span>
+    </div>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-6 py-8 space-y-12">
+
+  <section>
+    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Login</h2>
+    <div class="card overflow-hidden max-w-md mx-auto p-8">
+      <div class="flex items-center gap-2 mb-6">
+        <div class="h-6 w-6 rounded grid place-items-center text-white font-bold text-xs" style="background:#5E6AD2">I</div>
+        <span class="font-semibold text-sm">Indus</span>
+      </div>
+      <h1 class="text-xl font-semibold tracking-tight mb-1">Sign in to Indus</h1>
+      <p class="text-xs text-muted mb-6">Use your work email to continue</p>
+      <form class="space-y-3">
+        <div><label class="label">Email</label><input class="input" type="email" placeholder="ramesh@acme.in" /></div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="label !mb-0">Password</label>
+            <a href="#" class="text-[11px] font-medium" style="color:#5E6AD2">Forgot password?</a>
+          </div>
+          <input class="input" type="password" />
+        </div>
+        <button type="button" class="btn-primary w-full px-3 py-1.5 rounded-md text-sm font-medium mt-1">Sign in</button>
+      </form>
+      <div class="mt-5 pt-5 border-t border-faint text-center">
+        <p class="text-xs text-muted">No account yet? <a href="#" class="font-medium" style="color:#5E6AD2">Request access →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Dashboard</h2>
+    <div class="card overflow-hidden">
+      <div class="h-11 border-b border-faint px-3 flex items-center justify-between bg-white">
+        <div class="flex items-center gap-2">
+          <div class="h-5 w-5 rounded grid place-items-center text-white font-bold text-[10px]" style="background:#5E6AD2">I</div>
+          <button class="flex items-center gap-1 px-2 py-1 rounded hover:surface text-sm font-medium">Acme <span class="text-muted text-xs">▾</span></button>
+          <span class="text-xs text-muted">·</span>
+          <button class="flex items-center gap-1 px-2 py-1 rounded hover:surface text-sm">Mumbai Unit <span class="text-muted text-xs">▾</span></button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="flex items-center gap-2 px-2 py-1 rounded border border-faint text-xs text-muted hover:text-slate-900">
+            <span>Search...</span><kbd class="text-[10px] font-mono bg-surface px-1 rounded" style="background:#F3F4F6">⌘K</kbd>
+          </button>
+          <div class="h-6 w-6 rounded-full bg-slate-200 grid place-items-center text-[10px] font-semibold">RK</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-[170px_1fr]">
+        <aside class="border-r border-faint p-2 surface min-h-[440px]">
+          <nav class="space-y-px text-[13px]">
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-white" style="background:#5E6AD2">Dashboard</a>
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-muted hover:bg-white hover:text-slate-900">Requisitions</a>
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-muted hover:bg-white hover:text-slate-900">Purchase Orders</a>
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-muted hover:bg-white hover:text-slate-900">Approvals<span class="badge badge-warning ml-auto">3</span></a>
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-muted hover:bg-white hover:text-slate-900">Vendors</a>
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-muted hover:bg-white hover:text-slate-900">Items</a>
+            <div class="pt-2 mt-2 border-t border-faint text-[10px] uppercase tracking-wider text-muted px-2 mb-1">Insights</div>
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-muted hover:bg-white hover:text-slate-900">Reports</a>
+            <a class="flex items-center gap-2 px-2 py-1 rounded text-muted hover:bg-white hover:text-slate-900">Settings</a>
+          </nav>
+        </aside>
+
+        <div class="p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold tracking-tight">Dashboard</h2>
+              <p class="text-xs text-muted">Procurement overview · May 2026</p>
+            </div>
+            <div class="flex gap-2">
+              <button class="btn-secondary px-2.5 py-1 rounded-md text-xs font-medium">Filter</button>
+              <button class="btn-primary px-2.5 py-1 rounded-md text-xs font-medium">+ New PR</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div class="card p-3"><p class="text-[11px] text-muted uppercase tracking-wider">Monthly spend</p><p class="text-xl font-semibold mt-1 tabular-nums">₹12.4L</p><p class="text-[11px] mt-0.5 text-muted">↑ 12%</p></div>
+            <div class="card p-3"><p class="text-[11px] text-muted uppercase tracking-wider">Open POs</p><p class="text-xl font-semibold mt-1 tabular-nums">48</p><p class="text-[11px] mt-0.5 text-muted">9 overdue</p></div>
+            <div class="card p-3"><p class="text-[11px] text-muted uppercase tracking-wider">Approval time</p><p class="text-xl font-semibold mt-1 tabular-nums">2.1d</p><p class="text-[11px] mt-0.5 text-muted">↓ 18%</p></div>
+            <div class="card p-3"><p class="text-[11px] text-muted uppercase tracking-wider">Vendors</p><p class="text-xl font-semibold mt-1 tabular-nums">142</p><p class="text-[11px] mt-0.5 text-muted">+4 this mo</p></div>
+          </div>
+
+          <div class="card">
+            <div class="flex items-center justify-between px-3 py-2 border-b border-faint">
+              <h3 class="font-semibold text-xs">Pending approvals</h3>
+              <a href="#" class="text-[11px] font-medium" style="color:#5E6AD2">View all →</a>
+            </div>
+            <table class="w-full text-[13px]">
+              <thead class="text-[10px] uppercase tracking-wider text-muted">
+                <tr><th class="text-left px-3 py-1.5 font-medium">PR</th><th class="text-left px-3 py-1.5 font-medium">Requester</th><th class="text-left px-3 py-1.5 font-medium">Amount</th><th class="text-left px-3 py-1.5 font-medium">Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr class="border-t border-faint hover:bg-slate-50"><td class="px-3 py-1.5 font-mono text-[11px]">PR-2451</td><td class="px-3 py-1.5">Suresh K.</td><td class="px-3 py-1.5 font-medium tabular-nums">₹48,200</td><td class="px-3 py-1.5"><span class="badge badge-warning">Pending</span></td><td class="px-3 py-1.5 text-right"><button class="btn-ghost text-[11px] px-2 py-0.5 rounded">→</button></td></tr>
+                <tr class="border-t border-faint hover:bg-slate-50"><td class="px-3 py-1.5 font-mono text-[11px]">PR-2450</td><td class="px-3 py-1.5">Priya M.</td><td class="px-3 py-1.5 font-medium tabular-nums">₹12,500</td><td class="px-3 py-1.5"><span class="badge badge-info">L2 review</span></td><td class="px-3 py-1.5 text-right"><button class="btn-ghost text-[11px] px-2 py-0.5 rounded">→</button></td></tr>
+                <tr class="border-t border-faint hover:bg-slate-50"><td class="px-3 py-1.5 font-mono text-[11px]">PR-2449</td><td class="px-3 py-1.5">Anil G.</td><td class="px-3 py-1.5 font-medium tabular-nums">₹2,01,400</td><td class="px-3 py-1.5"><span class="badge badge-danger">Escalated</span></td><td class="px-3 py-1.5 text-right"><button class="btn-ghost text-[11px] px-2 py-0.5 rounded">→</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Components</h2>
+    <div class="card p-5 space-y-5">
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Buttons</p>
+        <div class="flex flex-wrap gap-2">
+          <button class="btn-primary px-2.5 py-1 rounded-md text-xs font-medium">Primary</button>
+          <button class="btn-secondary px-2.5 py-1 rounded-md text-xs font-medium">Secondary</button>
+          <button class="btn-ghost px-2.5 py-1 rounded-md text-xs font-medium">Ghost</button>
+          <button class="btn-danger px-2.5 py-1 rounded-md text-xs font-medium">Destructive</button>
+        </div>
+      </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Inputs</p>
+        <div class="grid sm:grid-cols-3 gap-3">
+          <div><label class="label">Item</label><input class="input" placeholder="Bearing 6204-ZZ" /></div>
+          <div><label class="label">Qty</label><input class="input" type="number" value="50" /></div>
+          <div><label class="label">Vendor</label><select class="input"><option>Acme Steel</option></select></div>
+        </div>
+      </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Badges</p>
+        <div class="flex flex-wrap gap-1.5">
+          <span class="badge badge-success">Active</span><span class="badge badge-warning">Pending</span>
+          <span class="badge badge-danger">Rejected</span><span class="badge badge-info">Approved</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Modal</p>
+        <button class="btn-primary px-2.5 py-1 rounded-md text-xs font-medium" onclick="document.getElementById('m').showModal()">Open modal</button>
+        <dialog id="m" class="rounded-md p-0 backdrop:bg-slate-900/30 max-w-sm w-full">
+          <div class="p-5">
+            <h3 class="text-base font-semibold tracking-tight">Approve PR-2451?</h3>
+            <p class="mt-1 text-xs text-muted">From Suresh K. for ₹48,200. Will create draft PO automatically.</p>
+            <div class="mt-3"><label class="label">Note</label><textarea class="input" rows="2"></textarea></div>
+          </div>
+          <div class="px-5 py-3 border-t border-faint flex justify-end gap-2">
+            <button class="btn-secondary px-2.5 py-1 rounded-md text-xs font-medium" onclick="document.getElementById('m').close()">Cancel</button>
+            <button class="btn-primary px-2.5 py-1 rounded-md text-xs font-medium" onclick="document.getElementById('m').close()">Approve</button>
+          </div>
+        </dialog>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-muted mb-2">Design Tokens</h2>
+    <div class="card p-5">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div><div class="h-12 rounded-md" style="background:#5E6AD2"></div><p class="mt-1.5 text-[11px] font-mono">#5E6AD2</p><p class="text-[11px] text-muted">Primary</p></div>
+        <div><div class="h-12 rounded-md" style="background:#FAFAFA;border:1px solid #E5E7EB"></div><p class="mt-1.5 text-[11px] font-mono">#FAFAFA</p><p class="text-[11px] text-muted">Background</p></div>
+        <div><div class="h-12 rounded-md" style="background:#1B1F23"></div><p class="mt-1.5 text-[11px] font-mono">#1B1F23</p><p class="text-[11px] text-muted">Text</p></div>
+        <div><div class="h-12 rounded-md" style="background:#E5E7EB"></div><p class="mt-1.5 text-[11px] font-mono">#E5E7EB</p><p class="text-[11px] text-muted">Border</p></div>
+      </div>
+      <div class="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-0.5">Font</p><p>Inter tight</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-0.5">Radius</p><p>6px</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-0.5">Shadow</p><p>Minimal</p></div>
+        <div><p class="font-semibold text-muted uppercase tracking-wider mb-0.5">Density</p><p>Dense</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="text-center pt-2 pb-10">
+    <a href="index.html" class="text-xs font-medium" style="color:#5E6AD2">← Back to all variants</a>
+  </div>
+</main>
+
+</body>
+</html>

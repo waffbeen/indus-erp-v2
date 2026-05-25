@@ -1,0 +1,132 @@
+/* ==========================================================================
+   THEME PRESET: "Circle" (Variant 07 — locked as default 2026-05-25)
+   --------------------------------------------------------------------------
+   Single source of truth for ALL design tokens.
+   To re-theme the whole app, change values here OR switch the @import in
+   ../tokens/index.css to point to a different preset (e.g. starline.css).
+   ========================================================================== */
+
+[data-theme="circle"], :root {
+
+  /* -------- BRAND -------- */
+  --frame:           #3F5666;   /* outer dark canvas behind the inner card */
+  --frame-2:         #2E4250;   /* deeper accent within frame */
+  --primary:         #2F5C68;   /* primary CTA fill (dark teal) */
+  --primary-hover:   #244750;
+  --primary-fg:      #FFFFFF;   /* foreground on primary */
+
+  /* -------- SURFACES -------- */
+  --bg:              #FFFFFF;   /* inner card background */
+  --surface:         #F7F9FB;   /* secondary surfaces (cards within cards) */
+  --surface-2:       #EEF1F4;
+  --border:          #EEF1F4;
+  --border-strong:   #D9DFE5;
+
+  /* -------- TEXT -------- */
+  --text:            #1B2733;
+  --text-on-dark:    #FFFFFF;
+  --muted:           #6B7888;
+  --muted-2:         #94A0AE;
+
+  /* -------- PASTEL TINTS (KPI cards, badges) -------- */
+  --tint-teal:       #B7D3D2;
+  --tint-teal-2:     #93B0AB;
+  --tint-teal-fg:    #1F3D3A;
+
+  --tint-peach:      #F4D7C2;
+  --tint-peach-2:    #EBC4A6;
+  --tint-peach-fg:   #5C3B1E;
+
+  --tint-sand:       #F1ECDF;
+  --tint-sand-fg:    #5A4F36;
+
+  --tint-mint:       #DEEEDB;
+  --tint-mint-fg:    #2A5E36;
+
+  --tint-lilac:      #E4DDF0;
+  --tint-lilac-fg:   #3F2F6A;
+
+  --tint-blush:      #F7DDE2;
+  --tint-blush-fg:   #6E2935;
+
+  /* -------- ACCENTS -------- */
+  --accent-orange:   #F2994A;
+  --accent-orange-fg:#FFFFFF;
+
+  /* -------- SEMANTIC STATUS -------- */
+  --success:         #2EAB5F;
+  --success-bg:      #DEEEDB;
+  --success-fg:      #1A6B3A;
+
+  --warning:         #F2994A;
+  --warning-bg:      #FCE8D4;
+  --warning-fg:      #7A4810;
+
+  --danger:          #E5544B;
+  --danger-bg:       #FBDDDA;
+  --danger-fg:       #8A1F1A;
+
+  --info:            #5B8FB9;
+  --info-bg:         #DFEDF6;
+  --info-fg:         #1F3F5F;
+
+  /* -------- TYPOGRAPHY -------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Menlo", Monaco, Consolas, "Liberation Mono", monospace;
+  --tracking-tight: -0.02em;
+  --tracking-display: -0.03em;
+
+  /* -------- RADII -------- */
+  --radius-sm:       8px;
+  --radius-md:       12px;
+  --radius-lg:       16px;
+  --radius-xl:       22px;
+  --radius-2xl:      28px;
+  --radius-pill:     999px;
+
+  /* -------- SHADOWS -------- */
+  --shadow-sm:       0 1px 2px rgba(15, 23, 32, 0.04);
+  --shadow-md:       0 2px 6px rgba(15, 23, 32, 0.06), 0 4px 14px rgba(15, 23, 32, 0.05);
+  --shadow-lg:       0 8px 24px rgba(15, 23, 32, 0.08), 0 16px 48px rgba(15, 23, 32, 0.06);
+  --shadow-dark:     0 8px 32px rgba(0, 0, 0, 0.25);
+
+  /* -------- SPACING SCALE (matches Tailwind 4-step) -------- */
+  /* (Tailwind's own scale is used; vars here are for non-Tailwind contexts) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* -------- MOTION -------- */
+  --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:        120ms;
+  --dur-normal:      200ms;
+  --dur-slow:        320ms;
+}
+
+/* ==========================================================================
+   GRADIENT PRESETS — used for hero cards
+   ========================================================================== */
+.gradient-teal {
+  background: linear-gradient(135deg, #BFD9D8 0%, #A8C3C0 60%, #93B0AB 100%);
+}
+.gradient-peach {
+  background: linear-gradient(135deg, #F4D7C2 0%, #EBC4A6 100%);
+}
+.gradient-sand {
+  background: linear-gradient(135deg, #F4EFDF 0%, #E5DDC4 100%);
+}
+.gradient-mint {
+  background: linear-gradient(135deg, #DEEEDB 0%, #BDD9B7 100%);
+}
+.gradient-lilac {
+  background: linear-gradient(135deg, #E4DDF0 0%, #C9BCE2 100%);
+}
