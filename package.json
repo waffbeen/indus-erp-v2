@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "AI-powered Procurement & Inventory SaaS — multi-tenant rebuild of the legacy VB.NET ERP",
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
