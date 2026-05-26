@@ -148,18 +148,24 @@ export async function getGrnDraftFromPo(tenantId: string, poId: string) {
 
   const items = await db.select().from(poItems).where(eq(poItems.poId, poId)).orderBy(poItems.sortOrder);
 
-  // Already received per po_item
+  // Already-received qty per po_item line, summed across all non-cancelled GRNs.
+  // Cancelled GRNs are filtered out so re-receiving works after a cancel.
   const itemIds = items.map((i) => i.id);
   const received = itemIds.length
-    ? await db.execute<{ po_item_id: string; received: number }>(
-        sql`SELECT po_item_id, COALESCE(SUM(accepted_quantity_scaled), 0)::int AS received
-            FROM grn_items
-            WHERE po_item_id = ANY(${itemIds})
-            GROUP BY po_item_id`,
-      )
-    : { rows: [] as Array<{ po_item_id: string; received: number }> };
+    ? await db
+        .select({
+          poItemId: grnItems.poItemId,
+          received: sql<number>`COALESCE(SUM(${grnItems.acceptedQuantityScaled}), 0)::int`.as("received"),
+        })
+        .from(grnItems)
+        .innerJoin(grns, eq(grnItems.grnId, grns.id))
+        .where(and(inArray(grnItems.poItemId, itemIds), sql`${grns.status} <> 'cancelled'`))
+        .groupBy(grnItems.poItemId)
+    : [];
   const receivedMap = new Map<string, number>();
-  for (const r of received.rows) receivedMap.set(r.po_item_id, r.received);
+  for (const r of received) {
+    if (r.poItemId) receivedMap.set(r.poItemId, r.received);
+  }
 
   return {
     po: {
@@ -173,7 +179,7 @@ export async function getGrnDraftFromPo(tenantId: string, poId: string) {
     items: items.map((it) => {
       const alreadyReceived = receivedMap.get(it.id) ?? 0;
       const orderedScaled = it.quantityScaled;
-      const remainingScaled = Math.max(0, orderedScaled - alreadyReceived);
+      const remainingScaled = Math.max(0, Number(orderedScaled) - Number(alreadyReceived));
       return {
         poItemId: it.id,
         itemId: it.itemId,

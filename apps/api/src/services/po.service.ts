@@ -2,6 +2,7 @@ import { eq, and, isNull, ilike, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../db/index";
 import { purchaseOrders, poItems } from "../db/schema/po";
 import { purchaseRequisitions, prItems } from "../db/schema/pr";
+import { grns, grnItems } from "../db/schema/grns";
 import { vendors } from "../db/schema/vendors";
 import { users } from "../db/schema/users";
 import { auditLogs } from "../db/schema/audit_logs";
@@ -526,26 +527,31 @@ export async function refreshPoReceivedStatus(tenantId: string, poId: string) {
   const items = await db.select().from(poItems).where(eq(poItems.poId, poId));
   if (items.length === 0) return;
 
-  // Calculate received per po_item from grn_items
+  // Calculate received per po_item from grn_items, excluding cancelled GRNs
   const itemIds = items.map((i) => i.id);
   const receivedRows = itemIds.length
-    ? await db.execute<{ po_item_id: string; received: number }>(
-        sql`SELECT po_item_id, COALESCE(SUM(accepted_quantity_scaled), 0)::int AS received
-            FROM grn_items
-            WHERE po_item_id = ANY(${itemIds})
-            GROUP BY po_item_id`,
-      )
-    : { rows: [] as Array<{ po_item_id: string; received: number }> };
+    ? await db
+        .select({
+          poItemId: grnItems.poItemId,
+          received: sql<number>`COALESCE(SUM(${grnItems.acceptedQuantityScaled}), 0)::int`.as("received"),
+        })
+        .from(grnItems)
+        .innerJoin(grns, eq(grnItems.grnId, grns.id))
+        .where(and(inArray(grnItems.poItemId, itemIds), sql`${grns.status} <> 'cancelled'`))
+        .groupBy(grnItems.poItemId)
+    : [];
 
   const receivedMap = new Map<string, number>();
-  for (const r of receivedRows.rows) receivedMap.set(r.po_item_id, r.received);
+  for (const r of receivedRows) {
+    if (r.poItemId) receivedMap.set(r.poItemId, r.received);
+  }
 
   let allReceived = true;
   let anyReceived = false;
   for (const it of items) {
     const got = receivedMap.get(it.id) ?? 0;
     if (got > 0) anyReceived = true;
-    if (got < it.quantityScaled) allReceived = false;
+    if (got < Number(it.quantityScaled)) allReceived = false;
   }
 
   let newStatus: "approved" | "sent_to_vendor" | "partially_received" | "received";
