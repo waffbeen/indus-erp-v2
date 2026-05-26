@@ -81,6 +81,16 @@ export const grnItems = pgTable(
       .notNull()
       .default("good"),
     remarks: text("remarks"),
+
+    /**
+     * Batch tracking — only populated when the tenant has settings.grn.batchMode
+     * enabled. A single PO line can have multiple grn_items rows (one per batch).
+     * Small-shop tenants leave these nullable and the GRN form hides the columns.
+     */
+    batchNumber: text("batch_number"),
+    mfgDate: timestamp("mfg_date", { mode: "date" }),
+    expiryDate: timestamp("expiry_date", { mode: "date" }),
+
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

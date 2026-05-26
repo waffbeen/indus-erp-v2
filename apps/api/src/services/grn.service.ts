@@ -237,6 +237,9 @@ export async function createGrn(input: GrnCreateInput, ctx: ActorContext) {
       unitPricePaise: Math.round(it.unitPrice * 100).toString(),
       condition: it.condition,
       remarks: it.remarks ?? null,
+      batchNumber: it.batchNumber?.trim() || null,
+      mfgDate: it.mfgDate ? new Date(it.mfgDate) : null,
+      expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
       sortOrder: idx,
     })),
   );

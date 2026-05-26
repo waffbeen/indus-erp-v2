@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import React, { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
@@ -37,6 +37,8 @@ export default function NewGrnPage() {
   const [pos, setPos] = useState<PoLite[]>([]);
   const [selectedPoId, setSelectedPoId] = useState<string>(fromPoId ?? "");
   const [draft, setDraft] = useState<DraftFromPo | null>(null);
+  /** Tenant-level toggle: when true, GRN form shows batch / mfg / expiry columns. */
+  const [batchMode, setBatchMode] = useState(false);
 
   const [form, setForm] = useState<Omit<GrnCreateInput, "items" | "companyId" | "unitId" | "poId" | "vendorId">>({
     invoiceNumber: "",
@@ -54,9 +56,13 @@ export default function NewGrnPage() {
   useEffect(() => {
     (async () => {
       try {
-        const resp = await api<{ items: PoLite[] }>("/api/po?pageSize=100");
+        const [resp, settings] = await Promise.all([
+          api<{ items: PoLite[] }>("/api/po?pageSize=100"),
+          api<{ grn?: { batchMode?: boolean } }>("/api/tenant/settings").catch(() => ({})),
+        ]);
         const receivable = resp.items.filter((p) => ["approved", "sent_to_vendor", "partially_received"].includes(p.status));
         setPos(receivable);
+        setBatchMode(!!settings?.grn?.batchMode);
       } catch (err) {
         setErrors({ summary: err instanceof ApiError ? err.message : "Could not load POs", fields: {} });
       }
@@ -86,6 +92,9 @@ export default function NewGrnPage() {
             unitPrice: it.unitPrice,
             condition: "good",
             remarks: "",
+            batchNumber: "",
+            mfgDate: null,
+            expiryDate: null,
           })),
         );
       } catch (err) {
@@ -96,6 +105,33 @@ export default function NewGrnPage() {
 
   function setItem(idx: number, patch: Partial<GrnItemInput>) {
     setItems((arr) => arr.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  }
+
+  /**
+   * Duplicate a row to add another batch against the same PO line. Carries
+   * over item id / name / uom / unit price so the line stays attached, but
+   * resets qty + batch fields so the user can type fresh values.
+   */
+  function addBatchFor(srcIdx: number) {
+    const src = items[srcIdx];
+    if (!src) return;
+    setItems((arr) => {
+      const next = [...arr];
+      next.splice(srcIdx + 1, 0, {
+        ...src,
+        receivedQuantity: 0,
+        acceptedQuantity: 0,
+        rejectedQuantity: 0,
+        batchNumber: "",
+        mfgDate: null,
+        expiryDate: null,
+      });
+      return next;
+    });
+  }
+
+  function removeRow(idx: number) {
+    setItems((arr) => arr.filter((_, i) => i !== idx));
   }
 
   const computedInvoice = items.reduce((s, it) => s + it.acceptedQuantity * it.unitPrice, 0);
@@ -225,9 +261,19 @@ export default function NewGrnPage() {
 
           {/* Items table */}
           <div className="card overflow-hidden mb-5">
-            <div className="px-6 py-4 border-b border-border">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Items being received</p>
-              <p className="text-sm text-muted mt-0.5">Edit received/accepted/rejected — leave received=0 to skip an item this time.</p>
+            <div className="px-6 py-4 border-b border-border flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Items being received</p>
+                <p className="text-sm text-muted mt-0.5">
+                  Edit received/accepted/rejected — leave received=0 to skip an item this time.
+                  {batchMode && (
+                    <> Click <strong>+ Add batch</strong> to split a line across multiple batches.</>
+                  )}
+                </p>
+              </div>
+              {batchMode && (
+                <span className="badge badge-info text-[10px] uppercase tracking-wider">Batch mode</span>
+              )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -246,14 +292,25 @@ export default function NewGrnPage() {
                 <tbody>
                   {items.map((it, idx) => {
                     const value = it.acceptedQuantity * it.unitPrice;
+                    // Show "first row of a PO line" vs "subsequent batch row" so the
+                    // item name doesn't repeat when we have multiple batches per line.
+                    const prev = idx > 0 ? items[idx - 1] : null;
+                    const isContinuation = batchMode && prev && prev.poItemId === it.poItemId && prev.poItemId !== null;
                     return (
-                      <tr key={idx} className="border-t border-border">
-                        <td className="px-3 py-2 text-muted text-xs">{idx + 1}</td>
+                      <React.Fragment key={idx}>
+                      <tr className={`border-t border-border ${isContinuation ? "border-t-dashed" : ""}`}>
+                        <td className="px-3 py-2 text-muted text-xs pt-3.5">{isContinuation ? <span className="opacity-40">↳</span> : idx + 1}</td>
                         <td className="px-3 py-2">
-                          <p className="font-semibold">{it.itemName}</p>
-                          <p className="text-[11px] text-muted">UOM: <span className="font-mono">{it.uom}</span> · @ {paiseToINR(it.unitPrice * 100)}</p>
+                          {isContinuation ? (
+                            <p className="text-[11px] text-muted italic">Same item — next batch</p>
+                          ) : (
+                            <>
+                              <p className="font-semibold">{it.itemName}</p>
+                              <p className="text-[11px] text-muted">UOM: <span className="font-mono">{it.uom}</span> · @ {paiseToINR(it.unitPrice * 100)}</p>
+                            </>
+                          )}
                         </td>
-                        <td className="px-3 py-2 tabular-nums text-muted">{it.orderedQuantity}</td>
+                        <td className="px-3 py-2 tabular-nums text-muted">{isContinuation ? "" : it.orderedQuantity}</td>
                         <td className="px-3 py-2">
                           <input
                             className="input !py-1.5 tabular-nums"
@@ -304,6 +361,66 @@ export default function NewGrnPage() {
                           {value > 0 ? paiseToINR(value * 100) : <span className="text-muted">—</span>}
                         </td>
                       </tr>
+
+                      {/* Batch sub-row — only when batchMode is on and the item is from a PO line */}
+                      {batchMode && it.poItemId && (
+                        <tr className="border-b border-border" style={{ background: "var(--surface)" }}>
+                          <td />
+                          <td colSpan={7} className="px-3 pb-2 pt-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label className="flex items-center gap-1.5 text-[11px] text-muted whitespace-nowrap">
+                                Batch #
+                                <input
+                                  className="input !py-1 !h-8 w-36 font-mono text-xs"
+                                  placeholder="e.g. B-2026-001"
+                                  value={it.batchNumber ?? ""}
+                                  onChange={(e) => setItem(idx, { batchNumber: e.target.value })}
+                                />
+                              </label>
+                              <label className="flex items-center gap-1.5 text-[11px] text-muted whitespace-nowrap">
+                                Mfg
+                                <input
+                                  type="date"
+                                  className="input !py-1 !h-8 w-36 text-xs"
+                                  value={it.mfgDate ?? ""}
+                                  onChange={(e) => setItem(idx, { mfgDate: e.target.value || null })}
+                                />
+                              </label>
+                              <label className="flex items-center gap-1.5 text-[11px] text-muted whitespace-nowrap">
+                                Expiry
+                                <input
+                                  type="date"
+                                  className="input !py-1 !h-8 w-36 text-xs"
+                                  value={it.expiryDate ?? ""}
+                                  onChange={(e) => setItem(idx, { expiryDate: e.target.value || null })}
+                                />
+                              </label>
+                              <div className="flex-1" />
+                              <button
+                                type="button"
+                                className="text-[11px] font-medium flex items-center gap-1 text-primary hover:underline whitespace-nowrap"
+                                onClick={() => addBatchFor(idx)}
+                                title="Split this PO line — add another batch with different mfg/expiry"
+                              >
+                                <Icon name="Plus" size={14} />
+                                Add batch
+                              </button>
+                              {isContinuation && (
+                                <button
+                                  type="button"
+                                  className="text-[11px] font-medium flex items-center gap-1 text-muted hover:text-danger-fg whitespace-nowrap"
+                                  onClick={() => removeRow(idx)}
+                                  title="Remove this batch"
+                                >
+                                  <Icon name="Trash2" size={14} />
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

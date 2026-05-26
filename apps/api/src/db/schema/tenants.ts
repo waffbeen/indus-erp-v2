@@ -16,6 +16,18 @@ export const tenants = pgTable(
     dedicatedDbUrl: text("dedicated_db_url"),
     // Free-form metadata super-admin can store (logo URL, brand color, etc.)
     metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+    /**
+     * Tenant-level feature toggles editable by the tenant admin.
+     * Keep the shape stable across releases — add new fields as optional.
+     * Each flag should default to "small-shop friendly" off-state so a
+     * just-onboarded kirana tenant doesn't see enterprise complexity.
+     */
+    settings: jsonb("settings").$type<{
+      grn?: {
+        /** Track batch number / mfg date / expiry per receipt line. */
+        batchMode?: boolean;
+      };
+    }>().notNull().default({}),
     trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
     suspendedReason: text("suspended_reason"),

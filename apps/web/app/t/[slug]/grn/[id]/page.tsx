@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
@@ -20,6 +20,9 @@ interface GrnItem {
   unitPricePaise: string;
   condition: string;
   remarks: string | null;
+  batchNumber: string | null;
+  mfgDate: string | null;
+  expiryDate: string | null;
 }
 interface GrnDetail {
   id: string;
@@ -167,20 +170,38 @@ export default function GrnDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {grn.items.map((it, idx) => (
-                  <tr key={it.id} className="border-t border-border">
-                    <td className="px-5 py-3 text-muted text-xs">{idx + 1}</td>
-                    <td className="px-5 py-3">
-                      <p className="font-semibold">{it.itemName}</p>
-                      <p className="text-[11px] text-muted">UOM: <span className="font-mono">{it.uom}</span></p>
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-muted">{quantityScaledToHuman(it.orderedQuantityScaled)}</td>
-                    <td className="px-5 py-3 tabular-nums">{quantityScaledToHuman(it.receivedQuantityScaled)}</td>
-                    <td className="px-5 py-3 tabular-nums font-semibold">{quantityScaledToHuman(it.acceptedQuantityScaled)}</td>
-                    <td className="px-5 py-3 tabular-nums">{it.rejectedQuantityScaled > 0 ? quantityScaledToHuman(it.rejectedQuantityScaled) : <span className="text-muted">—</span>}</td>
-                    <td className="px-5 py-3"><span className={`badge ${COND_TINT[it.condition] ?? "badge-info"} capitalize`}>{it.condition}</span></td>
-                  </tr>
-                ))}
+                {grn.items.map((it, idx) => {
+                  const hasBatch = !!(it.batchNumber || it.mfgDate || it.expiryDate);
+                  return (
+                  <React.Fragment key={it.id}>
+                    <tr className="border-t border-border align-top">
+                      <td className="px-5 py-3 text-muted text-xs">{idx + 1}</td>
+                      <td className="px-5 py-3">
+                        <p className="font-semibold">{it.itemName}</p>
+                        <p className="text-[11px] text-muted">UOM: <span className="font-mono">{it.uom}</span></p>
+                      </td>
+                      <td className="px-5 py-3 tabular-nums text-muted">{quantityScaledToHuman(it.orderedQuantityScaled)}</td>
+                      <td className="px-5 py-3 tabular-nums">{quantityScaledToHuman(it.receivedQuantityScaled)}</td>
+                      <td className="px-5 py-3 tabular-nums font-semibold">{quantityScaledToHuman(it.acceptedQuantityScaled)}</td>
+                      <td className="px-5 py-3 tabular-nums">{it.rejectedQuantityScaled > 0 ? quantityScaledToHuman(it.rejectedQuantityScaled) : <span className="text-muted">—</span>}</td>
+                      <td className="px-5 py-3"><span className={`badge ${COND_TINT[it.condition] ?? "badge-info"} capitalize`}>{it.condition}</span></td>
+                    </tr>
+                    {hasBatch && (
+                      <tr className="border-t border-border" style={{ background: "var(--surface)" }}>
+                        <td />
+                        <td colSpan={6} className="px-5 py-2 text-xs">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-muted font-semibold uppercase tracking-wider text-[10px] mr-1">Batch:</span>
+                            {it.batchNumber && <span className="badge badge-info text-[10px] font-mono">#{it.batchNumber}</span>}
+                            {it.mfgDate && <span className="badge badge-tint-mint text-[10px]">Mfg {formatDate(it.mfgDate)}</span>}
+                            {it.expiryDate && <span className="badge badge-tint-peach text-[10px]">Expiry {formatDate(it.expiryDate)}</span>}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

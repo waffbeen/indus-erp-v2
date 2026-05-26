@@ -18,6 +18,13 @@ export const grnItemInputSchema = z.object({
   unitPrice: z.number().nonnegative().default(0),
   condition: grnConditionSchema.default("good"),
   remarks: z.string().trim().max(500).optional().nullable().or(z.literal("")),
+  /**
+   * Batch tracking — only filled when tenant has settings.grn.batchMode enabled.
+   * A single PO line may produce multiple GRN rows, one per batch.
+   */
+  batchNumber: z.string().trim().max(60).optional().nullable().or(z.literal("")),
+  mfgDate: z.string().date().optional().nullable(),
+  expiryDate: z.string().date().optional().nullable(),
 });
 export type GrnItemInput = z.infer<typeof grnItemInputSchema>;
 
