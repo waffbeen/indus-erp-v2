@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Icon } from "@/components/Icon";
+import { Icon, type IconProps } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { PrStatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -19,6 +20,26 @@ interface RecentPending {
   requesterName: string;
 }
 
+interface MonthlyTrendEntry {
+  month: string;     // "2026-05"
+  prCount: number;
+  poCount: number;
+  poValuePaise: string;
+}
+
+interface TopVendor {
+  vendorId: string;
+  vendorName: string;
+  poCount: number;
+  totalPaise: string;
+}
+
+interface PrAgingBucket {
+  bucket: "0-2" | "2-5" | "5+";
+  count: number;
+  valuePaise: string;
+}
+
 interface Stats {
   prRaisedToday: number;
   pendingPrCount: number;
@@ -28,14 +49,30 @@ interface Stats {
   monthlySpendPaise: string;
   activeVendorsCount: number;
   avgApprovalDays: number | null;
+  grnMonthCount: number;
+  grnMonthValuePaise: string;
+  monthlyTrend: MonthlyTrendEntry[];
+  topVendors: TopVendor[];
+  prAgingBuckets: PrAgingBucket[];
   recentPending: RecentPending[];
 }
+
+const AGING_LABEL: Record<PrAgingBucket["bucket"], string> = {
+  "0-2": "0–2 days",
+  "2-5": "2–5 days",
+  "5+":  "5+ days",
+};
+
+const AGING_TONE: Record<PrAgingBucket["bucket"], string> = {
+  "0-2": "badge-tint-mint",
+  "2-5": "badge-tint-peach",
+  "5+":  "badge-danger",
+};
 
 export default function DashboardPage() {
   const { me } = useAuth();
   const params = useParams<{ slug: string }>();
   const slug = params?.slug ?? "";
-  const firstName = me?.fullName.split(" ")[0] ?? "there";
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,212 +91,270 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const totalPending = (stats?.pendingPrCount ?? 0) + (stats?.pendingPoCount ?? 0);
 
+  // Max value across the 6-month trend, used to scale bar heights
+  const maxPoValue = Math.max(
+    1,
+    ...((stats?.monthlyTrend ?? []).map((m) => Number(m.poValuePaise))),
+  );
+  // Max total for vendor bars
+  const maxVendor = Math.max(
+    1,
+    ...((stats?.topVendors ?? []).map((v) => Number(v.totalPaise))),
+  );
+
   return (
-    <div className="space-y-6">
-      {/* Greeting */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="display text-3xl">{greeting()}, {firstName}</h1>
-          <p className="text-sm text-muted mt-1">
-            {totalPending > 0
-              ? `${totalPending} item${totalPending === 1 ? "" : "s"} waiting on your decision.`
-              : "All caught up — nothing pending today."}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-ghost" onClick={load}>
-            <Icon name="RefreshCw" /> Refresh
-          </button>
-          <Link href={`/t/${slug}/pr/new`} className="btn btn-primary btn-lg">
-            <Icon name="Plus" /> New Requisition
-          </Link>
-        </div>
-      </div>
+    <>
+      <PageHeader
+        title={`${greeting()}, ${me?.fullName.split(" ")[0] ?? "there"}`}
+        subtitle={
+          totalPending > 0
+            ? `${totalPending} item${totalPending === 1 ? "" : "s"} waiting on your decision`
+            : "All caught up — nothing pending today"
+        }
+        actions={
+          <>
+            <button className="btn btn-ghost btn-sm" onClick={load}>
+              <Icon name="RefreshCw" size={14} /> Refresh
+            </button>
+            <Link href={`/t/${slug}/pr/new`} className="btn btn-primary btn-sm">
+              <Icon name="Plus" size={14} /> New PR
+            </Link>
+          </>
+        }
+      />
 
       {error && (
-        <div className="rounded-lg p-3 bg-danger-bg text-danger-fg text-sm flex items-start gap-2">
-          <Icon name="AlertTriangle" size={16} />
+        <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
+          <Icon name="AlertTriangle" size={14} />
           <span className="flex-1">{error}</span>
         </div>
       )}
 
-      {/* Row 1: hero card (2/3) + popularity (1/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
-
-        {/* HERO — PRs today */}
-        <div className="gradient-teal relative overflow-hidden rounded-2xl p-7">
-          <div className="relative z-10 max-w-[55%]">
-            <p className="text-sm font-medium text-on-dark/95">PRs raised today</p>
-            <p className="display text-on-dark mt-1" style={{ fontSize: 88, lineHeight: 1 }}>
-              {loading ? "—" : stats?.prRaisedToday ?? 0}
-            </p>
-
-            <div className="mt-7 space-y-3 max-w-xs">
-              <div className="flex items-center gap-3 backdrop-blur-sm rounded-2xl px-3.5 py-2.5" style={{ background: "rgba(255,255,255,0.28)" }}>
-                <div className="h-8 w-8 rounded-xl grid place-items-center text-on-dark" style={{ background: "rgba(255,255,255,0.4)" }}><Icon name="Inbox" /></div>
-                <div>
-                  <p className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.9)" }}>Pending approvals</p>
-                  <p className="text-base text-on-dark font-semibold leading-tight">{totalPending}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 backdrop-blur-sm rounded-2xl px-3.5 py-2.5" style={{ background: "rgba(255,255,255,0.28)" }}>
-                <div className="h-8 w-8 rounded-xl grid place-items-center text-on-dark" style={{ background: "rgba(255,255,255,0.4)" }}><Icon name="TrendingUp" /></div>
-                <div>
-                  <p className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.9)" }}>Avg approval time</p>
-                  <p className="text-base text-on-dark font-semibold leading-tight">
-                    {stats?.avgApprovalDays !== null && stats?.avgApprovalDays !== undefined
-                      ? `${stats.avgApprovalDays} days`
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Link href={`/t/${slug}/approvals`} className="btn btn-primary mt-7">
-              Review approvals <Icon name="ArrowRight" />
-            </Link>
-          </div>
-
-          {/* Illustration */}
-          <svg viewBox="0 0 280 320" className="absolute right-2 bottom-0 w-[42%] h-full pointer-events-none">
-            <ellipse cx="60" cy="295" rx="22" ry="4" fill="#7E9B97" opacity="0.4" />
-            <path d="M60 295 L60 240" stroke="#4A6661" strokeWidth="2.5" />
-            <ellipse cx="55" cy="245" rx="11" ry="20" fill="#4A6661" />
-            <ellipse cx="65" cy="252" rx="10" ry="18" fill="#5C7C76" />
-            <rect x="120" y="200" width="100" height="14" rx="4" fill="#E8C5A8" />
-            <rect x="125" y="214" width="6" height="60" fill="#C9A887" />
-            <rect x="209" y="214" width="6" height="60" fill="#C9A887" />
-            <rect x="220" y="120" width="14" height="100" rx="6" fill="#F4D7C2" />
-            <circle cx="160" cy="120" r="20" fill="#F2D3B3" />
-            <path d="M148 110 Q160 95 172 110" stroke="#3D2817" strokeWidth="3" fill="none" strokeLinecap="round" />
-            <rect x="142" y="138" width="42" height="58" rx="6" fill="#D8946A" />
-            <rect x="138" y="178" width="56" height="32" rx="3" fill="#2E4250" />
-            <rect x="142" y="182" width="48" height="24" rx="2" fill="#5C7C8A" />
-            <circle cx="210" cy="60" r="16" fill="none" stroke="white" strokeWidth="2.5" opacity="0.8" />
-            <circle cx="215" cy="55" r="4" fill="white" opacity="0.9" />
-          </svg>
-        </div>
-
-        {/* Pending approvals widget */}
-        <div className="gradient-peach relative overflow-hidden rounded-2xl p-6">
-          <p className="font-semibold" style={{ color: "var(--tint-peach-fg)" }}>
-            Action needed
-          </p>
-          <div className="flex items-end gap-3 mt-2">
-            <p className="display" style={{ color: "#3D2410", fontSize: 68, lineHeight: 1 }}>
-              {loading ? "—" : totalPending}
-            </p>
-            {totalPending > 0 && (
-              <span className="badge mb-2" style={{ background: "rgba(255,255,255,0.7)", color: "var(--tint-peach-fg)" }}>
-                {stats?.pendingPrCount ?? 0} PR · {stats?.pendingPoCount ?? 0} PO
-              </span>
-            )}
-          </div>
-          <p className="mt-4 text-sm leading-relaxed" style={{ color: "rgba(92,59,30,0.85)" }}>
-            {totalPending > 0
-              ? <>You have items waiting. <strong style={{ color: "#3D2410" }}>Review them</strong> to keep procurement moving.</>
-              : <>No items waiting on you right now. Inbox zero 🎉</>}
-          </p>
-          <Link
-            href={`/t/${slug}/approvals`}
-            className="mt-5 rounded-2xl p-3 flex items-center gap-3"
-            style={{ background: "rgba(255,255,255,0.7)", backdropFilter: "blur(6px)" }}
-          >
-            <div className="h-9 w-9 rounded-xl grid place-items-center" style={{ background: "var(--accent-orange)", color: "var(--accent-orange-fg)" }}>
-              <Icon name="Inbox" />
-            </div>
-            <p className="text-xs flex-1 leading-snug" style={{ color: "#3D2410" }}>Open approvals queue</p>
-            <span className="h-9 w-9 rounded-full grid place-items-center" style={{ background: "var(--accent-orange)", color: "var(--accent-orange-fg)" }}>
-              <Icon name="ArrowRight" />
-            </span>
-          </Link>
-        </div>
+      {/* KPI tiles — 8-wide grid like a real ERP */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-4">
+        <KpiTile
+          label="PR Today"
+          value={loading ? "—" : String(stats?.prRaisedToday ?? 0)}
+          icon="FileText"
+          href={`/t/${slug}/pr`}
+        />
+        <KpiTile
+          label="PR Pending"
+          value={loading ? "—" : String(stats?.pendingPrCount ?? 0)}
+          icon="Inbox"
+          href={`/t/${slug}/approvals`}
+          tone={stats?.pendingPrCount ? "warning" : undefined}
+        />
+        <KpiTile
+          label="PO Pending"
+          value={loading ? "—" : String(stats?.pendingPoCount ?? 0)}
+          icon="ShoppingCart"
+          href={`/t/${slug}/approvals`}
+          tone={stats?.pendingPoCount ? "warning" : undefined}
+        />
+        <KpiTile
+          label="Open POs"
+          value={loading ? "—" : String(stats?.openPosCount ?? 0)}
+          icon="Package"
+          href={`/t/${slug}/po`}
+          sub={stats?.overduePosCount ? `${stats.overduePosCount} overdue` : undefined}
+          tone={stats?.overduePosCount ? "danger" : undefined}
+        />
+        <KpiTile
+          label="GRN MTD"
+          value={loading ? "—" : String(stats?.grnMonthCount ?? 0)}
+          icon="PackageCheck"
+          href={`/t/${slug}/grn`}
+          sub={loading ? "" : paiseToCompactINR(stats?.grnMonthValuePaise)}
+        />
+        <KpiTile
+          label="Spend MTD"
+          value={loading ? "—" : paiseToCompactINR(stats?.monthlySpendPaise)}
+          icon="IndianRupee"
+        />
+        <KpiTile
+          label="Vendors"
+          value={loading ? "—" : String(stats?.activeVendorsCount ?? 0)}
+          icon="Users"
+          href={`/t/${slug}/vendors`}
+        />
+        <KpiTile
+          label="Avg approval"
+          value={
+            loading
+              ? "—"
+              : stats?.avgApprovalDays != null
+                ? `${stats.avgApprovalDays}d`
+                : "—"
+          }
+          icon="Clock"
+          sub="last 90d"
+        />
       </div>
 
-      {/* Row 2: 3 cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <KpiBlock
-          title="Monthly Spend"
-          icon="IndianRupee"
-          value={loading ? "—" : paiseToCompactINR(stats?.monthlySpendPaise)}
-          subtitle="Approved POs this month"
-        />
-        <KpiBlock
-          title="Open POs"
-          icon="ShoppingCart"
-          value={loading ? "—" : String(stats?.openPosCount ?? 0)}
-          subtitle={stats?.overduePosCount ? `${stats.overduePosCount} overdue` : "All on track"}
-          subtitleTone={stats?.overduePosCount ? "warning" : "normal"}
-        />
-        <KpiBlock
-          title="Active Vendors"
-          icon="Users"
-          value={loading ? "—" : String(stats?.activeVendorsCount ?? 0)}
-          subtitle="Suppliers ready to receive POs"
-        />
+      {/* Row: Monthly trend + PR aging + Top vendors */}
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr_1fr] gap-3 mb-4">
+        {/* Monthly trend bars */}
+        <div className="card p-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-default">
+              <span className="inline-block h-3 w-0.5 mr-1.5 align-middle" style={{ background: "var(--primary)" }} />
+              Monthly trend · last 6 months
+            </h3>
+            <span className="text-[10px] text-muted">PO value</span>
+          </div>
+          {loading ? (
+            <div className="h-32 grid place-items-center text-xs text-muted">Loading…</div>
+          ) : (
+            <div className="h-32 flex items-end gap-2 px-1">
+              {(stats?.monthlyTrend ?? []).map((m, idx) => {
+                const v = Number(m.poValuePaise);
+                const heightPct = (v / maxPoValue) * 100;
+                const isLast = idx === (stats?.monthlyTrend.length ?? 1) - 1;
+                return (
+                  <div key={m.month} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                    <div className="text-[10px] tabular-nums leading-none mb-0.5" style={{ color: "var(--muted)" }}>
+                      {v > 0 ? paiseToCompactINR(m.poValuePaise) : ""}
+                    </div>
+                    <div className="w-full bg-surface rounded-sm relative flex-1 flex flex-col justify-end overflow-hidden" style={{ minHeight: 4 }}>
+                      <div
+                        className="w-full rounded-sm transition-all"
+                        style={{
+                          height: `${Math.max(heightPct, v > 0 ? 4 : 0)}%`,
+                          background: isLast ? "var(--primary)" : "var(--tint-teal)",
+                        }}
+                        title={`${m.poCount} POs · ${paiseToINR(m.poValuePaise)}`}
+                      />
+                    </div>
+                    <div className="text-[10px] text-muted">{monthLabel(m.month)}</div>
+                    <div className="text-[10px] text-text-default font-medium tabular-nums">{m.poCount}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* PR Aging */}
+        <div className="card p-3">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-default mb-2">
+            <span className="inline-block h-3 w-0.5 mr-1.5 align-middle" style={{ background: "var(--primary)" }} />
+            PR aging
+          </h3>
+          <p className="text-[10px] text-muted mb-2">Time pending approvers have been holding</p>
+          {loading ? (
+            <div className="h-24 grid place-items-center text-xs text-muted">Loading…</div>
+          ) : (stats?.prAgingBuckets ?? []).every((b) => b.count === 0) ? (
+            <div className="h-24 grid place-items-center text-xs text-muted text-center">
+              No pending PRs — inbox zero 🎉
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {(stats?.prAgingBuckets ?? []).map((b) => (
+                <div key={b.bucket} className="flex items-center justify-between gap-2">
+                  <span className={`badge ${AGING_TONE[b.bucket]} text-[10px]`}>{AGING_LABEL[b.bucket]}</span>
+                  <div className="flex items-baseline gap-2 tabular-nums">
+                    <span className="text-sm font-bold">{b.count}</span>
+                    <span className="text-[10px] text-muted">{paiseToCompactINR(b.valuePaise)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Top vendors */}
+        <div className="card p-3">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-default mb-2">
+            <span className="inline-block h-3 w-0.5 mr-1.5 align-middle" style={{ background: "var(--primary)" }} />
+            Top vendors
+          </h3>
+          {loading ? (
+            <div className="h-24 grid place-items-center text-xs text-muted">Loading…</div>
+          ) : (stats?.topVendors ?? []).length === 0 ? (
+            <div className="h-24 grid place-items-center text-xs text-muted">No PO data yet</div>
+          ) : (
+            <div className="space-y-1.5">
+              {(stats?.topVendors ?? []).slice(0, 5).map((v) => {
+                const widthPct = (Number(v.totalPaise) / maxVendor) * 100;
+                return (
+                  <div key={v.vendorId} className="text-[11px]">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium truncate">{v.vendorName}</span>
+                      <span className="tabular-nums text-text-default font-semibold whitespace-nowrap">
+                        {paiseToCompactINR(v.totalPaise)}
+                      </span>
+                    </div>
+                    <div className="h-1 w-full bg-surface rounded-sm mt-0.5 overflow-hidden">
+                      <div className="h-full rounded-sm" style={{ width: `${widthPct}%`, background: "var(--primary)" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Pending approvals table */}
-      <div className="card">
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <div>
-            <h3 className="font-semibold">Pending Approvals</h3>
-            <p className="text-xs text-muted">Top {stats?.recentPending.length ?? 0} requisitions awaiting your decision</p>
-          </div>
-          <Link href={`/t/${slug}/approvals`} className="text-xs font-semibold text-primary hover:underline">
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-default">
+            <span className="inline-block h-3 w-0.5 mr-1.5 align-middle" style={{ background: "var(--primary)" }} />
+            Pending approvals
+            <span className="ml-2 text-muted font-normal normal-case tracking-normal">
+              {stats?.recentPending.length ?? 0} most recent
+            </span>
+          </h3>
+          <Link href={`/t/${slug}/approvals`} className="text-[11px] font-semibold text-primary hover:underline">
             View all →
           </Link>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-sm text-muted">Loading…</div>
+          <div className="p-6 text-center text-xs text-muted">Loading…</div>
         ) : !stats?.recentPending.length ? (
-          <div className="p-12 text-center">
-            <div className="h-12 w-12 rounded-2xl mx-auto grid place-items-center bg-tint-mint text-tint-mint-fg mb-3">
-              <Icon name="CheckCircle2" size={22} />
-            </div>
-            <h4 className="font-semibold mb-1">Inbox zero 🎉</h4>
-            <p className="text-sm text-muted">No requisitions waiting for your approval.</p>
+          <div className="p-8 text-center">
+            <Icon name="CheckCircle2" size={20} className="mx-auto mb-1.5 text-muted" />
+            <p className="text-xs text-muted">No requisitions waiting for approval.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-[11px] uppercase tracking-wider text-muted bg-surface">
+          <table className="w-full">
+            <thead className="bg-surface">
               <tr>
-                <th className="text-left px-5 py-3 font-semibold">PR #</th>
-                <th className="text-left px-5 py-3 font-semibold">Title</th>
-                <th className="text-left px-5 py-3 font-semibold">Requester</th>
-                <th className="text-left px-5 py-3 font-semibold">Amount</th>
-                <th className="text-left px-5 py-3 font-semibold">Priority</th>
-                <th className="text-left px-5 py-3 font-semibold">Status</th>
-                <th className="text-left px-5 py-3 font-semibold">Raised</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">PR #</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Title</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Requester</th>
+                <th className="text-right px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Amount</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Priority</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Status</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Raised</th>
               </tr>
             </thead>
             <tbody>
               {stats.recentPending.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-t border-border hover:bg-surface/50 cursor-pointer select-none"
+                  className="border-t border-border hover:bg-surface/60 cursor-pointer select-none"
                   onClick={() => { window.location.href = `/t/${slug}/pr/${p.id}`; }}
                 >
-                  <td className="px-5 py-3 font-mono text-xs">{p.prNumber ?? "—"}</td>
-                  <td className="px-5 py-3 font-semibold max-w-xs truncate">{p.title}</td>
-                  <td className="px-5 py-3 text-muted">{p.requesterName}</td>
-                  <td className="px-5 py-3 font-semibold tabular-nums">{paiseToINR(p.estimatedTotalPaise)}</td>
-                  <td className="px-5 py-3"><PriorityBadge priority={p.priority} /></td>
-                  <td className="px-5 py-3"><PrStatusBadge status={p.status} /></td>
-                  <td className="px-5 py-3 text-xs text-muted">{timeAgo(p.createdAt)}</td>
+                  <td className="px-3 py-1.5 font-mono text-[11px]">{p.prNumber ?? "—"}</td>
+                  <td className="px-3 py-1.5 font-medium max-w-xs truncate">{p.title}</td>
+                  <td className="px-3 py-1.5 text-muted">{p.requesterName}</td>
+                  <td className="px-3 py-1.5 font-semibold tabular-nums text-right">{paiseToINR(p.estimatedTotalPaise)}</td>
+                  <td className="px-3 py-1.5"><PriorityBadge priority={p.priority} /></td>
+                  <td className="px-3 py-1.5"><PrStatusBadge status={p.status} /></td>
+                  <td className="px-3 py-1.5 text-[11px] text-muted">{timeAgo(p.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -270,33 +365,39 @@ function greeting(): string {
   return "Good evening";
 }
 
-function KpiBlock({
-  title,
-  icon,
+function monthLabel(month: string): string {
+  // "2026-05" -> "May"
+  const [, m] = month.split("-");
+  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return names[Number(m) - 1] ?? month;
+}
+
+function KpiTile({
+  label,
   value,
-  subtitle,
-  subtitleTone = "normal",
+  icon,
+  sub,
+  href,
+  tone,
 }: {
-  title: string;
-  icon: React.ComponentProps<typeof Icon>["name"];
+  label: string;
   value: string;
-  subtitle: string;
-  subtitleTone?: "normal" | "warning";
+  icon: IconProps["name"];
+  sub?: string;
+  href?: string;
+  tone?: "warning" | "danger";
 }) {
-  return (
-    <div>
-      <h3 className="text-sm font-semibold mb-3">{title}</h3>
-      <div className="card p-5 bg-surface">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl grid place-items-center bg-primary text-on-dark">
-            <Icon name={icon} />
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight tabular-nums">{value}</p>
-            <p className={`text-[11px] ${subtitleTone === "warning" ? "text-warning" : "text-muted"}`}>{subtitle}</p>
-          </div>
-        </div>
+  const toneClass =
+    tone === "danger" ? "text-danger-fg" : tone === "warning" ? "text-warning-fg" : "text-muted";
+  const content = (
+    <div className="card p-2.5 h-full flex flex-col gap-1 transition hover:border-primary/40">
+      <div className="flex items-center gap-1.5 text-muted">
+        <Icon name={icon} size={12} />
+        <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
       </div>
+      <div className="text-base font-bold tabular-nums leading-tight">{value}</div>
+      {sub && <div className={`text-[10px] tabular-nums ${toneClass}`}>{sub}</div>}
     </div>
   );
+  return href ? <Link href={href}>{content}</Link> : content;
 }
