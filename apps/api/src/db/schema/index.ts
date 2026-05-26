@@ -14,6 +14,7 @@ export * from "./items";
 export * from "./pr";
 export * from "./po";
 export * from "./po_amendments";
+export * from "./po_charges";
 export * from "./gate_entries";
 export * from "./grns";
 export * from "./approvals";

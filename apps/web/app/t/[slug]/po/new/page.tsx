@@ -41,6 +41,20 @@ export default function NewPoPage() {
   // Common discount % at header — typed once, applied to all lines on demand
   const [commonDiscount, setCommonDiscount] = useState<string>("");
 
+  // Additional charges grid — labelled extra costs (freight, insurance, etc.)
+  function addCharge() {
+    setForm((f) => ({ ...f, additionalCharges: [...(f.additionalCharges ?? []), { label: "", amount: 0 }] }));
+  }
+  function removeCharge(idx: number) {
+    setForm((f) => ({ ...f, additionalCharges: (f.additionalCharges ?? []).filter((_, i) => i !== idx) }));
+  }
+  function setCharge(idx: number, patch: Partial<{ label: string; amount: number }>) {
+    setForm((f) => ({
+      ...f,
+      additionalCharges: (f.additionalCharges ?? []).map((c, i) => i === idx ? { ...c, ...patch } : c),
+    }));
+  }
+
   useEffect(() => {
     (async () => {
       try {
@@ -227,8 +241,9 @@ export default function NewPoPage() {
     const freight = Number(form.freightCharges) || 0;
     const other = Number(form.otherCharges) || 0;
     const roundOff = Number(form.roundOff) || 0;
-    const grand = taxable + tax + freight + other + roundOff;
-    return { sub, disc, taxable, cgst, sgst, igst, tax, freight, other, roundOff, grand };
+    const addlSum = (form.additionalCharges ?? []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
+    const grand = taxable + tax + freight + other + roundOff + addlSum;
+    return { sub, disc, taxable, cgst, sgst, igst, tax, freight, other, roundOff, addlSum, grand };
   })();
 
   async function handleSave(action: "draft" | "submit") {
@@ -674,6 +689,67 @@ export default function NewPoPage() {
           )}
         </div>
 
+        {/* Additional charges grid — multi-row labelled costs */}
+        <div className="card overflow-hidden mb-5">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Additional charges</p>
+              <p className="text-sm text-muted mt-0.5">
+                {(form.additionalCharges ?? []).length === 0
+                  ? "Itemised header costs — freight, insurance, packing, loading, etc."
+                  : `${(form.additionalCharges ?? []).length} ${(form.additionalCharges ?? []).length === 1 ? "charge" : "charges"} · ${paiseToINR(totals.addlSum * 100)}`}
+              </p>
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addCharge}>
+              <Icon name="Plus" /> Add charge
+            </button>
+          </div>
+          {(form.additionalCharges ?? []).length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-[11px] uppercase tracking-wider text-muted bg-surface">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-semibold w-12">#</th>
+                    <th className="text-left px-3 py-2 font-semibold">Label</th>
+                    <th className="text-right px-3 py-2 font-semibold w-40">Amount (₹)</th>
+                    <th className="text-right px-3 py-2 font-semibold w-12"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(form.additionalCharges ?? []).map((c, idx) => (
+                    <tr key={idx} className="border-t border-border">
+                      <td className="px-3 py-2 text-muted text-xs">{idx + 1}</td>
+                      <td className="px-3 py-2">
+                        <input
+                          className="input !py-1.5 text-sm"
+                          placeholder="e.g. Freight to plant / Insurance / Packing"
+                          value={c.label}
+                          onChange={(e) => setCharge(idx, { label: e.target.value })}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          className="input !py-1.5 tabular-nums text-right"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={c.amount || ""}
+                          onChange={(e) => setCharge(idx, { amount: Number(e.target.value) || 0 })}
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button type="button" className="h-8 w-8 rounded-pill grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg" onClick={() => removeCharge(idx)} title="Remove charge">
+                          <Icon name="Trash2" size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
         {/* Financial breakup card */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-5 mb-5">
           <div className="card p-6">
@@ -731,6 +807,9 @@ export default function NewPoPage() {
               )}
               {totals.freight > 0 && <Row label="Freight" value={paiseToINR(totals.freight * 100)} />}
               {totals.other > 0 && <Row label="Other charges" value={paiseToINR(totals.other * 100)} />}
+              {(form.additionalCharges ?? []).map((c, idx) => (
+                (c.label || c.amount > 0) && <Row key={idx} label={c.label || "(unnamed)"} value={paiseToINR(c.amount * 100)} />
+              ))}
               {totals.roundOff !== 0 && <Row label="Round-off" value={paiseToINR(totals.roundOff * 100)} tone="muted" />}
               <div className="border-t border-border pt-2 mt-2">
                 <Row label="Grand total" value={paiseToINR(totals.grand * 100)} bold size="lg" />
@@ -830,6 +909,7 @@ function emptyForm(): PoCreateInput {
     insuranceTerms: "",
     penaltyTerms: "",
     packingTerms: "",
+    additionalCharges: [],
     items: [
       {
         prItemId: null, itemId: null, itemName: "", description: "",

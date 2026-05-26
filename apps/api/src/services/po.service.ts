@@ -2,6 +2,7 @@ import { eq, and, isNull, ilike, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../db/index";
 import { purchaseOrders, poItems } from "../db/schema/po";
 import { poAmendments } from "../db/schema/po_amendments";
+import { poCharges } from "../db/schema/po_charges";
 import { purchaseRequisitions, prItems } from "../db/schema/pr";
 import { grns, grnItems } from "../db/schema/grns";
 import { vendors } from "../db/schema/vendors";
@@ -180,7 +181,7 @@ export async function getPo(tenantId: string, id: string) {
     .limit(1);
   if (!po) throw NotFound("po_not_found", "Purchase Order not found");
 
-  const [items, [vendor], [creator], [company], [unit], actions, amendments] = await Promise.all([
+  const [items, [vendor], [creator], [company], [unit], actions, amendments, charges] = await Promise.all([
     db.select().from(poItems).where(eq(poItems.poId, id)).orderBy(poItems.sortOrder),
     db.select().from(vendors).where(eq(vendors.id, po.vendorId)).limit(1),
     db.select({ id: users.id, fullName: users.fullName, email: users.email }).from(users).where(eq(users.id, po.createdByUserId)).limit(1),
@@ -204,6 +205,11 @@ export async function getPo(tenantId: string, id: string) {
       .leftJoin(users, eq(poAmendments.actorUserId, users.id))
       .where(eq(poAmendments.poId, id))
       .orderBy(desc(poAmendments.createdAt)),
+    db
+      .select()
+      .from(poCharges)
+      .where(eq(poCharges.poId, id))
+      .orderBy(poCharges.sortOrder),
   ]);
 
   return {
@@ -237,6 +243,11 @@ export async function getPo(tenantId: string, id: string) {
       createdAt: a.amendment.createdAt.toISOString(),
     })),
     amendmentCount: amendments.length,
+    additionalCharges: charges.map((c) => ({
+      id: c.id,
+      label: c.label,
+      amountPaise: c.amountPaise,
+    })),
   };
 }
 
@@ -288,10 +299,15 @@ export async function createPo(input: PoCreateInput, ctx: ActorContext) {
 
   const isInterstate = input.isInterstate ?? false;
   const computedLines = input.items.map((it) => computeLine(it, isInterstate));
+  // Additional charges (freight/insurance/etc.) feed into the "other" bucket
+  // for total computation; the per-row breakdown is persisted to po_charges
+  // so finance can see the itemisation on the detail page.
+  const additionalCharges = input.additionalCharges ?? [];
+  const additionalChargesSum = additionalCharges.reduce((s, c) => s + (c.amount || 0), 0);
   const totals = computeHeaderTotals(
     computedLines,
     input.freightCharges ?? 0,
-    input.otherCharges ?? 0,
+    (input.otherCharges ?? 0) + additionalChargesSum,
     input.roundOff ?? 0,
   );
 
@@ -375,6 +391,17 @@ export async function createPo(input: PoCreateInput, ctx: ActorContext) {
       };
     }),
   );
+
+  if (additionalCharges.length) {
+    await db.insert(poCharges).values(
+      additionalCharges.map((c, idx) => ({
+        poId: po.id,
+        label: c.label,
+        amountPaise: Math.round(c.amount * 100).toString(),
+        sortOrder: idx,
+      })),
+    );
+  }
 
   await db.insert(auditLogs).values({
     tenantId: ctx.tenantId,

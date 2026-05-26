@@ -98,6 +98,7 @@ interface PoDetail {
   timeline: TimelineEntry[];
   amendments: Amendment[];
   amendmentCount: number;
+  additionalCharges: Array<{ id: string; label: string; amountPaise: string }>;
 }
 
 const FOR_LABEL: Record<string, string> = {
@@ -570,6 +571,13 @@ export default function PoDetailPage() {
                       <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.otherChargesPaise)}</td>
                     </tr>
                   )}
+                  {po.additionalCharges.map((c) => (
+                    <tr key={c.id} className="bg-surface">
+                      <td colSpan={9} />
+                      <td className="px-5 py-2 text-right text-muted">{c.label}</td>
+                      <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(c.amountPaise)}</td>
+                    </tr>
+                  ))}
                   {Number(po.roundOffPaise) !== 0 && (
                     <tr className="bg-surface">
                       <td colSpan={9} />

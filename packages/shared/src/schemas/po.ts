@@ -70,6 +70,17 @@ export const poCreateSchema = z.object({
   insuranceTerms: z.string().max(500).optional().nullable(),
   penaltyTerms: z.string().max(500).optional().nullable(),
   packingTerms: z.string().max(500).optional().nullable(),
+  /**
+   * Itemised header-level charges (e.g. "Freight: 5000", "Insurance: 2500").
+   * Sum is added to the grand total on top of taxable + GST + roundOff.
+   * Replaces the single freightCharges/otherCharges values for richer breakup.
+   */
+  additionalCharges: z.array(
+    z.object({
+      label: z.string().trim().min(1, "Label is required").max(60),
+      amount: z.number().nonnegative(),
+    }),
+  ).default([]),
   items: z.array(poItemInputSchema).min(1, "Add at least one line item"),
 });
 export type PoCreateInput = z.infer<typeof poCreateSchema>;
