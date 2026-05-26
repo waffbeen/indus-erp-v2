@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
 import { PrStatusBadge, PriorityBadge } from "@/components/StatusBadge";
+import { StatusTabs, SkeletonRows, EmptyState, FilterBar } from "@/components/ListPrimitives";
 import { api, ApiError } from "@/lib/api";
 import { paiseToCompactINR, timeAgo } from "@/lib/format";
 import type { PrListItem } from "@indus/shared";
@@ -16,14 +17,16 @@ interface ListResponse {
   pageSize: number;
 }
 
-const STATUS_TABS = [
+type StatusKey = "all" | "draft" | "pending_l1" | "approved" | "rejected" | "cancelled";
+
+const STATUS_TABS: Array<{ key: StatusKey; label: string }> = [
   { key: "all",        label: "All" },
   { key: "draft",      label: "Drafts" },
   { key: "pending_l1", label: "Pending" },
   { key: "approved",   label: "Approved" },
   { key: "rejected",   label: "Rejected" },
   { key: "cancelled",  label: "Cancelled" },
-] as const;
+];
 
 export default function PrListPage() {
   const params = useParams<{ slug: string }>();
@@ -33,18 +36,28 @@ export default function PrListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<string>("all");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [status, setStatus] = useState<StatusKey>("all");
   const [mineOnly, setMineOnly] = useState(false);
   const [buyerMine, setBuyerMine] = useState(false);
+  /** Cached counts per status — refreshed on each load. */
+  const [counts, setCounts] = useState<Partial<Record<StatusKey, number>>>({});
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setAppliedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   async function load() {
     setLoading(true);
     try {
       const qs = new URLSearchParams();
-      if (search) qs.set("search", search);
+      if (appliedSearch.trim()) qs.set("search", appliedSearch.trim());
       if (status !== "all") qs.set("status", status);
       if (mineOnly) qs.set("mine", "true");
       if (buyerMine) qs.set("buyer", "me");
+      qs.set("pageSize", "100");
       const res = await api<ListResponse>(`/api/pr?${qs.toString()}`);
       setData(res);
       setError(null);
@@ -55,137 +68,156 @@ export default function PrListPage() {
     }
   }
 
+  /**
+   * Run one cheap-count query per status — keeps tab badges live without
+   * loading the full list for every status.
+   */
+  async function loadCounts() {
+    try {
+      const wanted: StatusKey[] = ["draft", "pending_l1", "approved", "rejected", "cancelled"];
+      const all = await Promise.all(
+        wanted.map((s) =>
+          api<ListResponse>(`/api/pr?status=${s}&pageSize=1${mineOnly ? "&mine=true" : ""}${buyerMine ? "&buyer=me" : ""}`)
+            .then((r) => [s, r.total] as const)
+            .catch(() => [s, 0] as const),
+        ),
+      );
+      const map: Partial<Record<StatusKey, number>> = {};
+      let totalAll = 0;
+      for (const [k, v] of all) { map[k] = v; totalAll += v; }
+      map.all = totalAll;
+      setCounts(map);
+    } catch { /* noop */ }
+  }
+
   useEffect(() => {
     load();
+    loadCounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, mineOnly, buyerMine]);
+  }, [status, mineOnly, buyerMine, appliedSearch]);
+
+  const tabsWithCounts = STATUS_TABS.map((t) => ({ ...t, count: counts[t.key] }));
 
   return (
     <>
       <PageHeader
-        title="Purchase Requisitions"
+        title="Purchase Requisition"
         subtitle="Raise requests for materials and services"
         actions={
-          <Link href={`${base}/new`} className="btn btn-primary">
-            <Icon name="Plus" /> New Requisition
+          <Link href={`${base}/new`} className="btn btn-primary btn-sm">
+            <Icon name="Plus" size={14} /> Create
           </Link>
         }
       />
 
-      {/* Status tabs */}
-      <div className="flex items-center gap-1 mb-4 flex-wrap">
-        {STATUS_TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setStatus(t.key)}
-            className={`px-4 py-1.5 rounded-pill text-sm font-medium transition ${
-              status === t.key
-                ? "bg-primary text-on-dark shadow-sm"
-                : "text-muted hover:bg-surface hover:text-text-default"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-        <div className="flex-1" />
-        <label className="flex items-center gap-2 text-sm text-muted px-3">
+      <div className="mb-3">
+        <StatusTabs tabs={tabsWithCounts} value={status} onChange={setStatus} />
+      </div>
+
+      <FilterBar search={search} onSearch={setSearch} placeholder="Search by title…">
+        <label className="flex items-center gap-1.5 text-[11.5px] text-muted whitespace-nowrap px-2 cursor-pointer">
           <input
             type="checkbox"
             checked={mineOnly}
             onChange={(e) => setMineOnly(e.target.checked)}
-            className="rounded"
+            className="h-3.5 w-3.5"
           />
           Raised by me
         </label>
-        <label className="flex items-center gap-2 text-sm text-muted px-3">
+        <label className="flex items-center gap-1.5 text-[11.5px] text-muted whitespace-nowrap px-2 cursor-pointer">
           <input
             type="checkbox"
             checked={buyerMine}
             onChange={(e) => setBuyerMine(e.target.checked)}
-            className="rounded"
+            className="h-3.5 w-3.5"
           />
-          Assigned to me <span className="text-[10px] text-muted">(as buyer)</span>
+          Assigned to me
         </label>
-        <div className="relative">
-          <input
-            className="input !py-2 !pl-9 !w-64 text-sm"
-            placeholder="Search by title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && load()}
-          />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" style={{ pointerEvents: "none" }}>
-            <Icon name="Search" />
-          </span>
-        </div>
-      </div>
+      </FilterBar>
 
       {error && (
-        <div className="mb-4 rounded-lg p-3 bg-danger-bg text-danger-fg text-sm">{error}</div>
+        <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
+          <Icon name="AlertTriangle" size={14} />
+          <span className="flex-1">{error}</span>
+        </div>
       )}
 
       <div className="card overflow-hidden">
         {loading && !data ? (
-          <div className="p-12 text-center text-muted">Loading requisitions…</div>
-        ) : !data?.items.length ? (
-          <EmptyState base={base} />
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-[11px] uppercase tracking-wider text-muted bg-surface">
+          <table className="w-full">
+            <thead className="bg-surface">
               <tr>
-                <th className="text-left px-5 py-3 font-semibold">PR #</th>
-                <th className="text-left px-5 py-3 font-semibold">Title</th>
-                <th className="text-left px-5 py-3 font-semibold">Requester</th>
-                <th className="text-left px-5 py-3 font-semibold">Items</th>
-                <th className="text-left px-5 py-3 font-semibold">Amount</th>
-                <th className="text-left px-5 py-3 font-semibold">Priority</th>
-                <th className="text-left px-5 py-3 font-semibold">Status</th>
-                <th className="text-left px-5 py-3 font-semibold">Created</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">PR #</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Title</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Requester</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Items</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Amount</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Priority</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Status</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Created</th>
+              </tr>
+            </thead>
+            <SkeletonRows rows={6} cols={8} />
+          </table>
+        ) : !data?.items.length ? (
+          <EmptyState
+            icon="FileText"
+            iconTint="var(--tint-teal)"
+            iconColor="var(--tint-teal-fg)"
+            title={appliedSearch || status !== "all" ? "No requisitions match these filters" : "No requisitions yet"}
+            description={
+              appliedSearch || status !== "all"
+                ? "Try clearing the search or switching the status tab."
+                : "Raise your first request — picks suppliers, gets approved, becomes a PO."
+            }
+            cta={!appliedSearch && status === "all" ? "Create requisition" : undefined}
+            ctaHref={`${base}/new`}
+          />
+        ) : (
+          <table className="w-full">
+            <thead className="bg-surface">
+              <tr>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">PR #</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Title</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Requester</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Items</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Amount</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Priority</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Status</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Created</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((pr) => (
                 <tr
                   key={pr.id}
-                  className="border-t border-border hover:bg-surface/50 cursor-pointer select-none"
+                  className="border-t border-border hover:bg-surface/60 cursor-pointer select-none transition"
                   onClick={() => { window.location.href = `${base}/${pr.id}`; }}
                   title="Click to open"
                 >
-                  <td className="px-5 py-3 font-mono text-xs">{pr.prNumber ?? <span className="text-muted">draft</span>}</td>
-                  <td className="px-5 py-3 font-semibold">{pr.title}</td>
-                  <td className="px-5 py-3 text-muted">{pr.requesterName}</td>
-                  <td className="px-5 py-3 text-muted">{pr.itemsCount}</td>
-                  <td className="px-5 py-3 font-semibold tabular-nums">{paiseToCompactINR(pr.estimatedTotalPaise as unknown as string)}</td>
-                  <td className="px-5 py-3"><PriorityBadge priority={pr.priority} /></td>
-                  <td className="px-5 py-3"><PrStatusBadge status={pr.status} /></td>
-                  <td className="px-5 py-3 text-xs text-muted">{timeAgo(pr.createdAt)}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">
+                    {pr.prNumber ?? <span className="text-muted italic">draft</span>}
+                  </td>
+                  <td className="px-3 py-2 font-medium max-w-md truncate">{pr.title}</td>
+                  <td className="px-3 py-2 text-muted">{pr.requesterName}</td>
+                  <td className="px-3 py-2 tabular-nums text-right text-muted">{pr.itemsCount}</td>
+                  <td className="px-3 py-2 font-semibold tabular-nums text-right">{paiseToCompactINR(pr.estimatedTotalPaise as unknown as string)}</td>
+                  <td className="px-3 py-2"><PriorityBadge priority={pr.priority} /></td>
+                  <td className="px-3 py-2"><PrStatusBadge status={pr.status} /></td>
+                  <td className="px-3 py-2 text-[11px] text-muted">{timeAgo(pr.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-border bg-surface">
+                <td colSpan={8} className="px-3 py-1.5 text-[11px] text-muted">
+                  {data.total} {data.total === 1 ? "requisition" : "requisitions"} · click any row to open
+                </td>
+              </tr>
+            </tfoot>
           </table>
-        )}
-        {data && data.items.length > 0 && (
-          <div className="px-5 py-3 border-t border-border text-xs text-muted flex justify-between items-center">
-            <span>{data.total} requisition{data.total === 1 ? "" : "s"} · click row to open</span>
-            <span>Page {data.page}</span>
-          </div>
         )}
       </div>
     </>
-  );
-}
-
-function EmptyState({ base }: { base: string }) {
-  return (
-    <div className="p-12 text-center">
-      <div className="h-14 w-14 rounded-2xl mx-auto grid place-items-center bg-tint-teal text-tint-teal-fg mb-4">
-        <Icon name="FileText" size={28} />
-      </div>
-      <h3 className="display text-xl mb-1">No requisitions yet</h3>
-      <p className="text-sm text-muted mb-5">Raise your first request — picks vendors, gets approved, becomes a PO.</p>
-      <Link href={`${base}/new`} className="btn btn-primary">
-        <Icon name="Plus" /> Create requisition
-      </Link>
-    </div>
   );
 }

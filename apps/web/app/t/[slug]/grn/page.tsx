@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
+import { StatusTabs, SkeletonRows, EmptyState, FilterBar } from "@/components/ListPrimitives";
 import { api, ApiError } from "@/lib/api";
 import { paiseToINR, formatDate, timeAgo } from "@/lib/format";
 import type { GrnListItem } from "@indus/shared";
@@ -20,14 +20,16 @@ const STATUS_TINT: Record<string, string> = {
   cancelled: "badge-tint-blush",
 };
 
-const STATUS_OPTIONS = [
-  { value: "",                  label: "All statuses" },
-  { value: "accepted",          label: "Accepted" },
-  { value: "partially_accepted",label: "Partially accepted" },
-  { value: "rejected",          label: "Rejected" },
-  { value: "submitted",         label: "Submitted (legacy)" },
-  { value: "qc_pending",        label: "QC pending" },
-  { value: "cancelled",         label: "Cancelled" },
+type StatusKey = "all" | "accepted" | "partially_accepted" | "rejected" | "submitted" | "qc_pending" | "cancelled";
+
+const TABS: Array<{ key: StatusKey; label: string }> = [
+  { key: "all",                 label: "All" },
+  { key: "accepted",            label: "Accepted" },
+  { key: "partially_accepted",  label: "Partial" },
+  { key: "rejected",            label: "Rejected" },
+  { key: "qc_pending",          label: "QC Pending" },
+  { key: "submitted",           label: "Submitted" },
+  { key: "cancelled",           label: "Cancelled" },
 ];
 
 export default function GrnListPage() {
@@ -37,18 +39,24 @@ export default function GrnListPage() {
   const [data, setData] = useState<ListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [status, setStatus] = useState<StatusKey>("all");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const [counts, setCounts] = useState<Partial<Record<StatusKey, number>>>({});
+
+  useEffect(() => {
+    const t = setTimeout(() => setAppliedSearch(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   async function load() {
     setLoading(true);
     try {
       const qs = new URLSearchParams();
-      if (statusFilter) qs.set("status", statusFilter);
+      if (status !== "all") qs.set("status", status);
       if (appliedSearch.trim()) qs.set("search", appliedSearch.trim());
-      const url = qs.toString() ? `/api/grn?${qs.toString()}` : "/api/grn";
-      const res = await api<ListResponse>(url);
+      qs.set("pageSize", "100");
+      const res = await api<ListResponse>(`/api/grn?${qs.toString()}`);
       setData(res);
       setError(null);
     } catch (err) {
@@ -58,100 +66,128 @@ export default function GrnListPage() {
     }
   }
 
-  // Debounce search input so we don't fire on every keystroke
-  useEffect(() => {
-    const t = setTimeout(() => setAppliedSearch(searchInput), 300);
-    return () => clearTimeout(t);
-  }, [searchInput]);
+  async function loadCounts() {
+    try {
+      const wanted: StatusKey[] = ["accepted", "partially_accepted", "rejected", "qc_pending", "submitted", "cancelled"];
+      const all = await Promise.all(
+        wanted.map((s) =>
+          api<ListResponse>(`/api/grn?status=${s}&pageSize=1`)
+            .then((r) => [s, r.total] as const)
+            .catch(() => [s, 0] as const),
+        ),
+      );
+      const map: Partial<Record<StatusKey, number>> = {};
+      let total = 0;
+      for (const [k, v] of all) { map[k] = v; total += v; }
+      map.all = total;
+      setCounts(map);
+    } catch { /* noop */ }
+  }
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [statusFilter, appliedSearch]);
+  useEffect(() => {
+    load();
+    loadCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, appliedSearch]);
+
+  const tabsWithCounts = TABS.map((t) => ({ ...t, count: counts[t.key] }));
 
   return (
     <>
       <PageHeader
-        title="Goods Receipt Notes"
-        subtitle="Materials received against POs — accepted, rejected, and condition tracking"
-        actions={
-          <p className="text-xs text-muted">
-            Tip: GRNs are created from a PO's detail page or a Gate Entry.
-          </p>
-        }
+        title="Goods Receipt"
+        subtitle="Materials received against POs — accepted, rejected, batch tracked"
       />
 
-      {error && <div className="mb-4 rounded-lg p-3 bg-danger-bg text-danger-fg text-sm">{error}</div>}
-
-      {/* Filters */}
-      <div className="card p-4 mb-4 flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 relative">
-          <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-          <input
-            type="text"
-            className="input pl-9"
-            placeholder="Search by GRN number or invoice number..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-        <select
-          className="input sm:w-56"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+      <div className="mb-3 overflow-x-auto">
+        <StatusTabs tabs={tabsWithCounts} value={status} onChange={setStatus} />
       </div>
+
+      <FilterBar
+        search={searchInput}
+        onSearch={setSearchInput}
+        placeholder="Search by GRN number or invoice number…"
+      />
+
+      {error && (
+        <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
+          <Icon name="AlertTriangle" size={14} />
+          <span className="flex-1">{error}</span>
+        </div>
+      )}
 
       <div className="card overflow-hidden">
         {loading && !data ? (
-          <div className="p-12 text-center text-muted">Loading…</div>
-        ) : !data?.items.length ? (
-          <div className="p-12 text-center">
-            <div className="h-14 w-14 rounded-2xl mx-auto grid place-items-center bg-tint-peach text-tint-peach-fg mb-4">
-              <Icon name="PackageCheck" size={28} />
-            </div>
-            <h3 className="display text-xl mb-1">
-              {statusFilter || appliedSearch ? "No GRNs match these filters" : "No goods receipts yet"}
-            </h3>
-            <p className="text-sm text-muted">
-              {statusFilter || appliedSearch
-                ? "Try clearing the search or status filter."
-                : "Approve a PO, send it to vendor, then open the PO and click \"Receive (GRN)\"."}
-            </p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-[11px] uppercase tracking-wider text-muted bg-surface">
+          <table className="w-full">
+            <thead className="bg-surface">
               <tr>
-                <th className="text-left px-5 py-3 font-semibold">GRN #</th>
-                <th className="text-left px-5 py-3 font-semibold">PO</th>
-                <th className="text-left px-5 py-3 font-semibold">Vendor</th>
-                <th className="text-left px-5 py-3 font-semibold">Invoice</th>
-                <th className="text-left px-5 py-3 font-semibold">Amount</th>
-                <th className="text-left px-5 py-3 font-semibold">Received</th>
-                <th className="text-left px-5 py-3 font-semibold">Items</th>
-                <th className="text-left px-5 py-3 font-semibold">Status</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">GRN #</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">PO</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Supplier</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Invoice</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Amount</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Received</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Items</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Status</th>
+              </tr>
+            </thead>
+            <SkeletonRows rows={5} cols={8} />
+          </table>
+        ) : !data?.items.length ? (
+          <EmptyState
+            icon="PackageCheck"
+            iconTint="var(--tint-mint)"
+            iconColor="var(--tint-mint-fg)"
+            title={status !== "all" || appliedSearch ? "No GRNs match these filters" : "No goods receipts yet"}
+            description={
+              status !== "all" || appliedSearch
+                ? "Try clearing the search or switching the status tab."
+                : "Approve a PO, send it to supplier, then open the PO and click \"Receive (GRN)\"."
+            }
+          />
+        ) : (
+          <table className="w-full">
+            <thead className="bg-surface">
+              <tr>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">GRN #</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">PO</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Supplier</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Invoice</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Amount</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Received</th>
+                <th className="text-right px-3 py-2 font-semibold uppercase tracking-wider text-muted">Items</th>
+                <th className="text-left px-3 py-2 font-semibold uppercase tracking-wider text-muted">Status</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((g) => (
                 <tr
                   key={g.id}
-                  className="border-t border-border hover:bg-surface/50 cursor-pointer select-none"
+                  className="border-t border-border hover:bg-surface/60 cursor-pointer select-none transition"
                   onClick={() => { window.location.href = `${base}/${g.id}`; }}
                 >
-                  <td className="px-5 py-3 font-mono text-xs">{g.grnNumber ?? "—"}</td>
-                  <td className="px-5 py-3 font-mono text-xs">{g.poNumber ?? "—"}</td>
-                  <td className="px-5 py-3">{g.vendorName ?? "—"}</td>
-                  <td className="px-5 py-3 font-mono text-xs">{g.invoiceNumber ?? "—"}</td>
-                  <td className="px-5 py-3 tabular-nums font-semibold">{paiseToINR(g.invoiceAmountPaise)}</td>
-                  <td className="px-5 py-3 text-xs">{formatDate(g.receivedDate)}</td>
-                  <td className="px-5 py-3 text-muted">{g.itemsCount}</td>
-                  <td className="px-5 py-3">
-                    <span className={`badge ${STATUS_TINT[g.status]} capitalize`}>{g.status.replace("_", " ")}</span>
+                  <td className="px-3 py-2 font-mono text-[11px]">{g.grnNumber ?? "—"}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{g.poNumber ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted">{g.vendorName ?? "—"}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{g.invoiceNumber ?? "—"}</td>
+                  <td className="px-3 py-2 font-semibold tabular-nums text-right">{paiseToINR(g.invoiceAmountPaise)}</td>
+                  <td className="px-3 py-2 text-[11px] text-muted">{formatDate(g.receivedDate)}</td>
+                  <td className="px-3 py-2 text-right text-muted">{g.itemsCount}</td>
+                  <td className="px-3 py-2">
+                    <span className={`badge ${STATUS_TINT[g.status]} capitalize text-[10px]`}>
+                      {g.status.replace(/_/g, " ")}
+                    </span>
                   </td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-border bg-surface">
+                <td colSpan={8} className="px-3 py-1.5 text-[11px] text-muted">
+                  {data.total} {data.total === 1 ? "receipt" : "receipts"} · click any row to open
+                </td>
+              </tr>
+            </tfoot>
           </table>
         )}
       </div>
