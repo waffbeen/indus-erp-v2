@@ -88,6 +88,13 @@ poRoutes.post("/:id/cancel", requirePermission(Resources.PO, Actions.Cancel), as
   } catch (err) { next(err); }
 });
 
+poRoutes.post("/:id/clone", requirePermission(Resources.PO, Actions.Create), async (req, res, next) => {
+  try {
+    const cloned = await poService.clonePo(req.params.id!, ctx(req));
+    res.status(201).json(cloned);
+  } catch (err) { next(err); }
+});
+
 function ctx(req: any) {
   return {
     tenantId: req.tenant!.id,

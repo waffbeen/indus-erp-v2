@@ -72,7 +72,17 @@ interface PrDetail {
   timeline: TimelineEntry[];
 }
 
-type DecisionAction = "approve" | "reject";
+type DecisionAction = "approve" | "reject" | "send_back";
+
+interface RelatedPo {
+  id: string;
+  poNumber: string | null;
+  title: string;
+  status: string;
+  totalPaise: string;
+  vendorName: string;
+  createdAt: string;
+}
 
 export default function PrDetailPage() {
   const params = useParams<{ slug: string; id: string }>();
@@ -86,6 +96,8 @@ export default function PrDetailPage() {
   const [decisionAction, setDecisionAction] = useState<DecisionAction | null>(null);
   const [decisionComment, setDecisionComment] = useState("");
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [relatedPos, setRelatedPos] = useState<RelatedPo[]>([]);
 
   const { me } = useAuth();
 
@@ -107,6 +119,27 @@ export default function PrDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.id]);
 
+  useEffect(() => {
+    if (!params?.id) return;
+    api<RelatedPo[]>(`/api/pr/${params.id}/related-pos`)
+      .then(setRelatedPos)
+      .catch(() => setRelatedPos([]));
+  }, [params?.id]);
+
+  async function handleClone() {
+    if (!pr || cloning) return;
+    setCloning(true);
+    try {
+      const cloned = await api<{ id: string }>(`/api/pr/${pr.id}/clone`, { method: "POST", body: JSON.stringify({}) });
+      toast.success("PR cloned", "Editing the new draft now.");
+      router.push(`${base}/${cloned.id}`);
+    } catch (err) {
+      toast.error("Clone failed", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setCloning(false);
+    }
+  }
+
   async function performAction(action: "submit" | "cancel") {
     if (!pr) return;
     try {
@@ -124,18 +157,29 @@ export default function PrDetailPage() {
 
   async function performDecision() {
     if (!pr || !decisionAction) return;
+    if (decisionAction === "send_back" && !decisionComment.trim()) {
+      toast.error("Comment required", "Tell the requester what to revise.");
+      return;
+    }
     setDecisionSubmitting(true);
     try {
-      await api(`/api/pr/${pr.id}/${decisionAction}`, {
+      // Backend routes: /approve, /reject, /send-back  (action is the URL slug)
+      const path = decisionAction === "send_back" ? "send-back" : decisionAction;
+      await api(`/api/pr/${pr.id}/${path}`, {
         method: "POST",
         body: JSON.stringify({ comment: decisionComment || undefined }),
       });
-      toast.success(
-        decisionAction === "approve" ? "PR approved" : "PR rejected",
+      const toastTitle =
+        decisionAction === "approve" ? "PR approved" :
+        decisionAction === "send_back" ? "Sent back for revision" :
+        "PR rejected";
+      const toastBody =
         decisionAction === "approve"
           ? `${pr.prNumber ?? "Request"} approved. Ab PO ban sakta hai.`
-          : `${pr.prNumber ?? "Request"} rejected. Requester ko notify ho gaya.`,
-      );
+          : decisionAction === "send_back"
+            ? `${pr.prNumber ?? "Request"} requester ke draft mein wapas chala gaya. Woh edit karke resubmit kar sakta hai.`
+            : `${pr.prNumber ?? "Request"} rejected. Requester ko notify ho gaya.`;
+      toast.success(toastTitle, toastBody);
       setDecisionAction(null);
       setDecisionComment("");
       load();
@@ -195,6 +239,9 @@ export default function PrDetailPage() {
             )}
             {canDecide && (
               <>
+                <button className="btn btn-ghost" onClick={() => { setDecisionAction("send_back"); setDecisionComment(""); }} title="Send back to requester for revision">
+                  <Icon name="Undo2" /> Send Back
+                </button>
                 <button className="btn btn-ghost" onClick={() => { setDecisionAction("reject"); setDecisionComment(""); }}>
                   <Icon name="XCircle" /> Reject
                 </button>
@@ -208,6 +255,9 @@ export default function PrDetailPage() {
                 <Icon name="ShoppingCart" /> Convert to PO
               </Link>
             )}
+            <button className="btn btn-ghost" onClick={handleClone} disabled={cloning} title="Create a new draft PR with the same details">
+              <Icon name="Copy" /> {cloning ? "Cloning…" : "Save As"}
+            </button>
             {!isFinalized && (isOwner || me?.isTenantAdmin) && (
               <button
                 className="h-10 w-10 rounded-pill border border-border grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg"
@@ -378,6 +428,33 @@ export default function PrDetailPage() {
 
         {/* SIDEBAR */}
         <div className="space-y-5">
+          {/* Related POs — shows what got procured against this PR */}
+          {relatedPos.length > 0 && (
+            <div className="card p-6">
+              <SectionHeading title="Related Purchase Orders" size="sm" subtitle={`${relatedPos.length} PO${relatedPos.length === 1 ? "" : "s"} raised against this requisition`} />
+              <ul className="space-y-2 mt-3">
+                {relatedPos.map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      href={`/t/${params?.slug}/po/${p.id}`}
+                      className="block rounded-xl border border-border p-3 hover:bg-surface transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-semibold">{p.poNumber ?? "Draft PO"}</span>
+                        <span className="badge badge-info uppercase text-[10px]">{p.status.replace(/_/g, " ")}</span>
+                      </div>
+                      <p className="text-sm font-medium mt-1 truncate">{p.title}</p>
+                      <div className="flex items-center justify-between text-[11px] text-muted mt-1">
+                        <span>{p.vendorName}</span>
+                        <span className="tabular-nums font-semibold text-text-default">{paiseToINR(p.totalPaise)}</span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="card p-6">
             <SectionHeading title="Timeline" size="sm" />
             {pr.timeline.length === 0 ? (
@@ -423,11 +500,15 @@ export default function PrDetailPage() {
         tone="danger"
       />
 
-      {/* Approve / Reject modal with comment */}
+      {/* Approve / Reject / Send Back modal */}
       <Modal
         open={decisionAction !== null}
         onClose={() => !decisionSubmitting && setDecisionAction(null)}
-        title={decisionAction === "approve" ? "Approve this requisition?" : "Reject this requisition?"}
+        title={
+          decisionAction === "approve" ? "Approve this requisition?" :
+          decisionAction === "send_back" ? "Send this requisition back for revision?" :
+          "Reject this requisition?"
+        }
         size="md"
         footer={
           <>
@@ -436,11 +517,14 @@ export default function PrDetailPage() {
             </button>
             <button
               type="button"
-              className={`btn ${decisionAction === "approve" ? "btn-primary" : "btn-danger"}`}
+              className={`btn ${decisionAction === "approve" ? "btn-primary" : decisionAction === "send_back" ? "btn-primary" : "btn-danger"}`}
               onClick={performDecision}
               disabled={decisionSubmitting}
             >
-              {decisionSubmitting ? "Working…" : decisionAction === "approve" ? "Confirm approval" : "Confirm rejection"}
+              {decisionSubmitting ? "Working…"
+                : decisionAction === "approve" ? "Confirm approval"
+                : decisionAction === "send_back" ? "Send back"
+                : "Confirm rejection"}
             </button>
           </>
         }
@@ -450,25 +534,47 @@ export default function PrDetailPage() {
             <div
               className="h-12 w-12 rounded-2xl grid place-items-center shrink-0"
               style={{
-                background: decisionAction === "approve" ? "var(--tint-mint)" : "var(--tint-blush)",
-                color: decisionAction === "approve" ? "var(--tint-mint-fg)" : "var(--tint-blush-fg)",
+                background:
+                  decisionAction === "approve" ? "var(--tint-mint)" :
+                  decisionAction === "send_back" ? "var(--tint-peach)" :
+                  "var(--tint-blush)",
+                color:
+                  decisionAction === "approve" ? "var(--tint-mint-fg)" :
+                  decisionAction === "send_back" ? "var(--tint-peach-fg)" :
+                  "var(--tint-blush-fg)",
               }}
             >
-              <Icon name={decisionAction === "approve" ? "CheckCircle2" : "XCircle"} size={22} />
+              <Icon
+                name={decisionAction === "approve" ? "CheckCircle2" : decisionAction === "send_back" ? "Undo2" : "XCircle"}
+                size={22}
+              />
             </div>
             <div className="flex-1 pt-1 text-sm text-muted leading-relaxed">
-              {decisionAction === "approve"
-                ? <><strong className="text-text-default">{pr.prNumber}</strong> ko approve kar rahe ho — {paiseToINR(pr.estimatedTotalPaise)} ka spend authorized hoga. Iske baad PO ban sakta hai.</>
-                : <><strong className="text-text-default">{pr.prNumber}</strong> ko reject kar rahe ho. Requester ko notification chala jayega; reason batana helpful hoga.</>
-              }
+              {decisionAction === "approve" && (
+                <><strong className="text-text-default">{pr.prNumber}</strong> ko approve kar rahe ho — {paiseToINR(pr.estimatedTotalPaise)} ka spend authorized hoga. Iske baad PO ban sakta hai.</>
+              )}
+              {decisionAction === "send_back" && (
+                <><strong className="text-text-default">{pr.prNumber}</strong> wapas requester ke draft mein chala jayega — woh edit karke resubmit kar sakta hai. Reason batana <strong>mandatory</strong> hai.</>
+              )}
+              {decisionAction === "reject" && (
+                <><strong className="text-text-default">{pr.prNumber}</strong> ko reject kar rahe ho. Requester ko notification chala jayega; reason batana helpful hoga.</>
+              )}
             </div>
           </div>
           <div>
-            <label className="label">Comment {decisionAction === "reject" && <span className="text-muted">(recommended)</span>}</label>
+            <label className="label">
+              Comment{" "}
+              {decisionAction === "send_back" && <span className="text-danger">*</span>}
+              {decisionAction === "reject" && <span className="text-muted">(recommended)</span>}
+            </label>
             <textarea
               className="input"
               rows={3}
-              placeholder={decisionAction === "approve" ? "Optional approver note..." : "Why is this being rejected?"}
+              placeholder={
+                decisionAction === "approve" ? "Optional approver note..." :
+                decisionAction === "send_back" ? "Kya theek karna hai? Specific batao..." :
+                "Why is this being rejected?"
+              }
               value={decisionComment}
               onChange={(e) => setDecisionComment(e.target.value)}
             />

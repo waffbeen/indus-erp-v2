@@ -29,6 +29,8 @@ export const poItemInputSchema = z.object({
   itemNarration: z.string().max(500).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
   specifications: z.record(z.unknown()).optional().nullable(),
+  /** Per-line buyer (the procurement user executing this line). */
+  lineBuyerUserId: z.string().uuid().optional().nullable(),
 });
 export type PoItemInput = z.infer<typeof poItemInputSchema>;
 

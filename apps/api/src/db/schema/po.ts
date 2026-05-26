@@ -146,6 +146,13 @@ export const poItems = pgTable(
     /** Vendor's committed delivery for this line (can vary by line). */
     committedDeliveryDate: timestamp("committed_delivery_date", { mode: "date" }),
 
+    /**
+     * Per-line buyer assignment — the procurement user responsible for
+     * executing this specific line. Legacy ERP requires this per row; we
+     * keep it nullable so historical data and small-shop tenants work.
+     */
+    lineBuyerUserId: uuid("line_buyer_user_id").references(() => users.id, { onDelete: "set null" }),
+
     /** Line-level narration — separate from header notes. */
     itemNarration: text("item_narration"),
     notes: text("notes"),

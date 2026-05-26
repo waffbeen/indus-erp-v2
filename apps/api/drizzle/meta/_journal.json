@@ -22,6 +22,13 @@
       "when": 1779718764627,
       "tag": "0002_gifted_marvel_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1779795464192,
+      "tag": "0003_closed_brood",
+      "breakpoints": true
     }
   ]
 }

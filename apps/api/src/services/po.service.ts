@@ -256,7 +256,11 @@ export async function getPoDraftFromPr(tenantId: string, prId: string) {
       estimatedUnitPrice: it.estimatedUnitPricePaise ? Number(it.estimatedUnitPricePaise) / 100 : 0,
       itemNarration: it.itemNarration,
       specifications: it.specifications,
+      /** Carry per-line buyer from PR -> PO so requester's hint becomes default. */
+      lineBuyerUserId: it.lineBuyerUserId ?? pr.buyerUserId ?? null,
     })),
+    /** Suggest header-level buyer fallback so the form can pre-fill. */
+    suggestedBuyerUserId: pr.buyerUserId ?? null,
   };
 }
 
@@ -341,6 +345,7 @@ export async function createPo(input: PoCreateInput, ctx: ActorContext) {
         itemNarration: it.itemNarration ?? null,
         notes: it.notes ?? null,
         specifications: (it.specifications as Record<string, unknown>) ?? {},
+        lineBuyerUserId: it.lineBuyerUserId ?? null,
         sortOrder: idx,
       };
     }),
@@ -358,6 +363,175 @@ export async function createPo(input: PoCreateInput, ctx: ActorContext) {
   });
 
   return po;
+}
+
+/**
+ * Clone a PO into a new draft. Same vendor, items, terms — fresh PO number
+ * issued only on submit. Status reset to draft, approval chain cleared.
+ */
+export async function clonePo(id: string, ctx: ActorContext) {
+  const source = await getPoRaw(ctx.tenantId, id);
+  const sourceItems = await db.select().from(poItems).where(eq(poItems.poId, id)).orderBy(poItems.sortOrder);
+
+  const [created] = await db
+    .insert(purchaseOrders)
+    .values({
+      tenantId: ctx.tenantId,
+      companyId: source.companyId,
+      unitId: source.unitId,
+      vendorId: source.vendorId,
+      prId: null, // clones don't carry the PR link — they're standalone
+      createdByUserId: ctx.userId,
+      title: `${source.title} (Copy)`,
+      description: source.description,
+      status: "draft",
+      isInterstate: source.isInterstate,
+      placeOfSupply: source.placeOfSupply,
+      subtotalPaise: source.subtotalPaise,
+      discountTotalPaise: source.discountTotalPaise,
+      taxableAmountPaise: source.taxableAmountPaise,
+      cgstTotalPaise: source.cgstTotalPaise,
+      sgstTotalPaise: source.sgstTotalPaise,
+      igstTotalPaise: source.igstTotalPaise,
+      taxTotalPaise: source.taxTotalPaise,
+      freightChargesPaise: source.freightChargesPaise,
+      otherChargesPaise: source.otherChargesPaise,
+      roundOffPaise: source.roundOffPaise,
+      totalPaise: source.totalPaise,
+      currency: source.currency,
+      deliveryDate: source.deliveryDate,
+      validUntil: source.validUntil,
+      deliveryAddress: source.deliveryAddress,
+      deliveryTerms: source.deliveryTerms,
+      paymentTerms: source.paymentTerms,
+      termsAndConditions: source.termsAndConditions,
+      notes: source.notes,
+      revisionNo: 0,
+      revisionRemark: null,
+    })
+    .returning();
+
+  if (!created) throw new Error("Failed to clone PO");
+
+  if (sourceItems.length) {
+    await db.insert(poItems).values(
+      sourceItems.map((it, idx) => ({
+        poId: created.id,
+        prItemId: null, // detach from PR linkage on clone
+        itemId: it.itemId,
+        itemName: it.itemName,
+        description: it.description,
+        itemGroupName: it.itemGroupName,
+        itemSubGroupName: it.itemSubGroupName,
+        hsnCode: it.hsnCode,
+        quantityScaled: it.quantityScaled,
+        uom: it.uom,
+        unitPricePaise: it.unitPricePaise,
+        discountPercent: it.discountPercent,
+        discountAmountPaise: it.discountAmountPaise,
+        taxRate: it.taxRate,
+        cgstRate: it.cgstRate,
+        sgstRate: it.sgstRate,
+        igstRate: it.igstRate,
+        subtotalPaise: it.subtotalPaise,
+        taxableAmountPaise: it.taxableAmountPaise,
+        taxPaise: it.taxPaise,
+        cgstPaise: it.cgstPaise,
+        sgstPaise: it.sgstPaise,
+        igstPaise: it.igstPaise,
+        totalPaise: it.totalPaise,
+        committedDeliveryDate: it.committedDeliveryDate,
+        itemNarration: it.itemNarration,
+        notes: it.notes,
+        lineBuyerUserId: it.lineBuyerUserId,
+        specifications: (it.specifications as Record<string, unknown>) ?? {},
+        sortOrder: idx,
+      })),
+    );
+  }
+
+  await db.insert(auditLogs).values({
+    tenantId: ctx.tenantId,
+    actorUserId: ctx.userId,
+    action: "clone",
+    resourceType: "po",
+    resourceId: created.id,
+    ipAddress: ctx.ipAddress,
+    userAgent: ctx.userAgent,
+    before: { sourceId: id } as Record<string, unknown>,
+  });
+
+  return created;
+}
+
+/**
+ * List POs raised against a specific PR — either via the header link (po.pr_id)
+ * or via line-item linkage (po_items.pr_item_id). Used on the PR detail page to
+ * show "Related POs" so the requester can trace what got procured.
+ */
+export async function listPosFromPr(tenantId: string, prId: string) {
+  // PR-header link: POs explicitly raised from this PR
+  const headerLinked = await db
+    .select({
+      id: purchaseOrders.id,
+      poNumber: purchaseOrders.poNumber,
+      title: purchaseOrders.title,
+      status: purchaseOrders.status,
+      totalPaise: purchaseOrders.totalPaise,
+      createdAt: purchaseOrders.createdAt,
+      vendorName: vendors.name,
+    })
+    .from(purchaseOrders)
+    .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
+    .where(
+      and(
+        eq(purchaseOrders.tenantId, tenantId),
+        eq(purchaseOrders.prId, prId),
+        isNull(purchaseOrders.deletedAt),
+      ),
+    )
+    .orderBy(desc(purchaseOrders.createdAt));
+
+  // Line-level fallback: PR items mapped into PO lines (catches POs built without the header link)
+  const prLineIds = await db.select({ id: prItems.id }).from(prItems).where(eq(prItems.prId, prId));
+  const lineLinked = prLineIds.length
+    ? await db
+        .selectDistinctOn([purchaseOrders.id], {
+          id: purchaseOrders.id,
+          poNumber: purchaseOrders.poNumber,
+          title: purchaseOrders.title,
+          status: purchaseOrders.status,
+          totalPaise: purchaseOrders.totalPaise,
+          createdAt: purchaseOrders.createdAt,
+          vendorName: vendors.name,
+        })
+        .from(poItems)
+        .innerJoin(purchaseOrders, eq(poItems.poId, purchaseOrders.id))
+        .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id))
+        .where(
+          and(
+            eq(purchaseOrders.tenantId, tenantId),
+            inArray(poItems.prItemId, prLineIds.map((r) => r.id)),
+            isNull(purchaseOrders.deletedAt),
+          ),
+        )
+    : [];
+
+  const map = new Map<string, typeof headerLinked[number]>();
+  for (const p of headerLinked) map.set(p.id, p);
+  for (const p of lineLinked) if (!map.has(p.id)) map.set(p.id, p);
+
+  return Array.from(map.values())
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .map((p) => ({
+      id: p.id,
+      poNumber: p.poNumber,
+      title: p.title,
+      status: p.status,
+      totalPaise: p.totalPaise,
+      vendorName: p.vendorName ?? "—",
+      createdAt: p.createdAt.toISOString(),
+    }));
 }
 
 export async function submitPo(id: string, ctx: ActorContext, comment?: string) {

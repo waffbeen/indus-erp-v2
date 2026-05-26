@@ -106,6 +106,48 @@ prRoutes.post("/:id/approve", requirePermission(Resources.PR, Actions.Approve), 
   }
 });
 
+prRoutes.post("/:id/send-back", requirePermission(Resources.PR, Actions.Reject), async (req, res, next) => {
+  try {
+    const { comment } = decisionInput.parse(req.body ?? {});
+    await prService.sendBackPr(req.params.id!, {
+      tenantId: req.tenant!.id,
+      userId: req.auth!.sub,
+      isTenantAdmin: req.auth!.ta,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    }, comment);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+prRoutes.post("/:id/clone", requirePermission(Resources.PR, Actions.Create), async (req, res, next) => {
+  try {
+    const cloned = await prService.clonePr(req.params.id!, {
+      tenantId: req.tenant!.id,
+      userId: req.auth!.sub,
+      isTenantAdmin: req.auth!.ta,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+    res.status(201).json(cloned);
+  } catch (err) {
+    next(err);
+  }
+});
+
+prRoutes.get("/:id/related-pos", requirePermission(Resources.PR, Actions.Read), async (req, res, next) => {
+  try {
+    // Lazy import to avoid circular dep with po.service
+    const { listPosFromPr } = await import("../services/po.service");
+    const pos = await listPosFromPr(req.tenant!.id, req.params.id!);
+    res.json(pos);
+  } catch (err) {
+    next(err);
+  }
+});
+
 prRoutes.post("/:id/reject", requirePermission(Resources.PR, Actions.Reject), async (req, res, next) => {
   try {
     const { comment } = decisionInput.parse(req.body ?? {});

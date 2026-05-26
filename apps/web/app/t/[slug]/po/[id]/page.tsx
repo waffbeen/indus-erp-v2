@@ -38,7 +38,9 @@ interface PoItem {
   totalPaise: string;
   committedDeliveryDate: string | null;
   itemNarration: string | null;
+  lineBuyerUserId: string | null;
 }
+interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 interface TimelineEntry { id: string; action: string; comment: string | null; level: number | null; actorName: string; createdAt: string; }
 interface PoDetail {
   id: string;
@@ -94,7 +96,15 @@ export default function PoDetailPage() {
   const [decision, setDecision] = useState<Decision | null>(null);
   const [comment, setComment] = useState("");
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
   const { me } = useAuth();
+
+  /** Build a user-id -> "Name · Role" map so per-line buyer chips render readably. */
+  const userMap = React.useMemo(
+    () => new Map(tenantUsers.map((u) => [u.id, `${u.fullName} · ${u.roleName}`])),
+    [tenantUsers],
+  );
 
   async function load() {
     setLoading(true);
@@ -113,6 +123,25 @@ export default function PoDetailPage() {
     if (params?.id) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.id]);
+
+  useEffect(() => {
+    // Fetch once, used to resolve per-line buyer IDs into readable names
+    api<TenantUser[]>("/api/tenant/users").then(setTenantUsers).catch(() => setTenantUsers([]));
+  }, []);
+
+  async function handleClone() {
+    if (!po || cloning) return;
+    setCloning(true);
+    try {
+      const cloned = await api<{ id: string }>(`/api/po/${po.id}/clone`, { method: "POST", body: JSON.stringify({}) });
+      toast.success("PO cloned", "Editing the new draft now.");
+      router.push(`${base}/${cloned.id}`);
+    } catch (err) {
+      toast.error("Clone failed", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setCloning(false);
+    }
+  }
 
   async function performAction(action: "submit" | "send" | "cancel") {
     if (!po) return;
@@ -202,6 +231,9 @@ export default function PoDetailPage() {
                 <Icon name="PackageCheck" /> Receive (GRN)
               </Link>
             )}
+            <button className="btn btn-ghost" onClick={handleClone} disabled={cloning} title="Create a new draft PO with the same details">
+              <Icon name="Copy" /> {cloning ? "Cloning…" : "Save As"}
+            </button>
             {!isFinalized && (isCreator || me?.isTenantAdmin) && (
               <button
                 className="h-10 w-10 rounded-pill border border-border grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg"
@@ -301,6 +333,7 @@ export default function PoDetailPage() {
                     <th className="text-left px-5 py-3 font-semibold">Unit price</th>
                     <th className="text-left px-5 py-3 font-semibold">Disc</th>
                     <th className="text-left px-5 py-3 font-semibold">Tax</th>
+                    <th className="text-left px-5 py-3 font-semibold">Buyer</th>
                     <th className="text-left px-5 py-3 font-semibold">Committed</th>
                     <th className="text-right px-5 py-3 font-semibold">Line total</th>
                   </tr>
@@ -331,13 +364,18 @@ export default function PoDetailPage() {
                           : <>CGST {it.cgstRate}% + SGST {it.sgstRate}%<br/><span className="text-muted">{paiseToINR(it.taxPaise)}</span></>
                         }
                       </td>
+                      <td className="px-5 py-3 text-xs">
+                        {it.lineBuyerUserId
+                          ? <span className="font-medium">{userMap.get(it.lineBuyerUserId) ?? `${it.lineBuyerUserId.slice(0, 8)}…`}</span>
+                          : <span className="text-muted italic">unassigned</span>}
+                      </td>
                       <td className="px-5 py-3 text-xs text-muted">{formatDate(it.committedDeliveryDate)}</td>
                       <td className="px-5 py-3 tabular-nums font-semibold text-right">{paiseToINR(it.totalPaise)}</td>
                     </tr>
                     {it.itemNarration && (
                       <tr className="border-t border-border" style={{ background: "var(--surface)" }}>
                         <td />
-                        <td colSpan={9} className="px-5 py-2 text-xs">
+                        <td colSpan={10} className="px-5 py-2 text-xs">
                           <span className="text-muted font-semibold uppercase tracking-wider text-[10px] mr-2">Remark:</span>
                           {it.itemNarration}
                         </td>
@@ -348,37 +386,37 @@ export default function PoDetailPage() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-border bg-surface">
-                    <td colSpan={8} />
+                    <td colSpan={9} />
                     <td className="px-5 py-2 text-right text-muted">Subtotal</td>
                     <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.subtotalPaise)}</td>
                   </tr>
                   {Number(po.discountTotalPaise) > 0 && (
                     <tr className="bg-surface">
-                      <td colSpan={8} />
+                      <td colSpan={9} />
                       <td className="px-5 py-2 text-right text-muted">Less: Discount</td>
                       <td className="px-5 py-2 tabular-nums text-right">− {paiseToINR(po.discountTotalPaise)}</td>
                     </tr>
                   )}
                   <tr className="bg-surface">
-                    <td colSpan={8} />
+                    <td colSpan={9} />
                     <td className="px-5 py-2 text-right text-muted">Taxable amount</td>
                     <td className="px-5 py-2 tabular-nums text-right font-medium">{paiseToINR(po.taxableAmountPaise)}</td>
                   </tr>
                   {po.isInterstate ? (
                     <tr className="bg-surface">
-                      <td colSpan={8} />
+                      <td colSpan={9} />
                       <td className="px-5 py-2 text-right text-muted">IGST</td>
                       <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.igstTotalPaise)}</td>
                     </tr>
                   ) : (
                     <>
                       <tr className="bg-surface">
-                        <td colSpan={8} />
+                        <td colSpan={9} />
                         <td className="px-5 py-2 text-right text-muted">CGST</td>
                         <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.cgstTotalPaise)}</td>
                       </tr>
                       <tr className="bg-surface">
-                        <td colSpan={8} />
+                        <td colSpan={9} />
                         <td className="px-5 py-2 text-right text-muted">SGST</td>
                         <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.sgstTotalPaise)}</td>
                       </tr>
@@ -386,27 +424,27 @@ export default function PoDetailPage() {
                   )}
                   {Number(po.freightChargesPaise) > 0 && (
                     <tr className="bg-surface">
-                      <td colSpan={8} />
+                      <td colSpan={9} />
                       <td className="px-5 py-2 text-right text-muted">Freight</td>
                       <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.freightChargesPaise)}</td>
                     </tr>
                   )}
                   {Number(po.otherChargesPaise) > 0 && (
                     <tr className="bg-surface">
-                      <td colSpan={8} />
+                      <td colSpan={9} />
                       <td className="px-5 py-2 text-right text-muted">Other charges</td>
                       <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.otherChargesPaise)}</td>
                     </tr>
                   )}
                   {Number(po.roundOffPaise) !== 0 && (
                     <tr className="bg-surface">
-                      <td colSpan={8} />
+                      <td colSpan={9} />
                       <td className="px-5 py-2 text-right text-muted">Round-off</td>
                       <td className="px-5 py-2 tabular-nums text-right">{paiseToINR(po.roundOffPaise)}</td>
                     </tr>
                   )}
                   <tr className="bg-surface border-t border-border">
-                    <td colSpan={8} />
+                    <td colSpan={9} />
                     <td className="px-5 py-3 text-right font-semibold">Grand total</td>
                     <td className="px-5 py-3 tabular-nums font-bold text-right text-base">{paiseToINR(po.totalPaise)}</td>
                   </tr>

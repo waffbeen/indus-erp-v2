@@ -400,6 +400,129 @@ export async function approvePr(id: string, ctx: ActorContext, comment?: string)
   });
 }
 
+/**
+ * Send a pending PR back to the requester for revision. Mirrors legacy "Send Back"
+ * — softer than reject; the PR returns to draft so the requester can edit and resubmit.
+ * Comment is required so the requester knows what to fix.
+ */
+export async function sendBackPr(id: string, ctx: ActorContext, comment?: string) {
+  const pr = await getPrRaw(ctx.tenantId, id);
+  if (!["pending_l1", "pending_l2", "escalated"].includes(pr.status)) {
+    throw BadRequest("invalid_status", "This PR isn't waiting for approval");
+  }
+  if (pr.requesterId === ctx.userId && !ctx.isTenantAdmin) {
+    throw Forbidden("self_send_back", "You cannot send back your own requisition");
+  }
+  if (!comment?.trim()) {
+    throw BadRequest("comment_required", "Please tell the requester what to revise");
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(purchaseRequisitions)
+      .set({
+        status: "draft",
+        submittedAt: null,
+        decidedAt: null,
+        approvalChain: [],
+        updatedAt: new Date(),
+      })
+      .where(eq(purchaseRequisitions.id, id));
+
+    await tx.insert(approvalActions).values({
+      tenantId: ctx.tenantId,
+      resourceType: "pr",
+      resourceId: id,
+      actorUserId: ctx.userId,
+      action: "request_changes",
+      comment,
+    });
+  });
+
+  await db.insert(auditLogs).values({
+    tenantId: ctx.tenantId,
+    actorUserId: ctx.userId,
+    action: "request_changes",
+    resourceType: "pr",
+    resourceId: id,
+    ipAddress: ctx.ipAddress,
+    userAgent: ctx.userAgent,
+  });
+}
+
+/**
+ * Clone an existing PR into a new draft. Useful for recurring purchases —
+ * same items, same vendor hints, same buyer assignments. The new PR gets a
+ * fresh ID, no PR number until submitted, status=draft, and audit chain reset.
+ */
+export async function clonePr(id: string, ctx: ActorContext) {
+  const source = await getPrRaw(ctx.tenantId, id);
+  const sourceItems = await db.select().from(prItems).where(eq(prItems.prId, id)).orderBy(prItems.sortOrder);
+
+  const [created] = await db
+    .insert(purchaseRequisitions)
+    .values({
+      tenantId: ctx.tenantId,
+      companyId: source.companyId,
+      unitId: source.unitId,
+      departmentId: source.departmentId,
+      requesterId: ctx.userId,
+      title: `${source.title} (Copy)`,
+      description: source.description,
+      prType: source.prType,
+      referenceNo: source.referenceNo,
+      buyerUserId: source.buyerUserId,
+      priority: source.priority,
+      status: "draft",
+      estimatedTotalPaise: source.estimatedTotalPaise,
+      neededBy: source.neededBy,
+    })
+    .returning();
+
+  if (!created) throw new Error("Failed to clone PR");
+
+  if (sourceItems.length) {
+    await db.insert(prItems).values(
+      sourceItems.map((it, idx) => ({
+        prId: created.id,
+        itemId: it.itemId,
+        itemName: it.itemName,
+        description: it.description,
+        itemGroupName: it.itemGroupName,
+        itemSubGroupName: it.itemSubGroupName,
+        hsnCode: it.hsnCode,
+        quantityScaled: it.quantityScaled,
+        uom: it.uom,
+        stockUnit: it.stockUnit,
+        purchaseUnit: it.purchaseUnit,
+        estimatedUnitPricePaise: it.estimatedUnitPricePaise,
+        estimatedTotalPaise: it.estimatedTotalPaise,
+        lastPurchaseRatePaise: it.lastPurchaseRatePaise,
+        lastPurchaseDate: it.lastPurchaseDate,
+        expectedDeliveryDate: it.expectedDeliveryDate,
+        itemNarration: it.itemNarration,
+        notes: it.notes,
+        lineBuyerUserId: it.lineBuyerUserId,
+        specifications: (it.specifications as Record<string, unknown>) ?? {},
+        sortOrder: idx,
+      })),
+    );
+  }
+
+  await db.insert(auditLogs).values({
+    tenantId: ctx.tenantId,
+    actorUserId: ctx.userId,
+    action: "clone",
+    resourceType: "pr",
+    resourceId: created.id,
+    ipAddress: ctx.ipAddress,
+    userAgent: ctx.userAgent,
+    before: { sourceId: id } as Record<string, unknown>,
+  });
+
+  return created;
+}
+
 export async function rejectPr(id: string, ctx: ActorContext, comment?: string) {
   const pr = await getPrRaw(ctx.tenantId, id);
   if (!["pending_l1", "pending_l2", "escalated"].includes(pr.status)) {

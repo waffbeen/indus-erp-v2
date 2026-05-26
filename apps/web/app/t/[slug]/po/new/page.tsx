@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
 import { FieldError, fieldClass } from "@/components/FieldError";
+import { Modal } from "@/components/Modal";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { paiseToINR } from "@/lib/format";
@@ -13,6 +14,7 @@ import { validate, apiErrorToFormErrors, emptyErrors, type FormErrorState } from
 
 interface Company { id: string; name: string; isPrimary: boolean; }
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
+interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 
 export default function NewPoPage() {
   const router = useRouter();
@@ -24,23 +26,34 @@ export default function NewPoPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [vendors, setVendors] = useState<VendorListItem[]>([]);
+  const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
   const [sourcePr, setSourcePr] = useState<{ prNumber: string | null; title: string } | null>(null);
 
   const [form, setForm] = useState<PoCreateInput>(emptyForm());
   const [submitting, setSubmitting] = useState<"draft" | "submit" | null>(null);
   const [errors, setErrors] = useState<FormErrorState>(emptyErrors);
 
+  // Bulk buyer update — track which lines are selected via row checkboxes
+  const [selectedLines, setSelectedLines] = useState<Set<number>>(new Set());
+  const [bulkBuyerOpen, setBulkBuyerOpen] = useState(false);
+  const [bulkBuyerPick, setBulkBuyerPick] = useState<string>("");
+
+  // Common discount % at header — typed once, applied to all lines on demand
+  const [commonDiscount, setCommonDiscount] = useState<string>("");
+
   useEffect(() => {
     (async () => {
       try {
-        const [comps, units, vens] = await Promise.all([
+        const [comps, units, vens, usersList] = await Promise.all([
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
           api<{ items: VendorListItem[] }>("/api/vendors?pageSize=100"),
+          api<TenantUser[]>("/api/tenant/users"),
         ]);
         setCompanies(comps);
         setUnits(units);
         setVendors(vens.items);
+        setTenantUsers(usersList);
 
         if (fromPrId) {
           const draft = await api<{
@@ -52,7 +65,9 @@ export default function NewPoPage() {
               uom: string; quantity: number; estimatedUnitPrice: number;
               itemNarration: string | null;
               specifications: Record<string, unknown> | null;
+              lineBuyerUserId: string | null;
             }>;
+            suggestedBuyerUserId: string | null;
           }>(`/api/po/from-pr/${fromPrId}`);
           setSourcePr({ prNumber: draft.pr.prNumber, title: draft.pr.title });
           setForm((f) => ({
@@ -78,6 +93,7 @@ export default function NewPoPage() {
               itemNarration: it.itemNarration ?? "",
               notes: "",
               specifications: it.specifications ?? null,
+              lineBuyerUserId: it.lineBuyerUserId ?? draft.suggestedBuyerUserId ?? null,
             })),
           }));
         } else {
@@ -129,6 +145,7 @@ export default function NewPoPage() {
           discountPercent: 0, taxRate: 18,
           committedDeliveryDate: null,
           itemNarration: "", notes: "", specifications: null,
+          lineBuyerUserId: null,
         },
       ],
     }));
@@ -136,6 +153,55 @@ export default function NewPoPage() {
 
   function removeItem(idx: number) {
     setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
+    setSelectedLines((s) => {
+      const next = new Set<number>();
+      for (const i of s) if (i < idx) next.add(i); else if (i > idx) next.add(i - 1);
+      return next;
+    });
+  }
+
+  function toggleLine(idx: number) {
+    setSelectedLines((s) => {
+      const next = new Set(s);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }
+
+  function toggleAllLines() {
+    setSelectedLines((s) =>
+      s.size === form.items.length ? new Set() : new Set(form.items.map((_, i) => i)),
+    );
+  }
+
+  /** Apply the picked buyer to every selected line; or clear if no buyer chosen. */
+  function applyBulkBuyer() {
+    const picked = bulkBuyerPick || null;
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) =>
+        selectedLines.has(i) ? { ...it, lineBuyerUserId: picked } : it,
+      ),
+    }));
+    const count = selectedLines.size;
+    toast.success(
+      picked ? "Buyer assigned" : "Buyer cleared",
+      `${count} ${count === 1 ? "line" : "lines"} updated.`,
+    );
+    setBulkBuyerOpen(false);
+    setBulkBuyerPick("");
+    setSelectedLines(new Set());
+  }
+
+  /** Common-discount apply — copies the header value to every line's discountPercent. */
+  function applyCommonDiscount() {
+    const pct = Number(commonDiscount);
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+      toast.error("Invalid discount", "Enter a value between 0 and 100.");
+      return;
+    }
+    setForm((f) => ({ ...f, items: f.items.map((it) => ({ ...it, discountPercent: pct })) }));
+    toast.success("Discount applied", `${pct}% set on all ${form.items.length} lines.`);
   }
 
   /** Live totals with GST split. */
@@ -361,7 +427,7 @@ export default function NewPoPage() {
         </div>
 
         <div className="card overflow-hidden mb-5">
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-border flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Line items</p>
               <p className="text-sm text-muted mt-0.5">
@@ -369,7 +435,42 @@ export default function NewPoPage() {
                 grand total <strong className="text-text-default">{paiseToINR(totals.grand * 100)}</strong>
               </p>
             </div>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={addItem}><Icon name="Plus" /> Add line</button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedLines.size > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { setBulkBuyerPick(""); setBulkBuyerOpen(true); }}
+                  title="Assign / clear buyer on selected lines"
+                >
+                  <Icon name="UserCog" />
+                  Update buyer · {selectedLines.size}
+                </button>
+              )}
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className="input !py-1.5 !h-9 w-24 tabular-nums text-sm"
+                  placeholder="Disc %"
+                  value={commonDiscount}
+                  onChange={(e) => setCommonDiscount(e.target.value)}
+                  title="Common discount % to apply on all lines"
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={applyCommonDiscount}
+                  disabled={!commonDiscount || !form.items.length}
+                  title="Apply this % to all lines' Discount column"
+                >
+                  <Icon name="Percent" /> Apply
+                </button>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={addItem}><Icon name="Plus" /> Add line</button>
+            </div>
           </div>
 
           {form.items.length === 0 ? (
@@ -382,7 +483,17 @@ export default function NewPoPage() {
               <table className="w-full text-sm">
                 <thead className="text-[11px] uppercase tracking-wider text-muted bg-surface">
                   <tr>
-                    <th className="text-left px-3 py-2 font-semibold w-12">#</th>
+                    <th className="text-left px-3 py-2 font-semibold w-10">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={form.items.length > 0 && selectedLines.size === form.items.length}
+                        ref={(el) => { if (el) el.indeterminate = selectedLines.size > 0 && selectedLines.size < form.items.length; }}
+                        onChange={toggleAllLines}
+                        title="Select all lines"
+                      />
+                    </th>
+                    <th className="text-left px-3 py-2 font-semibold w-8">#</th>
                     <th className="text-left px-3 py-2 font-semibold min-w-[200px]">Item</th>
                     <th className="text-left px-3 py-2 font-semibold w-24">HSN</th>
                     <th className="text-left px-3 py-2 font-semibold w-24">Qty</th>
@@ -390,6 +501,9 @@ export default function NewPoPage() {
                     <th className="text-left px-3 py-2 font-semibold w-28">Unit price (₹)</th>
                     <th className="text-left px-3 py-2 font-semibold w-20">Disc %</th>
                     <th className="text-left px-3 py-2 font-semibold w-20">GST %</th>
+                    <th className="text-left px-3 py-2 font-semibold w-44">
+                      Buyer <span className="text-danger">*</span>
+                    </th>
                     <th className="text-left px-3 py-2 font-semibold w-36">Committed</th>
                     <th className="text-right px-3 py-2 font-semibold w-32">Line total</th>
                     <th className="text-right px-3 py-2 font-semibold w-12"></th>
@@ -404,7 +518,15 @@ export default function NewPoPage() {
                     const lineTotal = taxable + tax;
                     return (
                       <React.Fragment key={idx}>
-                      <tr className="border-t border-border align-top">
+                      <tr className={`border-t border-border align-top ${selectedLines.has(idx) ? "bg-tint-lilac/20" : ""}`}>
+                        <td className="px-3 py-2 pt-3.5">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={selectedLines.has(idx)}
+                            onChange={() => toggleLine(idx)}
+                          />
+                        </td>
                         <td className="px-3 py-2 text-muted text-xs pt-3.5">{idx + 1}</td>
                         <td className="px-3 py-2">
                           <input className="input !py-1.5 text-sm" placeholder="Item name" value={it.itemName} onChange={(e) => setItem(idx, { itemName: e.target.value })} />
@@ -431,6 +553,21 @@ export default function NewPoPage() {
                           <input className="input !py-1.5 tabular-nums" type="number" step="0.01" min="0" max="100" value={it.taxRate} onChange={(e) => setItem(idx, { taxRate: Number(e.target.value) })} />
                         </td>
                         <td className="px-3 py-2">
+                          <select
+                            className={`input !py-1.5 text-xs ${!it.lineBuyerUserId ? "!border-warning-bg" : ""}`}
+                            value={it.lineBuyerUserId ?? ""}
+                            onChange={(e) => setItem(idx, { lineBuyerUserId: e.target.value || null })}
+                            title={!it.lineBuyerUserId ? "Assign a buyer before submitting" : ""}
+                          >
+                            <option value="">— Pick buyer —</option>
+                            {tenantUsers.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.fullName} · {u.roleName}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
                           <input type="date" className="input !py-1.5 text-xs" value={it.committedDeliveryDate ?? ""} onChange={(e) => setItem(idx, { committedDeliveryDate: e.target.value || null })} />
                         </td>
                         <td className="px-3 py-2 font-semibold tabular-nums text-right pt-3">
@@ -444,7 +581,8 @@ export default function NewPoPage() {
                       </tr>
                       <tr className="border-b border-border" style={{ background: "var(--surface)" }}>
                         <td />
-                        <td colSpan={10} className="px-3 pb-2">
+                        <td />
+                        <td colSpan={11} className="px-3 pb-2">
                           <input
                             className="input !py-1.5 text-xs"
                             placeholder="Item-wise remark / special instruction (appears on the PO sent to vendor)"
@@ -527,6 +665,57 @@ export default function NewPoPage() {
           </div>
         </div>
       </form>
+
+      {/* Bulk buyer update modal */}
+      <Modal
+        open={bulkBuyerOpen}
+        onClose={() => setBulkBuyerOpen(false)}
+        title="Update buyer on selected lines"
+        size="md"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setBulkBuyerOpen(false)}>Cancel</button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => { setBulkBuyerPick(""); applyBulkBuyer(); }}
+              title="Clear the buyer field on these lines"
+            >
+              <Icon name="UserMinus" /> Clear buyer
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={applyBulkBuyer}
+              disabled={!bulkBuyerPick}
+            >
+              <Icon name="UserCheck" /> Apply
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="h-12 w-12 rounded-2xl grid place-items-center shrink-0" style={{ background: "var(--tint-lilac)", color: "var(--tint-lilac-fg)" }}>
+              <Icon name="UserCog" size={22} />
+            </div>
+            <div className="flex-1 text-sm text-muted leading-relaxed">
+              <strong className="text-text-default">{selectedLines.size}</strong> {selectedLines.size === 1 ? "line is" : "lines are"} selected.
+              Pick a buyer below and click <strong>Apply</strong> — the choice will be set on every selected line.
+              Use <strong>Clear buyer</strong> to remove the buyer assignment instead.
+            </div>
+          </div>
+          <div>
+            <label className="label">Buyer</label>
+            <select className="input" value={bulkBuyerPick} onChange={(e) => setBulkBuyerPick(e.target.value)}>
+              <option value="">— Pick buyer —</option>
+              {tenantUsers.map((u) => (
+                <option key={u.id} value={u.id}>{u.fullName} · {u.roleName}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
@@ -569,6 +758,7 @@ function emptyForm(): PoCreateInput {
         discountPercent: 0, taxRate: 18,
         committedDeliveryDate: null,
         itemNarration: "", notes: "", specifications: null,
+        lineBuyerUserId: null,
       },
     ],
   };
