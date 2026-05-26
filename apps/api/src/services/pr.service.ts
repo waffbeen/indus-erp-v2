@@ -7,6 +7,7 @@ import { approvalActions } from "../db/schema/approvals";
 import { companies } from "../db/schema/companies";
 import { units } from "../db/schema/units";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
+import { notifyTenantAdmins, notifyUsers } from "./notification.service";
 import type { PrCreateInput } from "@indus/shared";
 
 interface ListOpts {
@@ -359,6 +360,18 @@ export async function submitPr(id: string, ctx: ActorContext, comment?: string) 
     ipAddress: ctx.ipAddress,
     userAgent: ctx.userAgent,
   });
+
+  // Notify all tenant admins (approvers) that a PR is waiting
+  await notifyTenantAdmins({
+    tenantId: ctx.tenantId,
+    excludeUserId: ctx.userId,
+    kind: "pr_submitted",
+    title: `New PR awaiting approval: ${prNumber}`,
+    body: pr.title,
+    resourceType: "pr",
+    resourceId: id,
+    metadata: { prNumber, total: pr.estimatedTotalPaise },
+  });
 }
 
 export async function approvePr(id: string, ctx: ActorContext, comment?: string) {
@@ -400,6 +413,18 @@ export async function approvePr(id: string, ctx: ActorContext, comment?: string)
     resourceId: id,
     ipAddress: ctx.ipAddress,
     userAgent: ctx.userAgent,
+  });
+
+  // Notify the requester their PR is approved
+  await notifyUsers({
+    tenantId: ctx.tenantId,
+    userIds: [pr.requesterId],
+    kind: "pr_approved",
+    title: `PR approved: ${pr.prNumber ?? ""}`.trim(),
+    body: pr.title,
+    resourceType: "pr",
+    resourceId: id,
+    metadata: { prNumber: pr.prNumber },
   });
 }
 
@@ -450,6 +475,17 @@ export async function sendBackPr(id: string, ctx: ActorContext, comment?: string
     resourceId: id,
     ipAddress: ctx.ipAddress,
     userAgent: ctx.userAgent,
+  });
+
+  await notifyUsers({
+    tenantId: ctx.tenantId,
+    userIds: [pr.requesterId],
+    kind: "pr_sent_back",
+    title: `PR sent back for revision: ${pr.prNumber ?? ""}`.trim(),
+    body: comment || pr.title,
+    resourceType: "pr",
+    resourceId: id,
+    metadata: { prNumber: pr.prNumber },
   });
 }
 
@@ -562,6 +598,17 @@ export async function rejectPr(id: string, ctx: ActorContext, comment?: string) 
     resourceId: id,
     ipAddress: ctx.ipAddress,
     userAgent: ctx.userAgent,
+  });
+
+  await notifyUsers({
+    tenantId: ctx.tenantId,
+    userIds: [pr.requesterId],
+    kind: "pr_rejected",
+    title: `PR rejected: ${pr.prNumber ?? ""}`.trim(),
+    body: comment || pr.title,
+    resourceType: "pr",
+    resourceId: id,
+    metadata: { prNumber: pr.prNumber },
   });
 }
 

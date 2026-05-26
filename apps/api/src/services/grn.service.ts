@@ -8,6 +8,8 @@ import { auditLogs } from "../db/schema/audit_logs";
 import { NotFound, BadRequest } from "../lib/errors";
 import * as poService from "./po.service";
 import * as stockService from "./stock.service";
+import { notifyUsers } from "./notification.service";
+import { purchaseOrders } from "../db/schema/po";
 import type { GrnCreateInput, GrnItemInput } from "@indus/shared";
 
 interface ListOpts { page?: number; pageSize?: number; status?: string; poId?: string; vendorId?: string; search?: string; }
@@ -260,6 +262,25 @@ export async function createGrn(input: GrnCreateInput, ctx: ActorContext) {
       ctx.userId,
       input.items,
     );
+  }
+
+  // Notify the PO creator that a GRN was raised against their PO
+  const [po] = await db
+    .select({ createdByUserId: purchaseOrders.createdByUserId, poNumber: purchaseOrders.poNumber, title: purchaseOrders.title })
+    .from(purchaseOrders)
+    .where(eq(purchaseOrders.id, input.poId))
+    .limit(1);
+  if (po && po.createdByUserId !== ctx.userId) {
+    await notifyUsers({
+      tenantId: ctx.tenantId,
+      userIds: [po.createdByUserId],
+      kind: "grn_raised",
+      title: `Goods received against ${po.poNumber ?? "PO"}`,
+      body: `${number} — ${po.title}`,
+      resourceType: "grn",
+      resourceId: grn.id,
+      metadata: { grnNumber: number, poNumber: po.poNumber, poId: input.poId },
+    });
   }
 
   await db.insert(auditLogs).values({

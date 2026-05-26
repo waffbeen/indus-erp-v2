@@ -9,6 +9,7 @@ import { tenantMetaRoutes } from "./tenant-meta.routes";
 import { gateEntryRoutes } from "./gate-entry.routes";
 import { grnRoutes } from "./grn.routes";
 import { stockRoutes } from "./stock.routes";
+import { notificationRoutes } from "./notification.routes";
 import { dashboardRoutes } from "./dashboard.routes";
 
 export const apiRouter: Router = Router();
@@ -27,3 +28,4 @@ apiRouter.use("/po", poRoutes);
 apiRouter.use("/gate-entry", gateEntryRoutes);
 apiRouter.use("/grn", grnRoutes);
 apiRouter.use("/stock", stockRoutes);
+apiRouter.use("/notifications", notificationRoutes);

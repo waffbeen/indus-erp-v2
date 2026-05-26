@@ -12,6 +12,7 @@ import { approvalActions } from "../db/schema/approvals";
 import { companies } from "../db/schema/companies";
 import { units } from "../db/schema/units";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
+import { notifyTenantAdmins, notifyUsers } from "./notification.service";
 import type { PoCreateInput, PoAmendInput } from "@indus/shared";
 
 interface ListOpts {
@@ -832,6 +833,17 @@ export async function submitPo(id: string, ctx: ActorContext, comment?: string) 
     action: "submit", resourceType: "po", resourceId: id,
     ipAddress: ctx.ipAddress, userAgent: ctx.userAgent,
   });
+
+  await notifyTenantAdmins({
+    tenantId: ctx.tenantId,
+    excludeUserId: ctx.userId,
+    kind: "po_submitted",
+    title: `New PO awaiting approval: ${poNumber}`,
+    body: po.title,
+    resourceType: "po",
+    resourceId: id,
+    metadata: { poNumber, total: po.totalPaise },
+  });
 }
 
 export async function approvePo(id: string, ctx: ActorContext, comment?: string) {
@@ -875,6 +887,17 @@ export async function approvePo(id: string, ctx: ActorContext, comment?: string)
     action: "approve", resourceType: "po", resourceId: id,
     ipAddress: ctx.ipAddress, userAgent: ctx.userAgent,
   });
+
+  await notifyUsers({
+    tenantId: ctx.tenantId,
+    userIds: [po.createdByUserId],
+    kind: "po_approved",
+    title: `PO approved: ${po.poNumber ?? ""}`.trim(),
+    body: po.title,
+    resourceType: "po",
+    resourceId: id,
+    metadata: { poNumber: po.poNumber },
+  });
 }
 
 export async function rejectPo(id: string, ctx: ActorContext, comment?: string) {
@@ -902,6 +925,17 @@ export async function rejectPo(id: string, ctx: ActorContext, comment?: string) 
     tenantId: ctx.tenantId, actorUserId: ctx.userId,
     action: "reject", resourceType: "po", resourceId: id,
     ipAddress: ctx.ipAddress, userAgent: ctx.userAgent,
+  });
+
+  await notifyUsers({
+    tenantId: ctx.tenantId,
+    userIds: [po.createdByUserId],
+    kind: "po_rejected",
+    title: `PO rejected: ${po.poNumber ?? ""}`.trim(),
+    body: comment || po.title,
+    resourceType: "po",
+    resourceId: id,
+    metadata: { poNumber: po.poNumber },
   });
 }
 

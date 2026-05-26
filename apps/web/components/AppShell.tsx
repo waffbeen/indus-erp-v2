@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { Icon, type IconProps } from "./Icon";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { NotificationsBell } from "./NotificationsBell";
 import { useAuth } from "@/lib/auth";
 import { sidebarModulesFor } from "@indus/shared";
 
@@ -183,9 +184,7 @@ export function AppShell({
 
           <div className="flex items-center gap-1.5">
             <ThemeSwitcher />
-            <button className="h-8 w-8 rounded-md grid place-items-center text-muted hover:text-text-default hover:bg-surface border border-transparent hover:border-border-strong" aria-label="Notifications">
-              <Icon name="Bell" size={16} />
-            </button>
+            <NotificationsBell />
           </div>
         </header>
 
