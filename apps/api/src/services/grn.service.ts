@@ -1,4 +1,4 @@
-import { eq, and, isNull, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, isNull, desc, sql, inArray, ilike, or } from "drizzle-orm";
 import { db } from "../db/index";
 import { grns, grnItems } from "../db/schema/grns";
 import { purchaseOrders, poItems } from "../db/schema/po";
@@ -7,9 +7,22 @@ import { users } from "../db/schema/users";
 import { auditLogs } from "../db/schema/audit_logs";
 import { NotFound, BadRequest } from "../lib/errors";
 import * as poService from "./po.service";
-import type { GrnCreateInput } from "@indus/shared";
+import type { GrnCreateInput, GrnItemInput } from "@indus/shared";
 
-interface ListOpts { page?: number; pageSize?: number; status?: string; poId?: string; vendorId?: string; }
+interface ListOpts { page?: number; pageSize?: number; status?: string; poId?: string; vendorId?: string; search?: string; }
+
+/**
+ * Derive overall GRN status from line item quantities at create time.
+ * Mirrors how procurement teams think about the receipt — no separate QC step
+ * needed for the default flow.
+ */
+function deriveStatusFromItems(items: GrnItemInput[]): "accepted" | "partially_accepted" | "rejected" {
+  const totalAccepted = items.reduce((s, it) => s + it.acceptedQuantity, 0);
+  const totalRejected = items.reduce((s, it) => s + it.rejectedQuantity, 0);
+  if (totalAccepted > 0 && totalRejected === 0) return "accepted";
+  if (totalAccepted === 0 && totalRejected > 0) return "rejected";
+  return "partially_accepted";
+}
 interface ActorContext {
   tenantId: string; userId: string; isTenantAdmin: boolean;
   ipAddress?: string; userAgent?: string;
@@ -35,6 +48,10 @@ export async function listGrns(tenantId: string, opts: ListOpts = {}) {
   if (opts.status) conds.push(eq(grns.status, opts.status as "draft"));
   if (opts.poId) conds.push(eq(grns.poId, opts.poId));
   if (opts.vendorId) conds.push(eq(grns.vendorId, opts.vendorId));
+  if (opts.search?.trim()) {
+    const q = `%${opts.search.trim()}%`;
+    conds.push(or(ilike(grns.grnNumber, q), ilike(grns.invoiceNumber, q))!);
+  }
 
   const [rows, totalRow] = await Promise.all([
     db
@@ -176,6 +193,7 @@ export async function createGrn(input: GrnCreateInput, ctx: ActorContext) {
 
   const number = await nextGrnNumber(ctx.tenantId);
   const invoicePaise = input.invoiceAmount ? Math.round(input.invoiceAmount * 100).toString() : null;
+  const derivedStatus = deriveStatusFromItems(input.items);
 
   const [grn] = await db
     .insert(grns)
@@ -188,7 +206,7 @@ export async function createGrn(input: GrnCreateInput, ctx: ActorContext) {
       gateEntryId: input.gateEntryId ?? null,
       receivedByUserId: ctx.userId,
       grnNumber: number,
-      status: "submitted",
+      status: derivedStatus,
       invoiceNumber: input.invoiceNumber ?? null,
       invoiceDate: input.invoiceDate ? new Date(input.invoiceDate) : null,
       invoiceAmountPaise: invoicePaise,

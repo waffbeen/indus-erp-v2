@@ -20,6 +20,16 @@ const STATUS_TINT: Record<string, string> = {
   cancelled: "badge-tint-blush",
 };
 
+const STATUS_OPTIONS = [
+  { value: "",                  label: "All statuses" },
+  { value: "accepted",          label: "Accepted" },
+  { value: "partially_accepted",label: "Partially accepted" },
+  { value: "rejected",          label: "Rejected" },
+  { value: "submitted",         label: "Submitted (legacy)" },
+  { value: "qc_pending",        label: "QC pending" },
+  { value: "cancelled",         label: "Cancelled" },
+];
+
 export default function GrnListPage() {
   const params = useParams<{ slug: string }>();
   const base = `/t/${params?.slug ?? ""}/grn`;
@@ -27,11 +37,18 @@ export default function GrnListPage() {
   const [data, setData] = useState<ListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
 
   async function load() {
     setLoading(true);
     try {
-      const res = await api<ListResponse>(`/api/grn`);
+      const qs = new URLSearchParams();
+      if (statusFilter) qs.set("status", statusFilter);
+      if (appliedSearch.trim()) qs.set("search", appliedSearch.trim());
+      const url = qs.toString() ? `/api/grn?${qs.toString()}` : "/api/grn";
+      const res = await api<ListResponse>(url);
       setData(res);
       setError(null);
     } catch (err) {
@@ -41,7 +58,13 @@ export default function GrnListPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  // Debounce search input so we don't fire on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setAppliedSearch(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [statusFilter, appliedSearch]);
 
   return (
     <>
@@ -57,6 +80,27 @@ export default function GrnListPage() {
 
       {error && <div className="mb-4 rounded-lg p-3 bg-danger-bg text-danger-fg text-sm">{error}</div>}
 
+      {/* Filters */}
+      <div className="card p-4 mb-4 flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 relative">
+          <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+          <input
+            type="text"
+            className="input pl-9"
+            placeholder="Search by GRN number or invoice number..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+        <select
+          className="input sm:w-56"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+
       <div className="card overflow-hidden">
         {loading && !data ? (
           <div className="p-12 text-center text-muted">Loading…</div>
@@ -65,8 +109,14 @@ export default function GrnListPage() {
             <div className="h-14 w-14 rounded-2xl mx-auto grid place-items-center bg-tint-peach text-tint-peach-fg mb-4">
               <Icon name="PackageCheck" size={28} />
             </div>
-            <h3 className="display text-xl mb-1">No goods receipts yet</h3>
-            <p className="text-sm text-muted">Approve a PO, send it to vendor, then open the PO and click "Receive (GRN)".</p>
+            <h3 className="display text-xl mb-1">
+              {statusFilter || appliedSearch ? "No GRNs match these filters" : "No goods receipts yet"}
+            </h3>
+            <p className="text-sm text-muted">
+              {statusFilter || appliedSearch
+                ? "Try clearing the search or status filter."
+                : "Approve a PO, send it to vendor, then open the PO and click \"Receive (GRN)\"."}
+            </p>
           </div>
         ) : (
           <table className="w-full text-sm">

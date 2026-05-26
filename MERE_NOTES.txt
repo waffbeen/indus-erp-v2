@@ -1,0 +1,536 @@
+========================================================================
+                    PRATHVI'S ERP — MERA LEARNING JOURNAL
+========================================================================
+
+Date: 26 May 2026
+Live URL: https://prathvis-erp.vercel.app
+API URL:  https://prathvis-erp.onrender.com
+GitHub:   https://github.com/waffbeen/indus-erp-v2
+
+Yeh document mere liye hai — Claude ke saath jo project bana, usme jo
+naye tech use kiye, woh sab samjhane ke liye. Future mein jab dobara
+dekhuga, sab yaad aa jayega.
+
+
+========================================================================
+SECTION 1 — KYA BANAYA HUM NE?
+========================================================================
+
+Indus Analytics ka purana ERP (Estimo Prime — Thomson client) VB.NET
+WebForms + MSSQL pe bana hua tha. Bahut slow, modern UI nahi, multi-
+tenancy nahi. Hum ne usse ground-up rebuild kiya — naya naam:
+
+    Prathvi's ERP (URL-safe: prathvis-erp)
+
+Yeh ek MULTI-TENANT SaaS hai matlab:
+- Ek hi codebase
+- Ek hi database (Postgres)
+- Lekin alag-alag companies (tenants) apna-apna data alag-alag dekhte hain
+- Har request mein tenant_id check hota hai
+
+MVP scope (v0.1):
+  ✓ Login / Auth
+  ✓ Purchase Requisition (PR) — create, edit draft, submit, approve, reject
+  ✓ Purchase Order (PO) — create, GST split, line items, financial summary
+  ✓ Dashboard
+  ✓ Items & Vendors master
+  ✓ GRN + Gate Entry scaffolds
+
+
+========================================================================
+SECTION 2 — TECH STACK (kya kya naya tha mere liye)
+========================================================================
+
+FRONTEND (apps/web folder):
+---------------------------
+  Next.js 14 (App Router)
+    - React framework — pages aur routing built-in
+    - "App Router" = naya routing system (app/ folder mein files)
+    - SSR (Server-Side Rendering) + Client Components dono support
+
+  TypeScript
+    - JavaScript + types
+    - Compile time pe errors pakad leta hai
+    - VS Code mein autocomplete bahut achha
+
+  Tailwind CSS
+    - Utility-first CSS — class="bg-blue-500 p-4" type
+    - Custom design tokens packages/ui/tokens/circle.css mein
+    - Theme switch single file change se possible
+
+  React Hook Form + Zod
+    - Form state management + validation
+    - Zod schema FE aur BE dono mein same (packages/shared)
+
+
+BACKEND (apps/api folder):
+--------------------------
+  Node.js 20 + Express 4
+    - HTTP server framework
+    - Middleware pattern: cors, helmet, auth, rbac
+
+  TypeScript
+    - Same as frontend
+
+  tsx (TypeScript Execute)
+    - TS code direct run karta hai bina compile kiye
+    - dev mein "tsx watch" auto-reload deta hai
+    - Production mein bhi tsx hi chalata hai (build step skip)
+
+  Drizzle ORM
+    - Type-safe SQL builder
+    - SELECT * FROM users WHERE id = $1 ki jagah:
+      db.select().from(users).where(eq(users.id, id))
+    - TypeScript types schema se auto-generate
+    - Migrations apne aap banti hain (drizzle-kit)
+
+  Zod (validation)
+    - Schema banao -> input validate hota hai automatically
+    - Errors humare frontend mein dikhte hain inline
+
+  argon2 (password hashing)
+    - bcrypt se better, modern
+    - Native build chahiye (pnpm allow karna padta hai)
+
+  jsonwebtoken (JWT)
+    - Access token: 15 minutes valid
+    - Refresh token: 7 days valid
+    - Stateless — server pe session store nahi
+
+  pino (logging)
+    - Fast JSON logger
+    - pino-http req/res automatic log karta hai
+
+
+DATABASE:
+---------
+  Neon (Serverless Postgres)
+    - Manage karne ki zaroorat nahi
+    - Free tier mein 500MB
+    - WebSocket driver (@neondatabase/serverless) — port 443 use karta hai
+      INSTEAD OF 5432, kyunki ISPs aksar 5432 block karte hain
+
+
+MONOREPO TOOLS:
+---------------
+  pnpm workspaces
+    - Ek repo mein multiple packages (apps/web, apps/api, packages/shared)
+    - Shared dependencies dedup ho jati hain (disk save)
+
+  Turborepo
+    - "pnpm dev" se saare apps parallel mein chalte hain
+    - Build caching: agar code nahi badla to dobara build nahi karega
+
+  Folder layout:
+    indus-erp-v2/
+    |-- apps/
+    |   |-- api/          (Express backend)
+    |   |-- web/          (Next.js frontend)
+    |-- packages/
+    |   |-- shared/       (Zod schemas, types — FE+BE shared)
+    |   |-- ui/           (design tokens, Tailwind preset)
+    |-- README.md
+    |-- DEPLOYMENT.md
+    |-- pnpm-workspace.yaml
+    |-- turbo.json
+
+
+========================================================================
+SECTION 3 — DEPLOYMENT STACK (kahan kya host kiya)
+========================================================================
+
+  +-----------------+       HTTPS       +-------------------+
+  |   VERCEL        |  --------------> |   RENDER          |
+  |   apps/web      |   API calls       |   apps/api        |
+  |   Next.js       |                   |   Express + tsx   |
+  +-----------------+                   +-------------------+
+                                                 |
+                                                 |  WebSocket :443
+                                                 v
+                                        +-------------------+
+                                        |   NEON            |
+                                        |   PostgreSQL      |
+                                        |   (serverless)    |
+                                        +-------------------+
+
+  GitHub: code hosting — waffbeen/indus-erp-v2
+
+  Vercel (FREE Hobby tier):
+    - Next.js auto-detect
+    - Custom domain support (future)
+    - Per-PR preview deployments
+    - Edge network (fast worldwide)
+    - Root Directory = apps/web (monorepo support)
+
+  Render (FREE tier — sleeps after 15 min idle):
+    - Web service running Node 20
+    - Auto-deploys on git push to main
+    - Build: pnpm install --frozen-lockfile
+    - Start: pnpm --filter @indus/api start
+    - Health endpoint: /api/healthz
+    - Free tier limitation: NO Shell access (Starter $7/mo needed)
+
+  Neon (FREE tier):
+    - 500MB storage
+    - Auto scale-to-zero (cost saving)
+    - First query after sleep takes ~500ms (cold start)
+
+
+========================================================================
+SECTION 4 — JO PROBLEMS AAYI AUR KAISE FIX KIYE
+========================================================================
+
+(Yeh sabse important section hai. Real-world deploy karne mein yeh sab
+hota hai. Inhe yaad rakhna future mein.)
+
+1. PowerShell execution policy ne pnpm block kar diya
+   FIX: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
+
+2. setup.ps1 mein emoji tha, PowerShell 5.1 ne parse error diya
+   REASON: PS 5.1 UTF-8 without BOM ko ANSI samajhta hai
+   FIX: Script ko ASCII-only rewrite kiya
+
+3. drizzle-kit "Cannot find module './tenants.js'" deta tha
+   REASON: drizzle-kit CommonJS require() use karta hai aur .ts files
+           ko .js extension se resolve nahi kar paata
+   FIX: Saare imports se ".js" extension hata diya (bulk find-replace)
+
+4. Migrations local pe ETIMEDOUT — Neon port 5432 timeout
+   REASON: Ghar ka ISP outbound port 5432 block karta hai
+   FIX: @neondatabase/serverless + ws (WebSocket driver) install kiya
+         Port 443 use hota hai (HTTPS jaisa) — kabhi block nahi hota
+
+5. pnpm 11 ne ERR_PNPM_IGNORED_BUILDS diya argon2/esbuild ke liye
+   REASON: pnpm 11 native builds explicitly approve karne ki bolta hai
+   FIX: pnpm-workspace.yaml mein onlyBuiltDependencies list add ki
+
+6. Git init galat folder mein hua (parent d:/25 May/ mein)
+   PROBLEM: Legacy VB.NET folder bhi GitHub pe push ho jata
+   FIX: Stray .git delete karke indus-erp-v2/ ke andar fresh init kiya
+
+7. Render build fail — pnpm 11.3 + Node 20 = ERR_UNKNOWN_BUILTIN_MODULE
+   REASON: pnpm 11.3 ek naya node:* module use karta hai jo Node 20 mein
+           nahi hai (Node 22.5+ mein aaya hai)
+   FIX: package.json mein "packageManager": "pnpm@9.15.0" set kiya
+         Lockfile v9 hai jo pnpm 9 bhi support karta hai
+
+8. Render start fail — tsx not found
+   REASON: NODE_ENV=production ke saath pnpm devDependencies skip kar
+           deta hai. tsx aur drizzle-kit dono devDeps mein the.
+   FIX: apps/api/package.json mein tsx + drizzle-kit ko devDependencies
+         se uthake dependencies mein move kiya
+
+9. Render free tier mein Shell nahi mil raha
+   PROBLEM: db:migrate aur db:seed kaise chalayein?
+   FIX: Migrations local pe already chal chuki thi same Neon DB pe
+         (production aur dev same DB), so re-run ki zaroorat nahi thi
+
+10. Vercel apps/web se deploy par "npm install" use kar raha tha
+    REASON: apps/web folder mein pnpm-lock.yaml nahi, woh root mein hai
+    FIX: Vercel REST API call karke project ka rootDirectory="apps/web"
+          aur sourceFilesOutsideRootDirectory=true set kiya
+
+11. Vercel build "No Next.js version detected"
+    REASON: Vercel root ki package.json dekh raha tha
+    FIX: Same as #10 — rootDirectory set hone ke baad theek hua
+
+12. Vercel "next build" mein TypeScript errors fail kar raha tha
+    REASON: apps/web mein kuch pre-existing type errors hain jo runtime
+            affect nahi karte
+    FIX: next.config.mjs mein typescript.ignoreBuildErrors=true,
+          eslint.ignoreDuringBuilds=true set kiya
+          (Future mein in errors ko theek karna hai)
+
+13. CORS — Vercel se API call pe error
+    REASON: API ko nahi pata Vercel URL allowed hai
+    FIX: Render Environment Variables mein WEB_ORIGIN add kiya:
+          WEB_ORIGIN=https://prathvis-erp.vercel.app
+
+
+========================================================================
+SECTION 5 — STEP-BY-STEP DEPLOY JOURNEY (jo humne kiya)
+========================================================================
+
+STEP 1: Code local pe ready kiya
+  - apps/api production-ready (PORT env, CORS, tsx start command)
+  - apps/web build properly configured
+  - Pre-existing typecheck errors ko skip karne ka decision
+
+STEP 2: Git setup
+  - .git stray folder d:/25 May/ se delete
+  - indus-erp-v2/ ke andar fresh git init
+  - .gitignore verify kiya (.env files ignored)
+  - Initial commit (157 files)
+  - GitHub repo: github.com/waffbeen/indus-erp-v2
+  - git push -u origin main
+
+STEP 3: Render pe API deploy
+  - New Web Service banaya
+  - Name: Prathvi's ERP
+  - Region: Ohio (US East — Neon ke close)
+  - Build Command: corepack enable && pnpm install --frozen-lockfile
+  - Start Command: pnpm --filter @indus/api start
+  - Instance Type: Free
+  - 7 env vars add kiye via "Add from .env" feature
+  - First deploy fail (pnpm 11 issue) -> fix push -> success
+  - Second deploy fail (tsx missing) -> fix push -> success
+  - URL live: prathvis-erp.onrender.com
+
+STEP 4: Vercel pe Web deploy (CLI route)
+  - npm install -g vercel (CLI install)
+  - vercel login (GitHub OAuth via browser)
+  - vercel link --project prathvis-erp
+  - vercel env add NEXT_PUBLIC_API_URL production
+  - First deploy fail (npm install) -> fix via rootDirectory API call
+  - Second deploy fail (no Next.js) -> fixed by same
+  - Third deploy fail (TS errors) -> fix via next.config.mjs
+  - Fourth deploy: SUCCESS
+  - URL live: prathvis-erp.vercel.app
+
+STEP 5: CORS wire-up
+  - Render Environment tab pe WEB_ORIGIN add kiya
+  - Value: https://prathvis-erp.vercel.app
+  - Render auto-redeploy
+
+STEP 6: End-to-end test
+  - Login -> Dashboard -> Create PR -> Approve -> Convert to PO
+  - SAB WORKING!
+
+
+========================================================================
+SECTION 6 — DEPLOYMENT URLS aur CREDENTIALS (yaad rakhne ke liye)
+========================================================================
+
+  LIVE APP:     https://prathvis-erp.vercel.app
+  API:          https://prathvis-erp.onrender.com
+  API Health:   https://prathvis-erp.onrender.com/api/healthz
+  GitHub Repo:  https://github.com/waffbeen/indus-erp-v2
+
+  Database (Neon):
+    Host:    ep-spring-cherry-aq0hdmj2.aws.neon.tech
+    DB:      neondb
+    Console: console.neon.tech
+
+  Deployment dashboards:
+    Vercel:  vercel.com/dashboard
+    Render:  dashboard.render.com
+    Neon:    console.neon.tech
+
+  Login credentials (dev/demo):
+    Email:    admin@demo.test (check apps/api/src/db/seed.ts)
+    Password: ChangeMe!2026 (change after first login!)
+
+
+========================================================================
+SECTION 7 — IMPORTANT COMMANDS (yaad rakhne ke liye)
+========================================================================
+
+LOCAL DEVELOPMENT:
+  pnpm install                    # one-time install
+  pnpm dev                        # API :4000 + Web :3000 dono start
+  pnpm --filter @indus/api dev    # sirf API
+  pnpm --filter @indus/web dev    # sirf Web
+
+DATABASE:
+  pnpm db:generate                # naya migration banao (schema change ke baad)
+  pnpm db:migrate                 # migrations DB pe apply karo
+  pnpm db:studio                  # GUI mein DB dekho (drizzle-kit studio)
+  pnpm --filter @indus/api db:seed # demo data add karo
+
+DEPLOY:
+  git add .
+  git commit -m "message"
+  git push                        # GitHub pe push — Render aur Vercel
+                                  # auto-redeploy kar denge
+
+VERCEL CLI:
+  vercel                          # preview deploy
+  vercel --prod                   # production deploy
+  vercel env ls                   # list env vars
+  vercel env add NAME production  # naya env var add karo
+  vercel logs                     # latest deploy logs
+
+DIRECT API TEST:
+  curl https://prathvis-erp.onrender.com/api/healthz
+
+
+========================================================================
+SECTION 8 — FUTURE PLANS (next steps for v0.2 and beyond)
+========================================================================
+
+SHORT-TERM (next 2 weeks):
+  [ ] Admin password rotate karo (default seed password change karo)
+  [ ] Neon database password rotate karo (chat mein leak ho gaya tha)
+  [ ] Custom domain setup (e.g., erp.indusanalytics.com)
+  [ ] Pre-existing typecheck errors fix karo (auth.service, item.service,
+      vendor.service mein) -- phir ignoreBuildErrors hata sakte hain
+  [ ] Boss demo dene se pehle complete UI walkthrough karna
+
+MEDIUM-TERM (next 1-2 months):
+  [ ] GRN (Goods Receipt Note) module poora -- abhi sirf scaffold hai
+  [ ] Gate Entry module poora -- abhi sirf scaffold hai
+  [ ] Stock module (Stock In/Out, Stock Adjustment, Stock Transfer)
+  [ ] Reports module:
+      - PR/PO aging report
+      - Vendor performance report
+      - Pending approvals report
+      - Item-wise consumption
+  [ ] Notifications:
+      - Email pe PR approval pending alert
+      - In-app notifications bell icon
+  [ ] User invitation flow (tenant admin can invite team members)
+  [ ] Role-based UI hiding (HR sirf HR module dekhe, Procurement
+      sirf PR/PO, etc.)
+  [ ] Bulk import: items master, vendors master from CSV/Excel
+  [ ] Print PDF: PR aur PO ki professional PDF (legacy app jaise)
+  [ ] Mobile responsive design check (currently desktop-first)
+
+LONG-TERM (next 3-6 months):
+  [ ] AI features:
+      - Vendor recommendation (past purchases ke basis pe)
+      - Anomaly detection (unusual purchase patterns)
+      - Auto-categorize items into Item Groups
+      - AI assistant (OpenAI/Anthropic API) for ERP queries
+  [ ] Multi-currency support (USD, EUR for export orders)
+  [ ] GST e-invoicing (mandatory in India >Rs 5cr turnover)
+  [ ] Bank reconciliation
+  [ ] Inventory valuation (FIFO, LIFO, Weighted Avg)
+  [ ] Mobile app (React Native using same shared package)
+  [ ] White-label: har tenant ka apna logo, color theme
+  [ ] Custom subdomain per tenant (acme.prathvis-erp.com)
+  [ ] Audit reports for compliance
+
+
+========================================================================
+SECTION 9 — JO TECH MAINE PEHLI BAAR USE KIYE (apni learning notes)
+========================================================================
+
+Mere liye bilkul nayi cheezein jo iss project mein seekhi:
+
+1. MONOREPO ARCHITECTURE
+   Pehle har project alag repo banata tha. pnpm workspaces se pata
+   chala ki ek hi repo mein FE + BE + shared code rakhna kitna
+   convenient hota hai. Type changes ek jagah, dono apps mein
+   reflect.
+
+2. ZOD SCHEMAS SHARED FE-BE
+   Zod schema packages/shared mein likha. Wahi schema FE pe form
+   validation karta hai aur BE pe API request validate karta hai.
+   No duplication. Single source of truth.
+
+3. DRIZZLE ORM (vs Sequelize/Prisma)
+   Type-safe SQL builder. SQL ke close hai but TypeScript types
+   automatic. Prisma generate step nahi.
+
+4. JWT AUTH (vs session cookies)
+   Stateless authentication. Server pe session store nahi.
+   Access token: 15 min, Refresh token: 7 days.
+   Frontend localStorage mein store karta hai.
+
+5. MULTI-TENANCY (path-based)
+   URL mein /t/<slug>/dashboard format. Har query mein
+   tenant_id filter. RBAC permissions check.
+
+6. SERVERLESS POSTGRES (Neon)
+   Pehle managed Postgres = $$. Neon free tier serverless mein
+   chalata hai. WebSocket driver port 443 — firewall friendly.
+
+7. NEXT.JS APP ROUTER (vs Pages Router)
+   app/ folder structure. Server Components by default.
+   "use client" directive jab needed.
+
+8. VERCEL CLI DEPLOY
+   Dashboard click karne ki zaroorat nahi. Terminal se sab kuch.
+   vercel link, vercel env add, vercel --prod.
+
+9. CSS DESIGN TOKENS
+   --primary, --bg, --text-default — CSS variables in tokens.
+   Tailwind ke saath integrate. Theme swap = single import change.
+
+10. GST SPLIT LOGIC
+    Indian tax system: intrastate = CGST + SGST, interstate = IGST.
+    isInterstate flag drive karta hai computation.
+
+11. PAISE STORAGE (integer)
+    Rs 123.45 ko 12345 paise integer mein store. Floating-point
+    rounding errors avoid. Display time pe /100 karke dikhao.
+
+12. PRE-EXISTING TYPECHECK ERRORS — IGNORE OR FIX?
+    Production deploy block ho raha tha. Decision: ignore for now,
+    fix in follow-up. Runtime affected nahi hota.
+
+
+========================================================================
+SECTION 10 — JAB BHI KOI NAYA BUG / FEATURE AAYE
+========================================================================
+
+WORKFLOW (jab koi naya kaam karna ho):
+
+1. Code change local pe karo (apps/web ya apps/api mein)
+2. Local pe test karo:
+     pnpm dev
+     localhost:3000 pe verify karo
+3. Type check:
+     pnpm typecheck
+4. Git commit:
+     git add .
+     git commit -m "feat: kya add kiya / fix: kya theek kiya"
+5. GitHub pe push:
+     git push
+6. Render aur Vercel automatic redeploy kar denge (1-3 min)
+7. Live URL pe verify karo:
+     https://prathvis-erp.vercel.app
+
+
+DEBUGGING TIPS:
+
+  Browser DevTools (F12):
+    Console tab — JavaScript errors
+    Network tab — API failures, CORS errors, status codes
+
+  Render logs:
+    dashboard.render.com -> Prathvi's ERP -> Logs tab
+
+  Vercel logs:
+    vercel logs (CLI) ya dashboard mein deployment details
+
+  Neon DB inspect:
+    pnpm db:studio (drizzle-kit visual GUI)
+
+  Local issue reproduce:
+    Set DATABASE_URL local mein same as production
+    pnpm --filter @indus/api dev
+    pnpm --filter @indus/web dev
+
+
+========================================================================
+SECTION 11 — IMPORTANT SECURITY TO-DO (DEMO KE BAAD)
+========================================================================
+
+[ ] Neon DB password rotate karo (chat history mein leak hua tha)
+[ ] Legacy app Web.config se OpenAI API key revoke karo
+[ ] Admin default password change karo (ChangeMe!2026)
+[ ] JWT secrets production-only generate karo (currently dev secrets)
+[ ] HTTPS-only cookies enable karo
+[ ] Rate limiting tighten karo (currently default)
+[ ] CORS allowlist mein sirf production domain rakho (preview URLs hata do)
+
+
+========================================================================
+                            FINAL NOTES
+========================================================================
+
+Iss project ne bahut sikhaaya:
+  - Modern stack kaise integrate karte hain
+  - Monorepo mein FE + BE manage karna
+  - Type-safe end-to-end development
+  - Real-world deployment problems aur unka troubleshooting
+  - Vercel + Render + Neon free tiers se professional SaaS run karna
+
+Sabse important lesson: PROBLEMS AAYENGE. Patience rakho. Logs padho.
+Step-by-step debug karo. Solution hamesha milti hai.
+
+Production live ho gaya. Boss demo ke liye ready hai.
+
+Pas raho. Build karte raho. 🚀
+========================================================================

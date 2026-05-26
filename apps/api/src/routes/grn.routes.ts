@@ -18,6 +18,7 @@ grnRoutes.get("/", requirePermission(Resources.GRN, Actions.Read), async (req, r
       status: typeof req.query.status === "string" ? req.query.status : undefined,
       poId: typeof req.query.poId === "string" ? req.query.poId : undefined,
       vendorId: typeof req.query.vendorId === "string" ? req.query.vendorId : undefined,
+      search: typeof req.query.search === "string" ? req.query.search : undefined,
     });
     res.json(result);
   } catch (err) { next(err); }
