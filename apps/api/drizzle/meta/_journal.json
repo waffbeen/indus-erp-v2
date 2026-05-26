@@ -29,6 +29,13 @@
       "when": 1779795464192,
       "tag": "0003_closed_brood",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1779797977683,
+      "tag": "0004_calm_steel_serpent",
+      "breakpoints": true
     }
   ]
 }

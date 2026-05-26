@@ -380,6 +380,46 @@ export default function NewPoPage() {
             </div>
           </div>
 
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-3 mt-2 pt-3 border-t border-border">PO classification</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="label">PO type</label>
+              <select className="input" value={form.poType ?? ""} onChange={(e) => set("poType", (e.target.value || null) as PoCreateInput["poType"])}>
+                <option value="">— Select —</option>
+                <option value="capex">CAPEX (capital expenditure)</option>
+                <option value="opex">OPEX (operating expenses)</option>
+                <option value="amc">AMC (annual maintenance)</option>
+                <option value="service">Service</option>
+                <option value="trading">Trading</option>
+                <option value="import">Import</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">F.O.R. delivery</label>
+              <select className="input" value={form.forDelivery ?? ""} onChange={(e) => set("forDelivery", (e.target.value || null) as PoCreateInput["forDelivery"])}>
+                <option value="">— Select —</option>
+                <option value="ex_works">Ex Works</option>
+                <option value="for_plant">FOR Plant / Site</option>
+                <option value="cif">CIF (Cost + Insurance + Freight)</option>
+                <option value="annexure">Annexure</option>
+                <option value="upto_destination">Upto Destination</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Credit period (days)</label>
+              <input
+                type="number"
+                min="0"
+                max="720"
+                className="input tabular-nums"
+                placeholder="30"
+                value={form.creditPeriodDays ?? ""}
+                onChange={(e) => set("creditPeriodDays", e.target.value === "" ? null : Number(e.target.value))}
+              />
+            </div>
+          </div>
+
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-3 mt-2 pt-3 border-t border-border">Terms & delivery</p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div>
@@ -408,6 +448,40 @@ export default function NewPoPage() {
                 value={form.termsAndConditions ?? ""}
                 onChange={(e) => set("termsAndConditions", e.target.value)}
                 placeholder="Standard T&C printed on the PO (warranty, returns, jurisdiction, etc.)"
+              />
+            </div>
+          </div>
+
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-3 mt-2 pt-3 border-t border-border">Printable clauses (optional)</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="label">Insurance</label>
+              <textarea
+                className="input"
+                rows={2}
+                value={form.insuranceTerms ?? ""}
+                onChange={(e) => set("insuranceTerms", e.target.value)}
+                placeholder="e.g. To be borne by vendor up to FOR destination..."
+              />
+            </div>
+            <div>
+              <label className="label">Penalty / LD</label>
+              <textarea
+                className="input"
+                rows={2}
+                value={form.penaltyTerms ?? ""}
+                onChange={(e) => set("penaltyTerms", e.target.value)}
+                placeholder="e.g. 0.5% per week of delay, max 5%..."
+              />
+            </div>
+            <div>
+              <label className="label">Packing</label>
+              <textarea
+                className="input"
+                rows={2}
+                value={form.packingTerms ?? ""}
+                onChange={(e) => set("packingTerms", e.target.value)}
+                placeholder="e.g. Wooden crates, sea-worthy packing..."
               />
             </div>
           </div>
@@ -750,6 +824,12 @@ function emptyForm(): PoCreateInput {
     roundOff: 0,
     revisionNo: 0,
     revisionRemark: "",
+    poType: null,
+    forDelivery: null,
+    creditPeriodDays: null,
+    insuranceTerms: "",
+    penaltyTerms: "",
+    packingTerms: "",
     items: [
       {
         prItemId: null, itemId: null, itemName: "", description: "",

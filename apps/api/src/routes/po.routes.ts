@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { poCreateSchema } from "@indus/shared";
+import { poCreateSchema, poAmendInputSchema } from "@indus/shared";
 import { requireAuth } from "../middleware/auth";
 import { requireTenant } from "../middleware/tenant";
 import { requirePermission } from "../middleware/rbac";
@@ -92,6 +92,22 @@ poRoutes.post("/:id/clone", requirePermission(Resources.PO, Actions.Create), asy
   try {
     const cloned = await poService.clonePo(req.params.id!, ctx(req));
     res.status(201).json(cloned);
+  } catch (err) { next(err); }
+});
+
+poRoutes.post("/:id/short-close", requirePermission(Resources.PO, Actions.Cancel), async (req, res, next) => {
+  try {
+    const { comment } = decision.parse(req.body ?? {});
+    await poService.shortClosePo(req.params.id!, ctx(req), comment);
+    res.status(204).end();
+  } catch (err) { next(err); }
+});
+
+poRoutes.post("/:id/amend", requirePermission(Resources.PO, Actions.Update), async (req, res, next) => {
+  try {
+    const input = poAmendInputSchema.parse(req.body ?? {});
+    const created = await poService.addPoAmendment(req.params.id!, input, ctx(req));
+    res.status(201).json(created);
   } catch (err) { next(err); }
 });
 

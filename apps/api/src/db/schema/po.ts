@@ -74,6 +74,19 @@ export const purchaseOrders = pgTable(
     termsAndConditions: text("terms_and_conditions"),
     notes: text("notes"),
 
+    /**
+     * Legacy parity — header dropdowns / fields the buyer often fills.
+     * All nullable so existing rows stay valid.
+     */
+    poType: text("po_type"), // "capex" | "opex" | "amc" | "service" | "trading" | "import" | "other"
+    forDelivery: text("for_delivery"), // "Ex Works" | "FOR Plant" | "CIF" | "Annexure"
+    /** Days the vendor can take to invoice/get paid. */
+    creditPeriodDays: integer("credit_period_days"),
+    /** Plaintext clauses printed on the PO. Free-form. */
+    insuranceTerms: text("insurance_terms"),
+    penaltyTerms: text("penalty_terms"),
+    packingTerms: text("packing_terms"),
+
     /** PO revision support — parent + revision number, optional remark. */
     parentPoId: uuid("parent_po_id"),
     revisionNo: integer("revision_no").notNull().default(0),

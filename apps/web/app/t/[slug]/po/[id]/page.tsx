@@ -42,6 +42,15 @@ interface PoItem {
 }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 interface TimelineEntry { id: string; action: string; comment: string | null; level: number | null; actorName: string; createdAt: string; }
+interface Amendment {
+  id: string;
+  amendmentNo: number;
+  summary: string;
+  remark: string | null;
+  actorName: string;
+  createdAt: string;
+}
+
 interface PoDetail {
   id: string;
   poNumber: string | null;
@@ -74,13 +83,30 @@ interface PoDetail {
   revisionRemark: string | null;
   sentToVendorAt: string | null;
   createdAt: string;
+  /** Legacy parity — header polish. */
+  poType: string | null;
+  forDelivery: string | null;
+  creditPeriodDays: number | null;
+  insuranceTerms: string | null;
+  penaltyTerms: string | null;
+  packingTerms: string | null;
   items: PoItem[];
   vendor?: { id: string; name: string; gstin: string | null; email: string | null; phone: string | null };
   creator?: { id: string; fullName: string; email: string };
   company?: { id: string; name: string };
   unit?: { id: string; name: string; code: string | null };
   timeline: TimelineEntry[];
+  amendments: Amendment[];
+  amendmentCount: number;
 }
+
+const FOR_LABEL: Record<string, string> = {
+  ex_works: "Ex Works",
+  for_plant: "FOR Plant / Site",
+  cif: "CIF",
+  annexure: "Annexure",
+  upto_destination: "Upto Destination",
+};
 
 type Decision = "approve" | "reject";
 
@@ -92,12 +118,17 @@ export default function PoDetailPage() {
   const [po, setPo] = useState<PoDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"submit" | "send" | "cancel" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"submit" | "send" | "cancel" | "short_close" | null>(null);
+  const [shortCloseComment, setShortCloseComment] = useState("");
   const [decision, setDecision] = useState<Decision | null>(null);
   const [comment, setComment] = useState("");
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
   const [cloning, setCloning] = useState(false);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
+  const [amendOpen, setAmendOpen] = useState<"add" | "list" | null>(null);
+  const [amendSummary, setAmendSummary] = useState("");
+  const [amendRemark, setAmendRemark] = useState("");
+  const [amendSubmitting, setAmendSubmitting] = useState(false);
   const { me } = useAuth();
 
   /** Build a user-id -> "Name · Role" map so per-line buyer chips render readably. */
@@ -143,15 +174,54 @@ export default function PoDetailPage() {
     }
   }
 
-  async function performAction(action: "submit" | "send" | "cancel") {
-    if (!po) return;
+  async function submitAmendment() {
+    if (!po || amendSubmitting) return;
+    if (!amendSummary.trim()) {
+      toast.error("Summary required", "Tell us what changed in 1 line.");
+      return;
+    }
+    setAmendSubmitting(true);
     try {
-      await api(`/api/po/${po.id}/${action}`, { method: "POST", body: JSON.stringify({}) });
-      toast.success(
-        action === "submit" ? "PO submitted" : action === "send" ? "PO sent to vendor" : "PO cancelled",
-        action === "submit" ? "Approver ko notify ho gaya." : action === "send" ? "Vendor ko chala gaya — ab GRN raise ho sakta hai." : "PO cancelled.",
-      );
+      await api(`/api/po/${po.id}/amend`, {
+        method: "POST",
+        body: JSON.stringify({ summary: amendSummary, remark: amendRemark || undefined }),
+      });
+      toast.success("Amendment recorded", "Visible in the history badge.");
+      setAmendOpen(null);
+      setAmendSummary("");
+      setAmendRemark("");
+      load();
+    } catch (err) {
+      toast.error("Could not record amendment", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setAmendSubmitting(false);
+    }
+  }
+
+  async function performAction(action: "submit" | "send" | "cancel" | "short_close") {
+    if (!po) return;
+    if (action === "short_close" && !shortCloseComment.trim()) {
+      toast.error("Comment required", "Short Close needs a reason for the audit trail.");
+      return;
+    }
+    try {
+      // Backend route slug: short-close (with hyphen). Other actions match the verb.
+      const path = action === "short_close" ? "short-close" : action;
+      const body = action === "short_close" ? { comment: shortCloseComment } : {};
+      await api(`/api/po/${po.id}/${path}`, { method: "POST", body: JSON.stringify(body) });
+      const title =
+        action === "submit" ? "PO submitted" :
+        action === "send" ? "PO sent to vendor" :
+        action === "short_close" ? "PO short-closed" :
+        "PO cancelled";
+      const desc =
+        action === "submit" ? "Approver ko notify ho gaya." :
+        action === "send" ? "Vendor ko chala gaya — ab GRN raise ho sakta hai." :
+        action === "short_close" ? "Status closed. Aur GRN raise nahi honge against iss PO ke." :
+        "PO cancelled.";
+      toast.success(title, desc);
       setConfirmAction(null);
+      setShortCloseComment("");
       load();
     } catch (err) {
       toast.error("Action failed", err instanceof ApiError ? err.message : "Try again");
@@ -231,6 +301,36 @@ export default function PoDetailPage() {
                 <Icon name="PackageCheck" /> Receive (GRN)
               </Link>
             )}
+            {canReceive && (isCreator || me?.isTenantAdmin) && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => { setShortCloseComment(""); setConfirmAction("short_close"); }}
+                title="Close the PO without waiting for full receipt"
+              >
+                <Icon name="XSquare" /> Short Close
+              </button>
+            )}
+            {po.amendmentCount > 0 && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => setAmendOpen("list")}
+                title="View amendment history"
+              >
+                <Icon name="History" /> Amendments
+                <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-pill text-[10px] font-bold" style={{ background: "var(--tint-peach)", color: "var(--tint-peach-fg)" }}>
+                  {po.amendmentCount}
+                </span>
+              </button>
+            )}
+            {!isDraft && !isPending && !isFinalized && (isCreator || me?.isTenantAdmin) && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => { setAmendSummary(""); setAmendRemark(""); setAmendOpen("add"); }}
+                title="Record an amendment on this PO"
+              >
+                <Icon name="FilePen" /> Amend
+              </button>
+            )}
             <button className="btn btn-ghost" onClick={handleClone} disabled={cloning} title="Create a new draft PO with the same details">
               <Icon name="Copy" /> {cloning ? "Cloning…" : "Save As"}
             </button>
@@ -264,12 +364,46 @@ export default function PoDetailPage() {
               <Meta label="Place of supply">{po.placeOfSupply ?? "—"}</Meta>
               <Meta label="Payment terms">{po.paymentTerms ?? "—"}</Meta>
               <Meta label="Delivery terms">{po.deliveryTerms ?? "—"}</Meta>
+              <Meta label="PO type">
+                {po.poType
+                  ? <span className="capitalize">{po.poType.replace("_", " ")}</span>
+                  : <span className="text-muted">—</span>}
+              </Meta>
+              <Meta label="F.O.R.">{po.forDelivery ? (FOR_LABEL[po.forDelivery] ?? po.forDelivery) : "—"}</Meta>
+              <Meta label="Credit period">
+                {po.creditPeriodDays != null
+                  ? <><span className="tabular-nums">{po.creditPeriodDays}</span> <span className="text-muted text-xs">days</span></>
+                  : <span className="text-muted">—</span>}
+              </Meta>
               {po.revisionNo > 0 && (
                 <Meta label={`Revision ${po.revisionNo}`}>
                   <span className="text-sm">{po.revisionRemark ?? <span className="text-muted">No remark</span>}</span>
                 </Meta>
               )}
             </div>
+
+            {(po.insuranceTerms || po.penaltyTerms || po.packingTerms) && (
+              <div className="mt-5 pt-5 border-t border-border grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {po.insuranceTerms && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "var(--muted)" }}>Insurance</p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{po.insuranceTerms}</p>
+                  </div>
+                )}
+                {po.penaltyTerms && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "var(--muted)" }}>Penalty / LD</p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{po.penaltyTerms}</p>
+                  </div>
+                )}
+                {po.packingTerms && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1.5" style={{ color: "var(--muted)" }}>Packing</p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{po.packingTerms}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Audit trail summary */}
             <div className="mt-6">
@@ -509,6 +643,134 @@ export default function PoDetailPage() {
         confirmLabel="Yes, cancel"
         tone="danger"
       />
+
+      {/* Amend modal — record what changed */}
+      <Modal
+        open={amendOpen === "add"}
+        onClose={() => !amendSubmitting && setAmendOpen(null)}
+        title="Record a PO amendment"
+        size="md"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setAmendOpen(null)} disabled={amendSubmitting}>Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={submitAmendment} disabled={amendSubmitting || !amendSummary.trim()}>
+              {amendSubmitting ? "Saving…" : "Record amendment"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="h-12 w-12 rounded-2xl grid place-items-center shrink-0" style={{ background: "var(--tint-lilac)", color: "var(--tint-lilac-fg)" }}>
+              <Icon name="FilePen" size={22} />
+            </div>
+            <div className="flex-1 pt-1 text-sm text-muted leading-relaxed">
+              Approval ke baad jab kuch badle (rate, qty, delivery, terms) — uska reason yahan log karo.
+              Audit trail mein dikhega aur PO header pe badge counter update hoga.
+            </div>
+          </div>
+          <div>
+            <label className="label">Summary <span className="text-danger">*</span></label>
+            <input
+              className="input"
+              maxLength={120}
+              placeholder="e.g. Rate revised for line 3 after vendor counter"
+              value={amendSummary}
+              onChange={(e) => setAmendSummary(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">Detailed remark <span className="text-muted">(optional)</span></label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="Background, approvals taken, vendor email reference, etc."
+              value={amendRemark}
+              onChange={(e) => setAmendRemark(e.target.value)}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Amendment history list */}
+      <Modal
+        open={amendOpen === "list"}
+        onClose={() => setAmendOpen(null)}
+        title={`Amendment history (${po.amendmentCount})`}
+        size="lg"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setAmendOpen(null)}>Close</button>
+            {!isDraft && !isPending && !isFinalized && (isCreator || me?.isTenantAdmin) && (
+              <button type="button" className="btn btn-primary" onClick={() => { setAmendSummary(""); setAmendRemark(""); setAmendOpen("add"); }}>
+                <Icon name="Plus" /> New amendment
+              </button>
+            )}
+          </>
+        }
+      >
+        {po.amendments.length === 0 ? (
+          <p className="text-sm text-muted p-4 text-center">No amendments recorded yet.</p>
+        ) : (
+          <ol className="space-y-3">
+            {po.amendments.map((a) => (
+              <li key={a.id} className="rounded-xl border border-border p-4">
+                <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                  <p className="font-semibold">
+                    <span className="font-mono text-xs mr-2" style={{ color: "var(--tint-peach-fg)" }}>#{a.amendmentNo}</span>
+                    {a.summary}
+                  </p>
+                  <span className="text-xs text-muted whitespace-nowrap">{formatDateTime(a.createdAt)}</span>
+                </div>
+                <p className="text-xs text-muted">By <strong className="text-text-default">{a.actorName}</strong></p>
+                {a.remark && <p className="text-sm mt-2 whitespace-pre-wrap leading-relaxed">{a.remark}</p>}
+              </li>
+            ))}
+          </ol>
+        )}
+      </Modal>
+
+      <Modal
+        open={confirmAction === "short_close"}
+        onClose={() => setConfirmAction(null)}
+        title="Short Close this PO?"
+        size="md"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setConfirmAction(null)}>Cancel</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => performAction("short_close")}
+              disabled={!shortCloseComment.trim()}
+            >
+              <Icon name="XSquare" /> Short close
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="h-12 w-12 rounded-2xl grid place-items-center shrink-0" style={{ background: "var(--tint-peach)", color: "var(--tint-peach-fg)" }}>
+              <Icon name="XSquare" size={22} />
+            </div>
+            <div className="flex-1 pt-1 text-sm text-muted leading-relaxed">
+              PO ko <strong className="text-text-default">closed</strong> mark kar denge — baki ka delivery wait nahi karenge.
+              Iske baad iss PO ke against aur GRN nahi raise hoga. Audit ke liye reason batana <strong>mandatory</strong> hai.
+            </div>
+          </div>
+          <div>
+            <label className="label">Reason <span className="text-danger">*</span></label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="Why are we short-closing? e.g. vendor short-shipped, item discontinued, budget revised..."
+              value={shortCloseComment}
+              onChange={(e) => setShortCloseComment(e.target.value)}
+            />
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={decision !== null}

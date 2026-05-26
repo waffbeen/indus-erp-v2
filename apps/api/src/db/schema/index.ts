@@ -13,6 +13,7 @@ export * from "./vendors";
 export * from "./items";
 export * from "./pr";
 export * from "./po";
+export * from "./po_amendments";
 export * from "./gate_entries";
 export * from "./grns";
 export * from "./approvals";

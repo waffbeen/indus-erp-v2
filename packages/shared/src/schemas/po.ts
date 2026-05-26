@@ -34,6 +34,12 @@ export const poItemInputSchema = z.object({
 });
 export type PoItemInput = z.infer<typeof poItemInputSchema>;
 
+export const poTypeSchema = z.enum(["capex", "opex", "amc", "service", "trading", "import", "other"]);
+export type PoType = z.infer<typeof poTypeSchema>;
+
+export const forDeliverySchema = z.enum(["ex_works", "for_plant", "cif", "annexure", "upto_destination"]);
+export type ForDelivery = z.infer<typeof forDeliverySchema>;
+
 export const poCreateSchema = z.object({
   companyId: z.string().uuid("Please select a company"),
   unitId: z.string().uuid("Please select a unit"),
@@ -57,9 +63,22 @@ export const poCreateSchema = z.object({
   /** PO revision (0 for new, 1+ for revision). */
   revisionNo: z.number().int().nonnegative().default(0),
   revisionRemark: z.string().max(500).optional().nullable(),
+  /** Legacy parity — PO type / F.O.R. / credit period / printable clauses. */
+  poType: poTypeSchema.optional().nullable(),
+  forDelivery: forDeliverySchema.optional().nullable(),
+  creditPeriodDays: z.number().int().nonnegative().max(720, "Credit period feels unrealistic").optional().nullable(),
+  insuranceTerms: z.string().max(500).optional().nullable(),
+  penaltyTerms: z.string().max(500).optional().nullable(),
+  packingTerms: z.string().max(500).optional().nullable(),
   items: z.array(poItemInputSchema).min(1, "Add at least one line item"),
 });
 export type PoCreateInput = z.infer<typeof poCreateSchema>;
+
+export const poAmendInputSchema = z.object({
+  summary: z.string().trim().min(3, "Summary is required").max(120, "Keep it short — max 120 chars"),
+  remark: z.string().max(1000).optional().nullable(),
+});
+export type PoAmendInput = z.infer<typeof poAmendInputSchema>;
 
 export const poUpdateSchema = poCreateSchema.partial();
 export type PoUpdateInput = z.infer<typeof poUpdateSchema>;

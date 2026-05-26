@@ -1,6 +1,7 @@
 import { eq, and, isNull, ilike, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../db/index";
 import { purchaseOrders, poItems } from "../db/schema/po";
+import { poAmendments } from "../db/schema/po_amendments";
 import { purchaseRequisitions, prItems } from "../db/schema/pr";
 import { grns, grnItems } from "../db/schema/grns";
 import { vendors } from "../db/schema/vendors";
@@ -10,7 +11,7 @@ import { approvalActions } from "../db/schema/approvals";
 import { companies } from "../db/schema/companies";
 import { units } from "../db/schema/units";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
-import type { PoCreateInput } from "@indus/shared";
+import type { PoCreateInput, PoAmendInput } from "@indus/shared";
 
 interface ListOpts { page?: number; pageSize?: number; search?: string; status?: string; vendorId?: string; }
 interface ActorContext {
@@ -179,7 +180,7 @@ export async function getPo(tenantId: string, id: string) {
     .limit(1);
   if (!po) throw NotFound("po_not_found", "Purchase Order not found");
 
-  const [items, [vendor], [creator], [company], [unit], actions] = await Promise.all([
+  const [items, [vendor], [creator], [company], [unit], actions, amendments] = await Promise.all([
     db.select().from(poItems).where(eq(poItems.poId, id)).orderBy(poItems.sortOrder),
     db.select().from(vendors).where(eq(vendors.id, po.vendorId)).limit(1),
     db.select({ id: users.id, fullName: users.fullName, email: users.email }).from(users).where(eq(users.id, po.createdByUserId)).limit(1),
@@ -194,6 +195,15 @@ export async function getPo(tenantId: string, id: string) {
       .leftJoin(users, eq(approvalActions.actorUserId, users.id))
       .where(and(eq(approvalActions.resourceType, "po"), eq(approvalActions.resourceId, id)))
       .orderBy(approvalActions.createdAt),
+    db
+      .select({
+        amendment: poAmendments,
+        actorName: users.fullName,
+      })
+      .from(poAmendments)
+      .leftJoin(users, eq(poAmendments.actorUserId, users.id))
+      .where(eq(poAmendments.poId, id))
+      .orderBy(desc(poAmendments.createdAt)),
   ]);
 
   return {
@@ -218,6 +228,15 @@ export async function getPo(tenantId: string, id: string) {
       actorEmail: a.actor?.email ?? "",
       createdAt: a.action.createdAt.toISOString(),
     })),
+    amendments: amendments.map((a) => ({
+      id: a.amendment.id,
+      amendmentNo: a.amendment.amendmentNo,
+      summary: a.amendment.summary,
+      remark: a.amendment.remark,
+      actorName: a.actorName ?? "Unknown",
+      createdAt: a.amendment.createdAt.toISOString(),
+    })),
+    amendmentCount: amendments.length,
   };
 }
 
@@ -309,6 +328,12 @@ export async function createPo(input: PoCreateInput, ctx: ActorContext) {
       termsAndConditions: input.termsAndConditions ?? null,
       revisionNo: input.revisionNo ?? 0,
       revisionRemark: input.revisionRemark ?? null,
+      poType: input.poType ?? null,
+      forDelivery: input.forDelivery ?? null,
+      creditPeriodDays: input.creditPeriodDays ?? null,
+      insuranceTerms: input.insuranceTerms ?? null,
+      penaltyTerms: input.penaltyTerms ?? null,
+      packingTerms: input.packingTerms ?? null,
     })
     .returning();
   if (!po) throw new Error("Failed to create PO");
@@ -459,6 +484,51 @@ export async function clonePo(id: string, ctx: ActorContext) {
     ipAddress: ctx.ipAddress,
     userAgent: ctx.userAgent,
     before: { sourceId: id } as Record<string, unknown>,
+  });
+
+  return created;
+}
+
+/**
+ * Record a new amendment on a PO that's already past draft. Used when fields
+ * change after approval / vendor send (rate revisions, qty corrections, etc.).
+ * The amendment is purely an audit-trail entry — it doesn't modify the PO row;
+ * the caller is expected to apply the actual change separately.
+ */
+export async function addPoAmendment(id: string, input: PoAmendInput, ctx: ActorContext) {
+  const po = await getPoRaw(ctx.tenantId, id);
+  if (["draft", "pending_approval", "cancelled"].includes(po.status)) {
+    throw BadRequest("invalid_status", "Amendments are tracked after approval — edit drafts directly instead");
+  }
+
+  // Find the next amendment number for this PO
+  const existing = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(poAmendments)
+    .where(eq(poAmendments.poId, id));
+  const nextNo = (existing[0]?.count ?? 0) + 1;
+
+  const [created] = await db
+    .insert(poAmendments)
+    .values({
+      tenantId: ctx.tenantId,
+      poId: id,
+      actorUserId: ctx.userId,
+      amendmentNo: nextNo,
+      summary: input.summary,
+      remark: input.remark ?? null,
+    })
+    .returning();
+
+  await db.insert(auditLogs).values({
+    tenantId: ctx.tenantId,
+    actorUserId: ctx.userId,
+    action: "amend",
+    resourceType: "po",
+    resourceId: id,
+    ipAddress: ctx.ipAddress,
+    userAgent: ctx.userAgent,
+    after: { amendmentNo: nextNo, summary: input.summary } as Record<string, unknown>,
   });
 
   return created;
@@ -666,10 +736,69 @@ export async function sendToVendor(id: string, ctx: ActorContext, comment?: stri
   });
 }
 
+/**
+ * Short Close — finalize a PO without waiting for full delivery. Used when
+ * the buyer accepts a partial receipt as final (vendor short-shipped, item
+ * obsolete, etc.). Status moves to "closed"; no further GRNs allowed.
+ * Comment is required so the audit trail explains why the PO didn't fully receive.
+ */
+export async function shortClosePo(id: string, ctx: ActorContext, comment?: string) {
+  const po = await getPoRaw(ctx.tenantId, id);
+  if (!["approved", "sent_to_vendor", "partially_received"].includes(po.status)) {
+    throw BadRequest(
+      "invalid_status",
+      "Short Close only applies to approved/sent/partially-received POs",
+    );
+  }
+  if (!comment?.trim()) {
+    throw BadRequest("comment_required", "Tell the team why this PO is being closed early");
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(purchaseOrders)
+      .set({ status: "closed", updatedAt: new Date() })
+      .where(eq(purchaseOrders.id, id));
+
+    await tx.insert(approvalActions).values({
+      tenantId: ctx.tenantId,
+      resourceType: "po",
+      resourceId: id,
+      actorUserId: ctx.userId,
+      action: "short_close",
+      comment,
+    });
+  });
+
+  await db.insert(auditLogs).values({
+    tenantId: ctx.tenantId,
+    actorUserId: ctx.userId,
+    action: "short_close",
+    resourceType: "po",
+    resourceId: id,
+    ipAddress: ctx.ipAddress,
+    userAgent: ctx.userAgent,
+  });
+}
+
 export async function cancelPo(id: string, ctx: ActorContext, comment?: string) {
   const po = await getPoRaw(ctx.tenantId, id);
   if (["received", "closed", "cancelled"].includes(po.status)) {
     throw BadRequest("invalid_status", "This PO is already finalized");
+  }
+
+  // Legacy parity: block cancel if any GRN has been raised against this PO.
+  // The user must cancel each GRN first (then re-cancel the PO). Prevents
+  // data inconsistency where goods are received against a "cancelled" PO.
+  const liveGrnCount = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(grns)
+    .where(and(eq(grns.poId, id), sql`${grns.status} <> 'cancelled'`, isNull(grns.deletedAt)));
+  if ((liveGrnCount[0]?.count ?? 0) > 0) {
+    throw BadRequest(
+      "grn_exists",
+      `Cannot cancel: ${liveGrnCount[0]!.count} live GRN(s) are linked to this PO. Cancel the GRNs first, then try again.`,
+    );
   }
 
   await db.transaction(async (tx) => {
