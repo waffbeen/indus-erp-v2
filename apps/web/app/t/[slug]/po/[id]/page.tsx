@@ -282,10 +282,15 @@ export default function PoDetailPage() {
         subtitle={po.poNumber ? `${po.poNumber} · ${po.vendor?.name ?? "—"}` : `Draft · ${po.vendor?.name ?? "—"}`}
         actions={
           <>
-            {isDraft && isCreator && (
-              <button className="btn btn-primary" onClick={() => setConfirmAction("submit")}>
-                <Icon name="Send" /> Submit for approval
-              </button>
+            {isDraft && (isCreator || me?.isTenantAdmin) && (
+              <>
+                <Link href={`${base}/${po.id}/edit`} className="btn btn-ghost">
+                  <Icon name="Pencil" /> Edit draft
+                </Link>
+                <button className="btn btn-primary" onClick={() => setConfirmAction("submit")}>
+                  <Icon name="Send" /> Submit for approval
+                </button>
+              </>
             )}
             {canDecide && (
               <>

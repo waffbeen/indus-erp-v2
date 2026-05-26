@@ -444,6 +444,144 @@ export async function createPo(input: PoCreateInput, ctx: ActorContext) {
 }
 
 /**
+ * Update a draft PO — replaces the entire line set and recomputes totals.
+ * Only draft POs can be edited; submitted/approved ones go through the
+ * amendment flow instead.
+ */
+export async function updatePo(id: string, input: PoCreateInput, ctx: ActorContext) {
+  const existing = await getPoRaw(ctx.tenantId, id);
+  if (existing.status !== "draft") {
+    throw BadRequest("not_editable", "Only draft POs can be edited — use Amend after approval");
+  }
+  if (existing.createdByUserId !== ctx.userId && !ctx.isTenantAdmin) {
+    throw Forbidden("not_owner", "Only the PO creator or tenant admin can edit this draft");
+  }
+
+  const isInterstate = input.isInterstate ?? false;
+  const computedLines = input.items.map((it) => computeLine(it, isInterstate));
+  const additionalCharges = input.additionalCharges ?? [];
+  const additionalChargesSum = additionalCharges.reduce((s, c) => s + (c.amount || 0), 0);
+  const totals = computeHeaderTotals(
+    computedLines,
+    input.freightCharges ?? 0,
+    (input.otherCharges ?? 0) + additionalChargesSum,
+    input.roundOff ?? 0,
+  );
+
+  const [updated] = await db
+    .update(purchaseOrders)
+    .set({
+      companyId: input.companyId,
+      unitId: input.unitId,
+      vendorId: input.vendorId,
+      title: input.title,
+      description: input.description ?? null,
+      isInterstate,
+      placeOfSupply: input.placeOfSupply ?? null,
+      subtotalPaise: totals.subtotal.toString(),
+      discountTotalPaise: totals.discount.toString(),
+      taxableAmountPaise: totals.taxable.toString(),
+      cgstTotalPaise: totals.cgst.toString(),
+      sgstTotalPaise: totals.sgst.toString(),
+      igstTotalPaise: totals.igst.toString(),
+      taxTotalPaise: totals.tax.toString(),
+      freightChargesPaise: totals.freight.toString(),
+      otherChargesPaise: totals.other.toString(),
+      roundOffPaise: totals.roundOff.toString(),
+      totalPaise: totals.total.toString(),
+      deliveryDate: input.deliveryDate ? new Date(input.deliveryDate) : null,
+      validUntil: input.validUntil ? new Date(input.validUntil) : null,
+      deliveryAddress: input.deliveryAddress ?? null,
+      deliveryTerms: input.deliveryTerms ?? null,
+      paymentTerms: input.paymentTerms ?? null,
+      termsAndConditions: input.termsAndConditions ?? null,
+      revisionNo: input.revisionNo ?? 0,
+      revisionRemark: input.revisionRemark ?? null,
+      poType: input.poType ?? null,
+      forDelivery: input.forDelivery ?? null,
+      creditPeriodDays: input.creditPeriodDays ?? null,
+      insuranceTerms: input.insuranceTerms ?? null,
+      penaltyTerms: input.penaltyTerms ?? null,
+      packingTerms: input.packingTerms ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(purchaseOrders.id, id))
+    .returning();
+
+  // Replace line items + charges (simpler than diffing for MVP)
+  await db.delete(poItems).where(eq(poItems.poId, id));
+  await db.insert(poItems).values(
+    input.items.map((it, idx) => {
+      const l = computedLines[idx]!;
+      return {
+        poId: id,
+        prItemId: it.prItemId ?? null,
+        itemId: it.itemId ?? null,
+        itemName: it.itemName,
+        description: it.description ?? null,
+        itemGroupName: it.itemGroupName ?? null,
+        itemSubGroupName: it.itemSubGroupName ?? null,
+        hsnCode: it.hsnCode ?? null,
+        quantityScaled: l.qtyScaled,
+        uom: it.uom,
+        unitPricePaise: l.unitPaise.toString(),
+        discountPercent: Math.round(it.discountPercent ?? 0),
+        discountAmountPaise: l.discountPaise.toString(),
+        taxRate: l.taxRate,
+        cgstRate: l.cgstRate,
+        sgstRate: l.sgstRate,
+        igstRate: l.igstRate,
+        subtotalPaise: l.subtotalPaise.toString(),
+        taxableAmountPaise: l.taxableAmountPaise.toString(),
+        taxPaise: l.taxPaise.toString(),
+        cgstPaise: l.cgstPaise.toString(),
+        sgstPaise: l.sgstPaise.toString(),
+        igstPaise: l.igstPaise.toString(),
+        totalPaise: l.totalPaise.toString(),
+        committedDeliveryDate: it.committedDeliveryDate ? new Date(it.committedDeliveryDate) : null,
+        itemNarration: it.itemNarration ?? null,
+        notes: it.notes ?? null,
+        specifications: (it.specifications as Record<string, unknown>) ?? {},
+        lineBuyerUserId: it.lineBuyerUserId ?? null,
+        tolerancePercent: Math.round(it.tolerancePercent ?? 0),
+        warrantyMonths: Math.round(it.warrantyMonths ?? 0),
+        isForStock: it.isForStock ? 1 : 0,
+        isRecoveryRate: it.isRecoveryRate ? 1 : 0,
+        deliverySchedule: (it.deliverySchedule ?? []).map((s) => ({
+          qtyScaled: Math.round(s.qty * 1000),
+          deliveryDate: s.deliveryDate,
+        })),
+        sortOrder: idx,
+      };
+    }),
+  );
+
+  await db.delete(poCharges).where(eq(poCharges.poId, id));
+  if (additionalCharges.length) {
+    await db.insert(poCharges).values(
+      additionalCharges.map((c, idx) => ({
+        poId: id,
+        label: c.label,
+        amountPaise: Math.round(c.amount * 100).toString(),
+        sortOrder: idx,
+      })),
+    );
+  }
+
+  await db.insert(auditLogs).values({
+    tenantId: ctx.tenantId,
+    actorUserId: ctx.userId,
+    action: "update",
+    resourceType: "po",
+    resourceId: id,
+    ipAddress: ctx.ipAddress,
+    userAgent: ctx.userAgent,
+  });
+
+  return updated;
+}
+
+/**
  * Clone a PO into a new draft. Same vendor, items, terms — fresh PO number
  * issued only on submit. Status reset to draft, approval chain cleared.
  */

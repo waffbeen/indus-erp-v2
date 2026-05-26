@@ -49,6 +49,14 @@ poRoutes.post("/", requirePermission(Resources.PO, Actions.Create), async (req, 
   } catch (err) { next(err); }
 });
 
+poRoutes.patch("/:id", requirePermission(Resources.PO, Actions.Update), async (req, res, next) => {
+  try {
+    const input = poCreateSchema.parse(req.body);
+    const updated = await poService.updatePo(req.params.id!, input, ctx(req));
+    res.json(updated);
+  } catch (err) { next(err); }
+});
+
 poRoutes.post("/:id/submit", requirePermission(Resources.PO, Actions.Submit), async (req, res, next) => {
   try {
     const { comment } = decision.parse(req.body ?? {});
