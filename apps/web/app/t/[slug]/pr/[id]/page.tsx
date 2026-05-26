@@ -230,10 +230,10 @@ export default function PrDetailPage() {
             {isDraft && (isOwner || me?.isTenantAdmin) && (
               <>
                 <Link href={`${base}/${pr.id}/edit`} className="btn btn-ghost">
-                  <Icon name="Pencil" /> Edit draft
+                  <Icon name="Pencil" /> Edit
                 </Link>
                 <button className="btn btn-primary" onClick={() => setConfirmAction("submit")}>
-                  <Icon name="Send" /> Submit for approval
+                  <Icon name="Send" /> Send for Approval
                 </button>
               </>
             )}
@@ -482,7 +482,7 @@ export default function PrDetailPage() {
         open={confirmAction === "submit"}
         onClose={() => setConfirmAction(null)}
         onConfirm={() => performAction("submit")}
-        title="Submit for approval?"
+        title="Send this requisition for approval?"
         description={
           <>
             Submit hone ke baad PR <strong className="text-text-default">edit nahi kar paaoge</strong>.

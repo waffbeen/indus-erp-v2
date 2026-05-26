@@ -327,22 +327,22 @@ export default function NewPoPage() {
   return (
     <>
       <div className="flex items-center gap-3 mb-3 text-sm text-muted">
-        <Link href={base} className="hover:text-text-default">Purchase Orders</Link>
+        <Link href={base} className="hover:text-text-default">Purchase Order</Link>
         <Icon name="ChevronRight" size={14} />
-        <span className="text-text-default font-medium">New PO</span>
+        <span className="text-text-default font-medium">Create</span>
       </div>
 
       <PageHeader
-        title={sourcePr ? `Convert ${sourcePr.prNumber ?? "PR"} → PO` : "New Purchase Order"}
-        subtitle={sourcePr ? `Sourced from "${sourcePr.title}" — adjust prices & vendor, then submit` : "Create a purchase order — submit for approval, then send to vendor"}
+        title={sourcePr ? `Convert ${sourcePr.prNumber ?? "PR"} → PO` : "Purchase Order Creation"}
+        subtitle={sourcePr ? `Sourced from "${sourcePr.title}" — adjust prices & supplier, then send for approval` : "Create a purchase order — send for approval, then to supplier"}
         actions={
           <>
             <Link href={base} className="btn btn-ghost">Cancel</Link>
             <button type="button" className="btn btn-ghost" onClick={() => handleSave("draft")} disabled={!!submitting}>
-              {submitting === "draft" ? "Saving…" : "Save as draft"}
+              {submitting === "draft" ? "Saving…" : "Save"}
             </button>
             <button type="button" className="btn btn-primary" onClick={() => handleSave("submit")} disabled={!!submitting}>
-              {submitting === "submit" ? "Submitting…" : "Submit for approval"} <Icon name="ArrowRight" />
+              {submitting === "submit" ? "Sending…" : "Send for Approval"} <Icon name="ArrowRight" />
             </button>
           </>
         }
@@ -365,7 +365,7 @@ export default function NewPoPage() {
               <FieldError error={fe.title} />
             </div>
             <div data-field="vendorId">
-              <label className="label">Vendor <span className="text-danger">*</span></label>
+              <label className="label">Supplier Name <span className="text-danger">*</span></label>
               <select className={fieldClass(fe.vendorId)} value={form.vendorId} onChange={(e) => set("vendorId", e.target.value)}>
                 <option value="">Select vendor…</option>
                 {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}{v.code ? ` (${v.code})` : ""}</option>)}

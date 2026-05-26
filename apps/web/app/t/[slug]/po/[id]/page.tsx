@@ -288,7 +288,7 @@ export default function PoDetailPage() {
                   <Icon name="Pencil" /> Edit draft
                 </Link>
                 <button className="btn btn-primary" onClick={() => setConfirmAction("submit")}>
-                  <Icon name="Send" /> Submit for approval
+                  <Icon name="Send" /> Send for Approval
                 </button>
               </>
             )}
@@ -304,7 +304,7 @@ export default function PoDetailPage() {
             )}
             {isApproved && (me?.isTenantAdmin || isCreator) && (
               <button className="btn btn-primary" onClick={() => setConfirmAction("send")}>
-                <Icon name="Truck" /> Send to vendor
+                <Icon name="Truck" /> Send to Supplier
               </button>
             )}
             {canReceive && (
@@ -667,7 +667,7 @@ export default function PoDetailPage() {
         open={confirmAction === "submit"}
         onClose={() => setConfirmAction(null)}
         onConfirm={() => performAction("submit")}
-        title="Submit PO for approval?"
+        title="Send this PO for approval?"
         description="Submit hone ke baad edit nahi kar paaoge. Approver review karega."
         confirmLabel="Yes, submit"
         tone="primary"
@@ -676,7 +676,7 @@ export default function PoDetailPage() {
         open={confirmAction === "send"}
         onClose={() => setConfirmAction(null)}
         onConfirm={() => performAction("send")}
-        title="Send PO to vendor?"
+        title="Send PO to Supplier?"
         description="Vendor ko official PO chala jayega. Goods aane par GRN raise kar sakte ho."
         confirmLabel="Yes, send"
         tone="success"

@@ -286,16 +286,16 @@ export default function EditPrPage() {
       </div>
 
       <PageHeader
-        title="Edit Requisition"
-        subtitle="Update the draft, then save or submit for approval"
+        title="Purchase Requisition Updation"
+        subtitle="Update the draft, then save or send for approval"
         actions={
           <>
             <Link href={`${base}/${prId}`} className="btn btn-ghost">Cancel</Link>
             <button type="button" className="btn btn-ghost" onClick={() => handleSave("save")} disabled={!!submitting}>
-              {submitting === "save" ? "Saving…" : "Save changes"}
+              {submitting === "save" ? "Saving…" : "Save"}
             </button>
             <button type="button" className="btn btn-primary" onClick={() => handleSave("submit")} disabled={!!submitting}>
-              {submitting === "submit" ? "Submitting…" : "Save & submit for approval"}
+              {submitting === "submit" ? "Sending…" : "Save & Send for Approval"}
               <Icon name="ArrowRight" />
             </button>
           </>

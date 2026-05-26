@@ -209,20 +209,20 @@ export default function NewPrPage() {
       <div className="flex items-center gap-3 mb-3 text-sm text-muted">
         <Link href={base} className="hover:text-text-default">Requisitions</Link>
         <Icon name="ChevronRight" size={14} />
-        <span className="text-text-default font-medium">New requisition</span>
+        <span className="text-text-default font-medium">Create</span>
       </div>
 
       <PageHeader
-        title="New Requisition"
-        subtitle="Fill in the request, add line items, save draft or submit for approval"
+        title="Purchase Requisition Creation"
+        subtitle="Fill in the request, add line items, save or send for approval"
         actions={
           <>
             <Link href={base} className="btn btn-ghost">Cancel</Link>
             <button type="button" className="btn btn-ghost" onClick={() => handleSave("draft")} disabled={!!submitting}>
-              {submitting === "draft" ? "Saving…" : "Save as draft"}
+              {submitting === "draft" ? "Saving…" : "Save"}
             </button>
             <button type="button" className="btn btn-primary" onClick={() => handleSave("submit")} disabled={!!submitting}>
-              {submitting === "submit" ? "Submitting…" : "Submit for approval"}
+              {submitting === "submit" ? "Sending…" : "Send for Approval"}
               <Icon name="ArrowRight" />
             </button>
           </>
