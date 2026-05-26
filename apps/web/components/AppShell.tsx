@@ -51,7 +51,7 @@ export function AppShell({
       <aside
         className={clsx(
           "flex flex-col shrink-0 border-r border-border transition-[width] duration-150",
-          expanded ? "w-56" : "w-14",
+          expanded ? "w-56" : "w-[58px]",
         )}
         style={{ background: "var(--frame)", color: "var(--text-on-dark)" }}
       >
@@ -61,7 +61,7 @@ export function AppShell({
             <Icon name="Flower2" size={16} />
           </div>
           {expanded && (
-            <span className="ml-2 text-sm font-semibold tracking-tight truncate">Prathvi&apos;s ERP</span>
+            <span className="ml-2 text-[13px] font-semibold tracking-tight truncate">Prathvi&apos;s ERP</span>
           )}
         </div>
 
@@ -79,13 +79,20 @@ export function AppShell({
                 href={href}
                 title={m.name}
                 className={clsx(
-                  "flex items-center rounded-md mb-0.5 transition gap-2.5",
-                  expanded ? "px-2.5 py-1.5" : "justify-center py-2",
+                  "flex items-center rounded-md mb-0.5 transition gap-2.5 relative",
+                  expanded ? "px-2.5 py-2" : "justify-center py-2.5",
                   isActive
-                    ? "bg-bg text-text-default font-semibold"
-                    : "opacity-70 hover:opacity-100 hover:bg-white/5",
+                    ? "bg-bg text-text-default font-semibold shadow-sm"
+                    : "opacity-75 hover:opacity-100 hover:bg-white/5",
                 )}
               >
+                {/* Active indicator strip on the left for collapsed mode */}
+                {isActive && !expanded && (
+                  <span
+                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r"
+                    style={{ background: "var(--tint-peach)" }}
+                  />
+                )}
                 <Icon name={m.icon as IconProps["name"]} size={16} />
                 {expanded && (
                   <span className="text-[12.5px] leading-none truncate flex-1">{m.name}</span>
@@ -139,17 +146,17 @@ export function AppShell({
 
       {/* MAIN COLUMN — only this scrolls */}
       <main className="flex-1 min-w-0 overflow-y-auto" style={{ background: "var(--bg)" }}>
-        {/* Top bar — compact 48px height, sticky on scroll */}
-        <header className="sticky top-0 z-20 h-12 flex items-center justify-between px-4 border-b border-border bg-bg">
+        {/* Top bar — 52px height, sticky on scroll */}
+        <header className="sticky top-0 z-20 h-[52px] flex items-center justify-between px-4 border-b border-border bg-bg">
           <div className="flex items-center gap-3">
             <button
               onClick={() => history.back()}
-              className="h-7 w-7 rounded grid place-items-center hover:bg-surface text-muted hover:text-text-default"
+              className="h-8 w-8 rounded-md grid place-items-center hover:bg-surface text-muted hover:text-text-default border border-transparent hover:border-border-strong"
               aria-label="Back"
             >
               <Icon name="ChevronLeft" size={16} />
             </button>
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-0.5">
               {[
                 { href: `${base}/dashboard`,  label: "Dashboard" },
                 { href: `${base}/approvals`,  label: "Approvals" },
@@ -161,7 +168,7 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     className={clsx(
-                      "px-2.5 py-1 rounded text-[12px] font-medium transition",
+                      "px-3 py-1.5 rounded-md text-[12.5px] font-medium transition",
                       active
                         ? "text-text-default bg-surface"
                         : "text-muted hover:text-text-default hover:bg-surface/60",
@@ -174,9 +181,9 @@ export function AppShell({
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <ThemeSwitcher />
-            <button className="h-7 w-7 rounded grid place-items-center text-muted hover:text-text-default hover:bg-surface" aria-label="Notifications">
+            <button className="h-8 w-8 rounded-md grid place-items-center text-muted hover:text-text-default hover:bg-surface border border-transparent hover:border-border-strong" aria-label="Notifications">
               <Icon name="Bell" size={16} />
             </button>
           </div>

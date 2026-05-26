@@ -62,15 +62,15 @@ export function ConfirmDialog({
         </>
       }
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3">
         <div
-          className="h-12 w-12 rounded-2xl grid place-items-center shrink-0"
+          className="h-10 w-10 rounded-lg grid place-items-center shrink-0"
           style={{ background: style.iconBg, color: style.iconFg }}
         >
-          <Icon name={style.iconName} size={22} />
+          <Icon name={style.iconName} size={18} />
         </div>
         {description && (
-          <div className="flex-1 pt-1 text-sm text-muted leading-relaxed">
+          <div className="flex-1 pt-0.5 text-[12.5px] text-muted leading-relaxed">
             {description}
           </div>
         )}

@@ -1,8 +1,9 @@
 import { type ReactNode } from "react";
 
 /**
- * Dense in-card section header. Uppercase label + thin underline keeps the
- * visual weight low so the data underneath stays the hero.
+ * In-card section header. Title is a clean sentence-case label (no uppercase
+ * tracking — that looked cheap at the new small sizes). Accent strip on the
+ * left ties it visually to the primary color without being loud.
  */
 export function SectionHeading({
   title,
@@ -15,20 +16,20 @@ export function SectionHeading({
   action?: ReactNode;
   size?: "sm" | "md" | "lg";
 }) {
-  const titleSize = size === "lg" ? "text-[13px]" : size === "sm" ? "text-[10px]" : "text-[11px]";
+  const titleSize = size === "lg" ? "text-[14px]" : size === "sm" ? "text-[12px]" : "text-[13px]";
   return (
-    <div className="flex items-center justify-between gap-3 pb-2 mb-3 border-b border-border">
-      <div className="flex items-center gap-2 min-w-0">
+    <div className="flex items-center justify-between gap-3 pb-2.5 mb-3 border-b border-border">
+      <div className="flex items-center gap-2.5 min-w-0">
         <span
-          className="h-3.5 w-0.5 shrink-0"
+          className="h-4 w-[3px] rounded-sm shrink-0"
           style={{ background: "var(--primary)" }}
           aria-hidden="true"
         />
         <div className="min-w-0">
-          <h3 className={`${titleSize} font-bold uppercase tracking-wider text-text-default leading-none`}>
+          <h3 className={`${titleSize} font-semibold tracking-tight text-text-default leading-none`}>
             {title}
           </h3>
-          {subtitle && <p className="text-[11px] text-muted mt-0.5 truncate leading-tight">{subtitle}</p>}
+          {subtitle && <p className="text-[11.5px] text-muted mt-1 truncate leading-tight">{subtitle}</p>}
         </div>
       </div>
       {action && <div className="flex items-center gap-1.5 shrink-0">{action}</div>}

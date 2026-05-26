@@ -38,28 +38,28 @@ function ToastItem({ toast }: { toast: Toast }) {
   return (
     <div
       role="status"
-      className="pointer-events-auto rounded-2xl shadow-lg p-4 flex items-start gap-3 toast-enter"
-      style={{ background: style.bg, color: style.fg }}
+      className="pointer-events-auto rounded-lg p-3 flex items-start gap-2.5 toast-enter shadow-md"
+      style={{ background: style.bg, color: style.fg, border: "1px solid rgba(0,0,0,0.06)" }}
     >
       <div
-        className="h-9 w-9 rounded-xl grid place-items-center shrink-0"
+        className="h-7 w-7 rounded-md grid place-items-center shrink-0"
         style={{ background: style.iconBg, color: style.fg }}
       >
-        <Icon name={style.icon} />
+        <Icon name={style.icon} size={15} />
       </div>
       <div className="flex-1 min-w-0 pt-0.5">
-        <p className="font-semibold text-sm leading-tight">{toast.title}</p>
+        <p className="font-semibold text-[12.5px] leading-tight">{toast.title}</p>
         {toast.description && (
-          <p className="mt-1 text-xs opacity-80 leading-snug">{toast.description}</p>
+          <p className="mt-0.5 text-[11.5px] opacity-85 leading-snug">{toast.description}</p>
         )}
       </div>
       <button
         onClick={() => dismiss(toast.id)}
-        className="h-7 w-7 rounded-pill grid place-items-center opacity-60 hover:opacity-100"
+        className="h-6 w-6 rounded grid place-items-center opacity-50 hover:opacity-100"
         aria-label="Dismiss"
         style={{ color: style.fg }}
       >
-        <Icon name="X" size={14} />
+        <Icon name="X" size={12} />
       </button>
       <style jsx>{`
         .toast-enter {

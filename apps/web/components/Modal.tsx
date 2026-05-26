@@ -37,29 +37,36 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 grid place-items-center p-4 modal-shell" role="dialog" aria-modal="true">
+      {/* Backdrop — soft, dark, light blur */}
+      <div className="absolute inset-0 modal-backdrop" onClick={onClose} aria-hidden="true" />
+
+      {/* Panel — soft pop entrance */}
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className={`relative w-full ${SIZES[size]} bg-bg rounded-2xl shadow-lg overflow-hidden max-h-[calc(100vh-32px)] flex flex-col`}>
-        <div className="flex items-start justify-between p-6 pb-3 shrink-0">
-          <div>
-            <h3 className="display text-xl">{title}</h3>
-            {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+        className={`relative w-full ${SIZES[size]} bg-bg overflow-hidden max-h-[calc(100vh-32px)] flex flex-col modal-panel`}
+        style={{ borderRadius: 10 }}
+      >
+        {/* Header — tight, dense, hairline border below */}
+        <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-border shrink-0">
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-semibold tracking-tight text-text-default leading-tight truncate">{title}</h3>
+            {description && <p className="mt-1 text-[12px] text-muted leading-snug">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="h-9 w-9 rounded-pill grid place-items-center text-muted hover:bg-surface hover:text-text-default"
+            className="h-7 w-7 rounded grid place-items-center text-muted hover:bg-surface hover:text-text-default shrink-0"
             aria-label="Close"
           >
-            <Icon name="X" />
+            <Icon name="X" size={15} />
           </button>
         </div>
-        <div className="px-6 pb-6 overflow-y-auto">{children}</div>
+
+        {/* Body */}
+        <div className="px-5 py-4 overflow-y-auto">{children}</div>
+
+        {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-border bg-surface flex justify-end gap-2 shrink-0">
+          <div className="px-5 py-3 border-t border-border bg-surface flex justify-end gap-2 shrink-0">
             {footer}
           </div>
         )}

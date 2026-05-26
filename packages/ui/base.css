@@ -13,12 +13,35 @@ html, body {
   letter-spacing: -0.005em;
   color: var(--text);
   background: var(--bg);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 /* Tighten the base table row density app-wide — ERP shows lots of rows. */
 table { font-size: 12.5px; }
 th { font-size: 10.5px; letter-spacing: 0.04em; }
+
+/* ==========================================================================
+   Modal entrance animation
+   - Backdrop fades from 0 -> 1
+   - Panel does a soft pop (scale 0.96 -> 1 + 6px lift)
+   Spring ease so it feels alive without being bouncy.
+   ========================================================================== */
+@keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-panel-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-backdrop {
+  background: rgba(17, 24, 32, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modal-backdrop-in 160ms var(--ease-out);
+}
+.modal-panel {
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  animation: modal-panel-in 180ms var(--ease-spring);
+}
 
 /* Display type — for big numbers, hero headings */
 .display {
@@ -90,40 +113,47 @@ th { font-size: 10.5px; letter-spacing: 0.04em; }
 .text-tint-blush-fg  { color: var(--tint-blush-fg); }
 .text-on-dark        { color: var(--text-on-dark); }
 
-/* Buttons — dense ERP-style. Pill kept on .btn-pill for the few places that
-   still want the round look (avatars, icon pickers). */
+/* Buttons — dense ERP-style with a hair more weight than v1 so they don't feel
+   chiclet-thin. Pill kept on .btn-pill for the round cases (avatars). */
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 0 12px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
+  letter-spacing: -0.005em;
   transition: background var(--dur-fast) var(--ease-out),
               color var(--dur-fast) var(--ease-out),
-              border-color var(--dur-fast) var(--ease-out);
+              border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
   cursor: pointer;
   border: 1px solid transparent;
   white-space: nowrap;
-  height: 30px;
+  height: 32px;
+  line-height: 1;
 }
-.btn-sm { padding: 4px 10px; font-size: 11px; gap: 4px; height: 26px; }
-.btn-lg { padding: 10px 18px; font-size: 13px; gap: 8px; height: 38px; }
+.btn:active { transform: translateY(1px); }
+.btn-sm { padding: 0 10px; font-size: 11.5px; gap: 4px; height: 28px; border-radius: 5px; }
+.btn-lg { padding: 0 18px; font-size: 13px; gap: 8px; height: 40px; border-radius: 7px; }
 .btn-pill { border-radius: var(--radius-pill); }
 
 .btn-primary {
   background: var(--primary);
   color: var(--primary-fg);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
-.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 2px 6px rgba(47, 92, 104, 0.18); }
 
 .btn-ghost {
   background: var(--bg);
   color: var(--text);
-  border-color: var(--border);
+  border-color: var(--border-strong);
 }
-.btn-ghost:hover { background: var(--surface); }
+.btn-ghost:hover { background: var(--surface); border-color: var(--muted-2); }
 
 .btn-quiet {
   background: transparent;
@@ -143,13 +173,15 @@ th { font-size: 10.5px; letter-spacing: 0.04em; }
   pointer-events: none;
 }
 
-/* Cards — flatter ERP-style. Smaller radius, no shadow by default. */
+/* Cards — dense ERP look with a hairline border and a barely-there shadow
+   so panels feel like actual surfaces, not painted rectangles. */
 .card {
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  box-shadow: 0 1px 0 rgba(15, 23, 32, 0.02);
 }
-.card-lg { border-radius: 8px; }
+.card-lg { border-radius: 10px; }
 
 /* KPI tint cards */
 .kpi { padding: 18px; border-radius: var(--radius-xl); }
@@ -160,35 +192,39 @@ th { font-size: 10.5px; letter-spacing: 0.04em; }
 .kpi-lilac  { background: var(--tint-lilac); color: var(--tint-lilac-fg); }
 .kpi-blush  { background: var(--tint-blush); color: var(--tint-blush-fg); }
 
-/* Inputs — dense, lower-radius for ERP look. */
+/* Inputs — comfortable but compact. A touch more height + hover state so the
+   form feels alive when the cursor passes over it. */
 .input {
   width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
-  font-size: 12.5px;
-  height: 30px;
+  font-size: 13px;
+  height: 32px;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   transition: border-color var(--dur-fast) var(--ease-out),
-              box-shadow var(--dur-fast) var(--ease-out);
+              box-shadow var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
 }
-textarea.input { height: auto; padding: 8px 10px; line-height: 1.45; }
+textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; min-height: 36px; }
+select.input { padding-right: 28px; cursor: pointer; }
 .input::placeholder { color: var(--muted-2); }
+.input:hover { border-color: var(--muted-2); }
 .input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 15%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
 }
+.input:disabled, .input[readonly] { background: var(--surface); color: var(--muted); cursor: not-allowed; }
 
 .label {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   display: block;
 }
 
@@ -197,11 +233,12 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.45; }
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 6px;
+  padding: 2px 7px;
   font-size: 10.5px;
   font-weight: 600;
-  border-radius: 3px;
+  border-radius: 4px;
   line-height: 1.4;
+  letter-spacing: -0.005em;
 }
 .badge-success { background: var(--success-bg); color: var(--success-fg); }
 .badge-warning { background: var(--warning-bg); color: var(--warning-fg); }
