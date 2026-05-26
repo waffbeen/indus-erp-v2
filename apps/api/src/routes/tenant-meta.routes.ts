@@ -11,6 +11,10 @@ tenantMetaRoutes.use(requireAuth, requireTenant);
 
 const settingsPatchSchema = z.object({
   grn: z.object({ batchMode: z.boolean().optional() }).optional(),
+  approval: z.object({
+    prLevels: z.number().int().min(1).max(3).optional(),
+    poLevels: z.number().int().min(1).max(3).optional(),
+  }).optional(),
 });
 
 tenantMetaRoutes.get("/companies", async (req, res, next) => {

@@ -10,6 +10,10 @@ interface TenantSettings {
   grn?: {
     batchMode?: boolean;
   };
+  approval?: {
+    prLevels?: number;
+    poLevels?: number;
+  };
 }
 
 export default function SettingsPage() {
@@ -23,7 +27,7 @@ export default function SettingsPage() {
       .catch(() => setSettings({}));
   }, []);
 
-  async function setBatchMode(on: boolean) {
+  async function patchSettings(patch: Partial<TenantSettings>) {
     if (!me?.isTenantAdmin) {
       toast.error("Permission needed", "Only tenant admins can change settings.");
       return;
@@ -32,15 +36,10 @@ export default function SettingsPage() {
     try {
       const next = await api<TenantSettings>("/api/tenant/settings", {
         method: "PATCH",
-        body: JSON.stringify({ grn: { batchMode: on } }),
+        body: JSON.stringify(patch),
       });
       setSettings(next);
-      toast.success(
-        on ? "Batch-wise GRN enabled" : "Batch-wise GRN disabled",
-        on
-          ? "Goods receipts ab har row pe batch / mfg / expiry capture karenge."
-          : "GRN form vapas simple mode mein chala gaya — batch fields hide ho gaye.",
-      );
+      toast.success("Settings saved");
     } catch (err) {
       toast.error("Could not save", err instanceof ApiError ? err.message : "Try again");
     } finally {
@@ -48,7 +47,16 @@ export default function SettingsPage() {
     }
   }
 
+  async function setBatchMode(on: boolean) {
+    await patchSettings({ grn: { batchMode: on } });
+  }
+
+  async function setPrLevels(n: number) {
+    await patchSettings({ approval: { prLevels: n } });
+  }
+
   const batchOn = settings?.grn?.batchMode ?? false;
+  const prLevels = settings?.approval?.prLevels ?? 1;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -105,6 +113,36 @@ export default function SettingsPage() {
             )}
           </div>
         </label>
+      </div>
+
+      <div className="card p-6">
+        <h2 className="font-semibold mb-1">Approval workflow</h2>
+        <p className="text-sm text-muted mb-4">
+          Number of approval levels a Purchase Requisition must pass through before it's
+          finalised. Multi-level adds a second / third approver step before final approval.
+        </p>
+        <div className="flex items-center gap-2">
+          {[1, 2, 3].map((n) => (
+            <button
+              key={n}
+              onClick={() => setPrLevels(n)}
+              disabled={saving || !me?.isTenantAdmin}
+              className={`btn btn-sm ${prLevels === n ? "btn-primary" : "btn-ghost"}`}
+              title={`Require ${n} approval level${n === 1 ? "" : "s"}`}
+            >
+              {n} level{n === 1 ? "" : "s"}
+            </button>
+          ))}
+          <span className="text-[11.5px] text-muted ml-2">
+            Current: <strong className="text-text-default">{prLevels} level{prLevels === 1 ? "" : "s"}</strong>
+          </span>
+        </div>
+        {!me?.isTenantAdmin && (
+          <p className="text-xs text-warning-fg mt-3">
+            <Icon name="Lock" size={12} className="inline mr-1" />
+            Only tenant admins can change this.
+          </p>
+        )}
       </div>
 
       <div className="card p-6">

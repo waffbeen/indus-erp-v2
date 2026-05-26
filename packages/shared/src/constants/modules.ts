@@ -55,7 +55,8 @@ export const MODULES: ModuleDef[] = [
   { key: "ai_predict",shortLabel: "Predict",name: "AI Predictions", description: "Stock & vendor risk forecasts", icon: "Brain",     path: "/ai/predict", mvp: false, gated: true,  group: "intelligence", showInSidebar: false, sortOrder: 62 },
 
   // ---- ADMIN (always at bottom) ----
-  { key: "settings",  shortLabel: "Settings",name: "Settings",  description: "Workspace & user settings", icon: "Settings", path: "/settings", mvp: true,  gated: false, group: "admin", showInSidebar: true,  sortOrder: 99 },
+  { key: "users",     shortLabel: "Team",   name: "Team",       description: "Members & invitations",      icon: "UsersRound", path: "/users",    mvp: true,  gated: false, group: "admin", showInSidebar: true, sortOrder: 98 },
+  { key: "settings",  shortLabel: "Settings",name: "Settings",  description: "Workspace & user settings", icon: "Settings",   path: "/settings", mvp: true,  gated: false, group: "admin", showInSidebar: true, sortOrder: 99 },
 ];
 
 export const MODULE_KEYS = MODULES.map((m) => m.key);

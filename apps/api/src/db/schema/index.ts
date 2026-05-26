@@ -19,5 +19,6 @@ export * from "./gate_entries";
 export * from "./grns";
 export * from "./stock";
 export * from "./notifications";
+export * from "./invites";
 export * from "./approvals";
 export * from "./audit_logs";

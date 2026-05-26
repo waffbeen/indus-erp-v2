@@ -27,6 +27,12 @@ export const tenants = pgTable(
         /** Track batch number / mfg date / expiry per receipt line. */
         batchMode?: boolean;
       };
+      approval?: {
+        /** How many approval levels a PR must pass through. Default 1. */
+        prLevels?: number;
+        /** Same for PO. Default 1. */
+        poLevels?: number;
+      };
     }>().notNull().default({}),
     trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),

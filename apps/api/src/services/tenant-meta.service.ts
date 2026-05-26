@@ -97,13 +97,12 @@ export async function getTenantSettings(tenantId: string) {
  */
 export async function updateTenantSettings(
   tenantId: string,
-  patch: { grn?: { batchMode?: boolean } },
+  patch: { grn?: { batchMode?: boolean }; approval?: { prLevels?: number; poLevels?: number } },
 ) {
   const current = await getTenantSettings(tenantId);
   const next: typeof current = { ...current };
-  if (patch.grn) {
-    next.grn = { ...(current.grn ?? {}), ...patch.grn };
-  }
+  if (patch.grn) next.grn = { ...(current.grn ?? {}), ...patch.grn };
+  if (patch.approval) next.approval = { ...(current.approval ?? {}), ...patch.approval };
   await db.update(tenants).set({ settings: next, updatedAt: new Date() }).where(eq(tenants.id, tenantId));
   return next;
 }

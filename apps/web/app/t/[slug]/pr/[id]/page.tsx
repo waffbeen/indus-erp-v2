@@ -260,8 +260,8 @@ export default function PrDetailPage() {
             </button>
             <button
               className="btn btn-ghost"
-              onClick={() => window.print()}
-              title="Print / Save as PDF — uses your browser's print dialog"
+              onClick={() => window.open(`/t/${params?.slug}/pr/${pr.id}/print`, "_blank")}
+              title="Open a print-friendly view (browser opens PDF dialog)"
             >
               <Icon name="Printer" /> Print
             </button>

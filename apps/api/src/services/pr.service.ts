@@ -1,6 +1,7 @@
 import { eq, and, isNull, ilike, desc, sql, inArray } from "drizzle-orm";
 import { db } from "../db/index";
 import { purchaseRequisitions, prItems } from "../db/schema/pr";
+import { tenants } from "../db/schema/tenants";
 import { users } from "../db/schema/users";
 import { auditLogs } from "../db/schema/audit_logs";
 import { approvalActions } from "../db/schema/approvals";
@@ -327,7 +328,19 @@ export async function submitPr(id: string, ctx: ActorContext, comment?: string) 
   }
 
   const prNumber = pr.prNumber ?? (await nextPrNumber(ctx.tenantId));
-  const chain = [{ level: 1, roleKey: "approver", status: "pending" }];
+
+  // Pull tenant approval settings — default to single-level if unset
+  const [t] = await db
+    .select({ settings: tenants.settings })
+    .from(tenants)
+    .where(eq(tenants.id, ctx.tenantId))
+    .limit(1);
+  const prLevels = Math.max(1, Math.min(3, t?.settings?.approval?.prLevels ?? 1));
+  const chain = Array.from({ length: prLevels }, (_, i) => ({
+    level: i + 1,
+    roleKey: "approver",
+    status: i === 0 ? "pending" : "waiting",
+  }));
 
   await db.transaction(async (tx) => {
     await tx
@@ -383,13 +396,32 @@ export async function approvePr(id: string, ctx: ActorContext, comment?: string)
     throw Forbidden("self_approve", "You cannot approve your own requisition");
   }
 
+  // Find the current pending level in the chain and advance it. If there's a
+  // next "waiting" level, transition to "pending_l<n+1>". Else mark final.
+  const chain = (pr.approvalChain ?? []) as Array<{ level: number; roleKey?: string; status: string; userId?: string }>;
+  const currentIdx = chain.findIndex((c) => c.status === "pending");
+  const currentLevel = currentIdx >= 0 ? chain[currentIdx]!.level : 1;
+
+  const nextChain = chain.map((c, i) => {
+    if (i === currentIdx) return { ...c, status: "approved", userId: ctx.userId };
+    if (i === currentIdx + 1) return { ...c, status: "pending" };
+    return c;
+  });
+  if (chain.length === 0) {
+    // Defensive: PR was submitted before multi-level was wired in
+    nextChain.push({ level: 1, roleKey: "approver", status: "approved", userId: ctx.userId });
+  }
+
+  const hasNext = currentIdx >= 0 && currentIdx + 1 < chain.length;
+  const newStatus = hasNext ? (currentIdx + 1 === 1 ? "pending_l2" : "escalated") : "approved";
+
   await db.transaction(async (tx) => {
     await tx
       .update(purchaseRequisitions)
       .set({
-        status: "approved",
-        decidedAt: new Date(),
-        approvalChain: [{ level: 1, roleKey: "approver", status: "approved" }],
+        status: newStatus,
+        decidedAt: hasNext ? pr.decidedAt : new Date(),
+        approvalChain: nextChain,
         updatedAt: new Date(),
       })
       .where(eq(purchaseRequisitions.id, id));
@@ -400,7 +432,7 @@ export async function approvePr(id: string, ctx: ActorContext, comment?: string)
       resourceId: id,
       actorUserId: ctx.userId,
       action: "approve",
-      level: 1,
+      level: currentLevel,
       comment: comment ?? null,
     });
   });
@@ -416,16 +448,31 @@ export async function approvePr(id: string, ctx: ActorContext, comment?: string)
   });
 
   // Notify the requester their PR is approved
-  await notifyUsers({
-    tenantId: ctx.tenantId,
-    userIds: [pr.requesterId],
-    kind: "pr_approved",
-    title: `PR approved: ${pr.prNumber ?? ""}`.trim(),
-    body: pr.title,
-    resourceType: "pr",
-    resourceId: id,
-    metadata: { prNumber: pr.prNumber },
-  });
+  if (hasNext) {
+    // More approval levels remain — ping the next-level approvers
+    await notifyTenantAdmins({
+      tenantId: ctx.tenantId,
+      excludeUserId: ctx.userId,
+      kind: "pr_submitted",
+      title: `PR awaiting L${currentIdx + 2} approval: ${pr.prNumber ?? ""}`.trim(),
+      body: pr.title,
+      resourceType: "pr",
+      resourceId: id,
+      metadata: { prNumber: pr.prNumber, level: currentIdx + 2 },
+    });
+  } else {
+    // Final approval — tell the requester
+    await notifyUsers({
+      tenantId: ctx.tenantId,
+      userIds: [pr.requesterId],
+      kind: "pr_approved",
+      title: `PR approved: ${pr.prNumber ?? ""}`.trim(),
+      body: pr.title,
+      resourceType: "pr",
+      resourceId: id,
+      metadata: { prNumber: pr.prNumber },
+    });
+  }
 }
 
 /**
