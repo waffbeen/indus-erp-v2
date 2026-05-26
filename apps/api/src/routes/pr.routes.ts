@@ -20,12 +20,14 @@ prRoutes.get("/", requirePermission(Resources.PR, Actions.Read), async (req, res
     const search = typeof req.query.search === "string" ? req.query.search : undefined;
     const status = typeof req.query.status === "string" ? req.query.status : undefined;
     const mine = req.query.mine === "true";
+    const buyer = req.query.buyer === "me";
     const result = await prService.listPrs(req.tenant!.id, {
       page,
       pageSize,
       search,
       status,
       requesterId: mine ? req.auth!.sub : undefined,
+      buyerUserId: buyer ? req.auth!.sub : undefined,
     });
     res.json(result);
   } catch (err) {

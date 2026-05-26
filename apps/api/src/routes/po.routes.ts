@@ -21,6 +21,7 @@ poRoutes.get("/", requirePermission(Resources.PO, Actions.Read), async (req, res
       search: typeof req.query.search === "string" ? req.query.search : undefined,
       status: typeof req.query.status === "string" ? req.query.status : undefined,
       vendorId: typeof req.query.vendorId === "string" ? req.query.vendorId : undefined,
+      lineBuyerUserId: req.query.buyer === "me" ? req.auth!.sub : undefined,
     });
     res.json(result);
   } catch (err) { next(err); }

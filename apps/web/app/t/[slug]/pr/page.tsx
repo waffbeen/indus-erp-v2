@@ -35,6 +35,7 @@ export default function PrListPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [mineOnly, setMineOnly] = useState(false);
+  const [buyerMine, setBuyerMine] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -43,6 +44,7 @@ export default function PrListPage() {
       if (search) qs.set("search", search);
       if (status !== "all") qs.set("status", status);
       if (mineOnly) qs.set("mine", "true");
+      if (buyerMine) qs.set("buyer", "me");
       const res = await api<ListResponse>(`/api/pr?${qs.toString()}`);
       setData(res);
       setError(null);
@@ -56,7 +58,7 @@ export default function PrListPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, mineOnly]);
+  }, [status, mineOnly, buyerMine]);
 
   return (
     <>
@@ -93,7 +95,16 @@ export default function PrListPage() {
             onChange={(e) => setMineOnly(e.target.checked)}
             className="rounded"
           />
-          My PRs only
+          Raised by me
+        </label>
+        <label className="flex items-center gap-2 text-sm text-muted px-3">
+          <input
+            type="checkbox"
+            checked={buyerMine}
+            onChange={(e) => setBuyerMine(e.target.checked)}
+            className="rounded"
+          />
+          Assigned to me <span className="text-[10px] text-muted">(as buyer)</span>
         </label>
         <div className="relative">
           <input

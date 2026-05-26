@@ -45,6 +45,7 @@ export default function PoListPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const [buyerMine, setBuyerMine] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -52,6 +53,7 @@ export default function PoListPage() {
       const qs = new URLSearchParams();
       if (search) qs.set("search", search);
       if (status !== "all") qs.set("status", status);
+      if (buyerMine) qs.set("buyer", "me");
       const res = await api<ListResponse>(`/api/po?${qs.toString()}`);
       setData(res);
       setError(null);
@@ -65,7 +67,7 @@ export default function PoListPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [status, buyerMine]);
 
   return (
     <>
@@ -87,6 +89,15 @@ export default function PoListPage() {
           </button>
         ))}
         <div className="flex-1" />
+        <label className="flex items-center gap-2 text-sm text-muted px-3">
+          <input
+            type="checkbox"
+            checked={buyerMine}
+            onChange={(e) => setBuyerMine(e.target.checked)}
+            className="rounded"
+          />
+          Assigned to me <span className="text-[10px] text-muted">(as buyer)</span>
+        </label>
         <div className="relative">
           <input
             className="input !py-2 !pl-9 !w-64 text-sm"

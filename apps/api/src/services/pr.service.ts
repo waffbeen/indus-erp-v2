@@ -15,6 +15,8 @@ interface ListOpts {
   search?: string;
   status?: string;
   requesterId?: string;
+  /** Header-level buyer assignment — PRs the given user is supposed to execute. */
+  buyerUserId?: string;
 }
 
 interface ActorContext {
@@ -58,6 +60,7 @@ export async function listPrs(tenantId: string, opts: ListOpts = {}) {
   const conds = [eq(purchaseRequisitions.tenantId, tenantId), isNull(purchaseRequisitions.deletedAt)];
   if (opts.status) conds.push(eq(purchaseRequisitions.status, opts.status as "draft"));
   if (opts.requesterId) conds.push(eq(purchaseRequisitions.requesterId, opts.requesterId));
+  if (opts.buyerUserId) conds.push(eq(purchaseRequisitions.buyerUserId, opts.buyerUserId));
   if (opts.search?.trim()) conds.push(ilike(purchaseRequisitions.title, `%${opts.search.trim()}%`));
 
   const [rows, totalRow] = await Promise.all([

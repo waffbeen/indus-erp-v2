@@ -14,7 +14,11 @@ import { units } from "../db/schema/units";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
 import type { PoCreateInput, PoAmendInput } from "@indus/shared";
 
-interface ListOpts { page?: number; pageSize?: number; search?: string; status?: string; vendorId?: string; }
+interface ListOpts {
+  page?: number; pageSize?: number; search?: string; status?: string; vendorId?: string;
+  /** POs that have any line assigned to this buyer. */
+  lineBuyerUserId?: string;
+}
 interface ActorContext {
   tenantId: string;
   userId: string;
@@ -126,6 +130,19 @@ export async function listPos(tenantId: string, opts: ListOpts = {}) {
   if (opts.status) conds.push(eq(purchaseOrders.status, opts.status as "draft"));
   if (opts.vendorId) conds.push(eq(purchaseOrders.vendorId, opts.vendorId));
   if (opts.search?.trim()) conds.push(ilike(purchaseOrders.title, `%${opts.search.trim()}%`));
+
+  // Pre-filter to POs containing a line assigned to the given buyer (subquery).
+  if (opts.lineBuyerUserId) {
+    const buyerPoIds = await db
+      .selectDistinct({ poId: poItems.poId })
+      .from(poItems)
+      .where(eq(poItems.lineBuyerUserId, opts.lineBuyerUserId));
+    if (buyerPoIds.length === 0) {
+      // No matching POs — short-circuit to empty result without firing the main query.
+      return { items: [], total: 0, page, pageSize };
+    }
+    conds.push(inArray(purchaseOrders.id, buyerPoIds.map((r) => r.poId)));
+  }
 
   const [rows, totalRow] = await Promise.all([
     db
