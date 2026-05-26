@@ -41,6 +41,34 @@ export default function NewPoPage() {
   // Common discount % at header — typed once, applied to all lines on demand
   const [commonDiscount, setCommonDiscount] = useState<string>("");
 
+  // Per-line delivery schedule modal — splits qty across multiple dates
+  const [scheduleLineIdx, setScheduleLineIdx] = useState<number | null>(null);
+  const scheduleLine = scheduleLineIdx != null ? form.items[scheduleLineIdx] : null;
+  const scheduleSum = (scheduleLine?.deliverySchedule ?? []).reduce((s, e) => s + (Number(e.qty) || 0), 0);
+  const scheduleRemainder = scheduleLine ? (scheduleLine.quantity || 0) - scheduleSum : 0;
+
+  function addScheduleEntry() {
+    if (scheduleLineIdx == null) return;
+    setItem(scheduleLineIdx, {
+      deliverySchedule: [
+        ...(form.items[scheduleLineIdx]!.deliverySchedule ?? []),
+        { qty: Math.max(0, scheduleRemainder), deliveryDate: "" },
+      ],
+    });
+  }
+  function removeScheduleEntry(rowIdx: number) {
+    if (scheduleLineIdx == null) return;
+    const current = form.items[scheduleLineIdx]!.deliverySchedule ?? [];
+    setItem(scheduleLineIdx, { deliverySchedule: current.filter((_, i) => i !== rowIdx) });
+  }
+  function patchScheduleEntry(rowIdx: number, patch: Partial<{ qty: number; deliveryDate: string }>) {
+    if (scheduleLineIdx == null) return;
+    const current = form.items[scheduleLineIdx]!.deliverySchedule ?? [];
+    setItem(scheduleLineIdx, {
+      deliverySchedule: current.map((e, i) => i === rowIdx ? { ...e, ...patch } : e),
+    });
+  }
+
   // Additional charges grid — labelled extra costs (freight, insurance, etc.)
   function addCharge() {
     setForm((f) => ({ ...f, additionalCharges: [...(f.additionalCharges ?? []), { label: "", amount: 0 }] }));
@@ -112,6 +140,7 @@ export default function NewPoPage() {
               warrantyMonths: 0,
               isForStock: false,
               isRecoveryRate: false,
+              deliverySchedule: [],
             })),
           }));
         } else {
@@ -166,6 +195,7 @@ export default function NewPoPage() {
           lineBuyerUserId: null,
           tolerancePercent: 0, warrantyMonths: 0,
           isForStock: false, isRecoveryRate: false,
+          deliverySchedule: [],
         },
       ],
     }));
@@ -731,6 +761,15 @@ export default function NewPoPage() {
                               />
                               Recovery
                             </label>
+                            <button
+                              type="button"
+                              className="text-[11px] font-medium flex items-center gap-1 text-primary hover:underline whitespace-nowrap"
+                              onClick={() => setScheduleLineIdx(idx)}
+                              title={(it.deliverySchedule ?? []).length > 0 ? `${(it.deliverySchedule ?? []).length} delivery drops scheduled` : "Split this line across multiple delivery dates"}
+                            >
+                              <Icon name="CalendarDays" size={14} />
+                              Schedule{(it.deliverySchedule ?? []).length > 0 ? ` · ${(it.deliverySchedule ?? []).length}` : ""}
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -872,6 +911,109 @@ export default function NewPoPage() {
           </div>
         </div>
       </form>
+
+      {/* Delivery schedule modal — split a line's qty across dates */}
+      <Modal
+        open={scheduleLineIdx != null}
+        onClose={() => setScheduleLineIdx(null)}
+        title={scheduleLine ? `Delivery schedule · ${scheduleLine.itemName || `Line ${(scheduleLineIdx ?? 0) + 1}`}` : "Delivery schedule"}
+        size="lg"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addScheduleEntry}>
+              <Icon name="Plus" /> Add drop
+            </button>
+            <div className="flex-1" />
+            <button type="button" className="btn btn-primary" onClick={() => setScheduleLineIdx(null)}>
+              Done
+            </button>
+          </>
+        }
+      >
+        {scheduleLine && (
+          <div className="space-y-3">
+            <div className="rounded-xl p-3 bg-surface border border-border text-sm flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted font-semibold">Line qty</p>
+                <p className="font-bold tabular-nums">{scheduleLine.quantity} {scheduleLine.uom}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted font-semibold">Scheduled</p>
+                <p className="font-bold tabular-nums">{scheduleSum} {scheduleLine.uom}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted font-semibold">Remaining</p>
+                <p className={`font-bold tabular-nums ${scheduleRemainder < 0 ? "text-danger" : scheduleRemainder === 0 ? "text-success" : ""}`}>
+                  {scheduleRemainder} {scheduleLine.uom}
+                </p>
+              </div>
+              {scheduleRemainder !== 0 && (scheduleLine.deliverySchedule?.length ?? 0) > 0 && (
+                <div className="basis-full">
+                  <p className="text-[11px] text-warning-fg">
+                    Tip: Scheduled sum should match the line qty. Right now it&apos;s {scheduleRemainder < 0 ? "over" : "under"} by {Math.abs(scheduleRemainder)} {scheduleLine.uom}.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {(scheduleLine.deliverySchedule?.length ?? 0) === 0 ? (
+              <div className="p-8 text-center text-muted text-sm rounded-xl border border-dashed border-border">
+                <Icon name="CalendarDays" size={28} className="mx-auto mb-2 opacity-50" />
+                <p>No schedule yet — line will use the committed delivery date as a single drop.</p>
+                <button type="button" className="btn btn-ghost btn-sm mt-3" onClick={addScheduleEntry}>
+                  <Icon name="Plus" /> Add first drop
+                </button>
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-[11px] uppercase tracking-wider text-muted bg-surface">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-semibold w-12">#</th>
+                    <th className="text-left px-3 py-2 font-semibold w-40">Qty</th>
+                    <th className="text-left px-3 py-2 font-semibold">Delivery date</th>
+                    <th className="text-right px-3 py-2 font-semibold w-12"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(scheduleLine.deliverySchedule ?? []).map((entry, rowIdx) => (
+                    <tr key={rowIdx} className="border-t border-border">
+                      <td className="px-3 py-2 text-muted text-xs">{rowIdx + 1}</td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.001"
+                          min="0"
+                          className="input !py-1.5 tabular-nums"
+                          value={entry.qty || ""}
+                          onChange={(e) => patchScheduleEntry(rowIdx, { qty: Number(e.target.value) || 0 })}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="date"
+                          className="input !py-1.5"
+                          value={entry.deliveryDate ?? ""}
+                          onChange={(e) => patchScheduleEntry(rowIdx, { deliveryDate: e.target.value })}
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          className="h-8 w-8 rounded-pill grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg"
+                          onClick={() => removeScheduleEntry(rowIdx)}
+                          title="Remove drop"
+                        >
+                          <Icon name="Trash2" size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* Bulk buyer update modal */}
       <Modal

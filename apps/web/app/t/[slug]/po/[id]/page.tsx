@@ -43,6 +43,7 @@ interface PoItem {
   warrantyMonths: number;
   isForStock: number;
   isRecoveryRate: number;
+  deliverySchedule: Array<{ qtyScaled: number; deliveryDate: string }>;
 }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 interface TimelineEntry { id: string; action: string; comment: string | null; level: number | null; actorName: string; createdAt: string; }
@@ -518,7 +519,7 @@ export default function PoDetailPage() {
                       <td className="px-5 py-3 text-xs text-muted">{formatDate(it.committedDeliveryDate)}</td>
                       <td className="px-5 py-3 tabular-nums font-semibold text-right">{paiseToINR(it.totalPaise)}</td>
                     </tr>
-                    {(it.itemNarration || it.tolerancePercent > 0 || it.warrantyMonths > 0 || it.isForStock || it.isRecoveryRate) && (
+                    {(it.itemNarration || it.tolerancePercent > 0 || it.warrantyMonths > 0 || it.isForStock || it.isRecoveryRate || (it.deliverySchedule?.length ?? 0) > 0) && (
                       <tr className="border-t border-border" style={{ background: "var(--surface)" }}>
                         <td />
                         <td colSpan={10} className="px-5 py-2 text-xs">
@@ -534,6 +535,18 @@ export default function PoDetailPage() {
                             {Number(it.isForStock) === 1 && <span className="badge badge-tint-mint text-[10px]">For Stock</span>}
                             {Number(it.isRecoveryRate) === 1 && <span className="badge badge-tint-peach text-[10px]">Recovery rate</span>}
                           </div>
+                          {(it.deliverySchedule?.length ?? 0) > 0 && (
+                            <div className="mt-2 pt-2 border-t border-border">
+                              <span className="text-muted font-semibold uppercase tracking-wider text-[10px] mr-2">Schedule:</span>
+                              <div className="inline-flex flex-wrap gap-1.5 mt-1">
+                                {it.deliverySchedule.map((s, sidx) => (
+                                  <span key={sidx} className="badge badge-tint-lilac text-[10px]">
+                                    {(s.qtyScaled / 1000).toLocaleString("en-IN")} {it.uom} · {formatDate(s.deliveryDate)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )}

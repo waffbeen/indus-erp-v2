@@ -182,6 +182,18 @@ export const poItems = pgTable(
     /** Specifications snapshot (paper GSM, voltage, etc.). */
     specifications: jsonb("specifications").$type<Record<string, unknown>>().default({}),
 
+    /**
+     * Split-delivery plan — for cases when a single PO line is delivered in
+     * multiple drops. Each entry: { qtyScaled: integer, deliveryDate: ISO date }.
+     * Sum of qtyScaled should equal the line's quantityScaled. Empty array
+     * means single delivery on committedDeliveryDate. Mirrors legacy
+     * largeModalSchedule + ScheduleGrid.
+     */
+    deliverySchedule: jsonb("delivery_schedule")
+      .$type<Array<{ qtyScaled: number; deliveryDate: string }>>()
+      .notNull()
+      .default([]),
+
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

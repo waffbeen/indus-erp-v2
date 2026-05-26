@@ -13,6 +13,7 @@ import { validate, apiErrorToFormErrors, emptyErrors, type FormErrorState } from
 
 interface Company { id: string; name: string; isPrimary: boolean; }
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
+interface Department { id: string; unitId: string | null; name: string; code: string | null; }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 
 const PR_TYPES = [
@@ -32,6 +33,7 @@ export default function NewPrPage() {
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [itemMaster, setItemMaster] = useState<ItemListItem[]>([]);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
 
@@ -42,14 +44,16 @@ export default function NewPrPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [comps, units, items, usersList] = await Promise.all([
+        const [comps, units, depts, items, usersList] = await Promise.all([
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
+          api<Department[]>("/api/tenant/departments"),
           api<{ items: ItemListItem[] }>("/api/items?pageSize=100"),
           api<TenantUser[]>("/api/tenant/users"),
         ]);
         setCompanies(comps);
         setUnits(units);
+        setDepartments(depts);
         setItemMaster(items.items);
         setTenantUsers(usersList);
         const primary = comps.find((c) => c.isPrimary) ?? comps[0];
@@ -291,7 +295,7 @@ export default function NewPrPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
             <div data-field="companyId">
               <label className="label">Company <span className="text-danger">*</span></label>
               <select className={fieldClass(fe.companyId)} value={form.companyId} onChange={(e) => set("companyId", e.target.value)}>
@@ -311,6 +315,21 @@ export default function NewPrPage() {
                 ))}
               </select>
               <FieldError error={fe.unitId} />
+            </div>
+            <div>
+              <label className="label">Department <span className="text-muted text-xs">(requesting team)</span></label>
+              <select
+                className="input"
+                value={form.departmentId ?? ""}
+                onChange={(e) => set("departmentId", e.target.value || null)}
+              >
+                <option value="">— Unassigned —</option>
+                {departments
+                  .filter((d) => !d.unitId || d.unitId === form.unitId)
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}{d.code ? ` (${d.code})` : ""}</option>
+                  ))}
+              </select>
             </div>
             <div>
               <label className="label">Needed by</label>

@@ -39,6 +39,16 @@ export const poItemInputSchema = z.object({
   isForStock: z.boolean().default(false),
   /** Item is being recovered/exchanged — costing rules differ. */
   isRecoveryRate: z.boolean().default(false),
+  /**
+   * Split-delivery plan. If empty, the whole quantity uses committedDeliveryDate.
+   * Each entry's qty is in human units (matches the line's `quantity`).
+   */
+  deliverySchedule: z.array(
+    z.object({
+      qty: z.number().positive("Schedule qty must be > 0"),
+      deliveryDate: z.string().date("Pick a delivery date"),
+    }),
+  ).default([]),
 });
 export type PoItemInput = z.infer<typeof poItemInputSchema>;
 

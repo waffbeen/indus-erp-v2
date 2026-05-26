@@ -1,0 +1,1 @@
+ALTER TABLE "po_items" ADD COLUMN "delivery_schedule" jsonb DEFAULT '[]'::jsonb NOT NULL;

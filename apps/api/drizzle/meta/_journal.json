@@ -50,6 +50,13 @@
       "when": 1779798884709,
       "tag": "0006_neat_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1779800119412,
+      "tag": "0007_dusty_tombstone",
+      "breakpoints": true
     }
   ]
 }

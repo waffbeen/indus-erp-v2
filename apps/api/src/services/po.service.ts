@@ -391,6 +391,11 @@ export async function createPo(input: PoCreateInput, ctx: ActorContext) {
         warrantyMonths: Math.round(it.warrantyMonths ?? 0),
         isForStock: it.isForStock ? 1 : 0,
         isRecoveryRate: it.isRecoveryRate ? 1 : 0,
+        // Schedule qty stored as int×1000 to match the line's quantityScaled.
+        deliverySchedule: (it.deliverySchedule ?? []).map((s) => ({
+          qtyScaled: Math.round(s.qty * 1000),
+          deliveryDate: s.deliveryDate,
+        })),
         sortOrder: idx,
       };
     }),
@@ -504,6 +509,7 @@ export async function clonePo(id: string, ctx: ActorContext) {
         warrantyMonths: it.warrantyMonths,
         isForStock: it.isForStock,
         isRecoveryRate: it.isRecoveryRate,
+        deliverySchedule: (it.deliverySchedule as Array<{ qtyScaled: number; deliveryDate: string }>) ?? [],
         specifications: (it.specifications as Record<string, unknown>) ?? {},
         sortOrder: idx,
       })),
