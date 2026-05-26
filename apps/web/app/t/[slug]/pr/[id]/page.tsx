@@ -258,6 +258,13 @@ export default function PrDetailPage() {
             <button className="btn btn-ghost" onClick={handleClone} disabled={cloning} title="Create a new draft PR with the same details">
               <Icon name="Copy" /> {cloning ? "Cloning…" : "Save As"}
             </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => window.print()}
+              title="Print / Save as PDF — uses your browser's print dialog"
+            >
+              <Icon name="Printer" /> Print
+            </button>
             {!isFinalized && (isOwner || me?.isTenantAdmin) && (
               <button
                 className="h-10 w-10 rounded-pill border border-border grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg"

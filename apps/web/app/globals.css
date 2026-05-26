@@ -7,3 +7,49 @@
 
 /* Page chrome — outside the inner app card */
 html, body { background: var(--frame); min-height: 100vh; }
+
+/*
+ * Print stylesheet — invoked by window.print() on PR/PO detail pages.
+ * Hide UI chrome and force a clean white-paper layout so the browser's
+ * "Save as PDF" dialog produces a professional vendor-ready document.
+ */
+@media print {
+  /* Force white background regardless of theme */
+  html, body { background: #ffffff !important; color: #111111 !important; }
+
+  /* Hide everything tagged as non-print + UI chrome */
+  .no-print,
+  nav,
+  aside,
+  header[role="banner"],
+  button,
+  a[role="button"],
+  .btn {
+    display: none !important;
+  }
+
+  /* Strip card shadows/borders for cleaner printed look */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #e5e5e5 !important;
+    break-inside: avoid;
+  }
+
+  /* Make full-width on paper */
+  main, .container, .max-w-7xl { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+
+  /* Keep tables together where possible */
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* Reveal items tagged as print-only */
+  .print-only { display: block !important; }
+
+  /* Reasonable margins */
+  @page { margin: 14mm 12mm; }
+}
+
+/* Print-only elements stay hidden in normal view */
+.print-only { display: none; }

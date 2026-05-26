@@ -39,6 +39,10 @@ interface PoItem {
   committedDeliveryDate: string | null;
   itemNarration: string | null;
   lineBuyerUserId: string | null;
+  tolerancePercent: number;
+  warrantyMonths: number;
+  isForStock: number;
+  isRecoveryRate: number;
 }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 interface TimelineEntry { id: string; action: string; comment: string | null; level: number | null; actorName: string; createdAt: string; }
@@ -335,6 +339,13 @@ export default function PoDetailPage() {
             <button className="btn btn-ghost" onClick={handleClone} disabled={cloning} title="Create a new draft PO with the same details">
               <Icon name="Copy" /> {cloning ? "Cloning…" : "Save As"}
             </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => window.print()}
+              title="Print / Save as PDF — uses your browser's print dialog"
+            >
+              <Icon name="Printer" /> Print
+            </button>
             {!isFinalized && (isCreator || me?.isTenantAdmin) && (
               <button
                 className="h-10 w-10 rounded-pill border border-border grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg"
@@ -507,12 +518,22 @@ export default function PoDetailPage() {
                       <td className="px-5 py-3 text-xs text-muted">{formatDate(it.committedDeliveryDate)}</td>
                       <td className="px-5 py-3 tabular-nums font-semibold text-right">{paiseToINR(it.totalPaise)}</td>
                     </tr>
-                    {it.itemNarration && (
+                    {(it.itemNarration || it.tolerancePercent > 0 || it.warrantyMonths > 0 || it.isForStock || it.isRecoveryRate) && (
                       <tr className="border-t border-border" style={{ background: "var(--surface)" }}>
                         <td />
                         <td colSpan={10} className="px-5 py-2 text-xs">
-                          <span className="text-muted font-semibold uppercase tracking-wider text-[10px] mr-2">Remark:</span>
-                          {it.itemNarration}
+                          {it.itemNarration && (
+                            <div className="mb-1.5">
+                              <span className="text-muted font-semibold uppercase tracking-wider text-[10px] mr-2">Remark:</span>
+                              {it.itemNarration}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {it.tolerancePercent > 0 && <span className="badge badge-info text-[10px]">Tolerance ±{it.tolerancePercent}%</span>}
+                            {it.warrantyMonths > 0 && <span className="badge badge-info text-[10px]">Warranty {it.warrantyMonths} mo</span>}
+                            {Number(it.isForStock) === 1 && <span className="badge badge-tint-mint text-[10px]">For Stock</span>}
+                            {Number(it.isRecoveryRate) === 1 && <span className="badge badge-tint-peach text-[10px]">Recovery rate</span>}
+                          </div>
                         </td>
                       </tr>
                     )}

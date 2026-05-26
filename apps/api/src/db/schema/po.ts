@@ -166,6 +166,15 @@ export const poItems = pgTable(
      */
     lineBuyerUserId: uuid("line_buyer_user_id").references(() => users.id, { onDelete: "set null" }),
 
+    /** Allowed over/under-supply on receipt (e.g. 5 = ±5%). */
+    tolerancePercent: integer("tolerance_percent").notNull().default(0),
+    /** Vendor warranty in months for this item — printed on PO and recalled at GRN. */
+    warrantyMonths: integer("warranty_months").notNull().default(0),
+    /** Forecast / safety-stock purchase flag (different from job-specific). */
+    isForStock: integer("is_for_stock").notNull().default(0), // 0/1 boolean stored as int for legacy compat
+    /** Item to be returned to vendor as recovered/exchanged — affects costing rules. */
+    isRecoveryRate: integer("is_recovery_rate").notNull().default(0),
+
     /** Line-level narration — separate from header notes. */
     itemNarration: text("item_narration"),
     notes: text("notes"),

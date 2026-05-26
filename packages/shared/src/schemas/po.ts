@@ -31,6 +31,14 @@ export const poItemInputSchema = z.object({
   specifications: z.record(z.unknown()).optional().nullable(),
   /** Per-line buyer (the procurement user executing this line). */
   lineBuyerUserId: z.string().uuid().optional().nullable(),
+  /** Receipt tolerance ±% — vendor can over/under-deliver within this band. */
+  tolerancePercent: z.number().min(0).max(50).default(0),
+  /** Vendor warranty in months (0 = no warranty). */
+  warrantyMonths: z.number().int().min(0).max(120).default(0),
+  /** Forecast/safety stock purchase. */
+  isForStock: z.boolean().default(false),
+  /** Item is being recovered/exchanged — costing rules differ. */
+  isRecoveryRate: z.boolean().default(false),
 });
 export type PoItemInput = z.infer<typeof poItemInputSchema>;
 

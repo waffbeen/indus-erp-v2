@@ -108,6 +108,10 @@ export default function NewPoPage() {
               notes: "",
               specifications: it.specifications ?? null,
               lineBuyerUserId: it.lineBuyerUserId ?? draft.suggestedBuyerUserId ?? null,
+              tolerancePercent: 0,
+              warrantyMonths: 0,
+              isForStock: false,
+              isRecoveryRate: false,
             })),
           }));
         } else {
@@ -160,6 +164,8 @@ export default function NewPoPage() {
           committedDeliveryDate: null,
           itemNarration: "", notes: "", specifications: null,
           lineBuyerUserId: null,
+          tolerancePercent: 0, warrantyMonths: 0,
+          isForStock: false, isRecoveryRate: false,
         },
       ],
     }));
@@ -671,13 +677,61 @@ export default function NewPoPage() {
                       <tr className="border-b border-border" style={{ background: "var(--surface)" }}>
                         <td />
                         <td />
-                        <td colSpan={11} className="px-3 pb-2">
-                          <input
-                            className="input !py-1.5 text-xs"
-                            placeholder="Item-wise remark / special instruction (appears on the PO sent to vendor)"
-                            value={it.itemNarration ?? ""}
-                            onChange={(e) => setItem(idx, { itemNarration: e.target.value })}
-                          />
+                        <td colSpan={11} className="px-3 pb-2 pt-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              className="input !py-1.5 text-xs flex-1 min-w-[280px]"
+                              placeholder="Item-wise remark / special instruction (appears on the PO sent to vendor)"
+                              value={it.itemNarration ?? ""}
+                              onChange={(e) => setItem(idx, { itemNarration: e.target.value })}
+                            />
+                            <label className="flex items-center gap-1.5 text-[11px] text-muted whitespace-nowrap">
+                              Tolerance
+                              <input
+                                className="input !py-1 !h-8 w-16 tabular-nums text-xs"
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                max="50"
+                                value={it.tolerancePercent ?? 0}
+                                onChange={(e) => setItem(idx, { tolerancePercent: Number(e.target.value) })}
+                                title="Acceptable ± receipt variance (%)"
+                              />
+                              %
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-muted whitespace-nowrap">
+                              Warranty
+                              <input
+                                className="input !py-1 !h-8 w-16 tabular-nums text-xs"
+                                type="number"
+                                step="1"
+                                min="0"
+                                max="120"
+                                value={it.warrantyMonths ?? 0}
+                                onChange={(e) => setItem(idx, { warrantyMonths: Number(e.target.value) })}
+                                title="Vendor warranty in months"
+                              />
+                              mo
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-muted whitespace-nowrap select-none cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="h-3.5 w-3.5"
+                                checked={it.isForStock ?? false}
+                                onChange={(e) => setItem(idx, { isForStock: e.target.checked })}
+                              />
+                              For Stock
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-muted whitespace-nowrap select-none cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="h-3.5 w-3.5"
+                                checked={it.isRecoveryRate ?? false}
+                                onChange={(e) => setItem(idx, { isRecoveryRate: e.target.checked })}
+                              />
+                              Recovery
+                            </label>
+                          </div>
                         </td>
                       </tr>
                       </React.Fragment>
