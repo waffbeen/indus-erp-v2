@@ -38,7 +38,7 @@ export const MODULES: ModuleDef[] = [
   // ---- INVENTORY ----
   { key: "gate_entry",shortLabel: "Gate",   name: "Gate Entry",    description: "Track inward/outward at gate", icon: "DoorOpen",    path: "/gate-entry", mvp: true,  gated: false, group: "inventory",    showInSidebar: true,  sortOrder: 30 },
   { key: "grn",       shortLabel: "GRN",    name: "Goods Receipt", description: "Receive items against POs",    icon: "PackageCheck",path: "/grn",        mvp: true,  gated: false, group: "inventory",    showInSidebar: true,  sortOrder: 31 },
-  { key: "inventory", shortLabel: "Stock",  name: "Inventory",     description: "Stock ledger & transfers",      icon: "Warehouse",   path: "/inventory",  mvp: false, gated: true,  group: "inventory",    showInSidebar: true,  sortOrder: 32 },
+  { key: "inventory", shortLabel: "Stock",  name: "Inventory",     description: "Stock ledger & transfers",      icon: "Warehouse",   path: "/inventory",  mvp: true,  gated: false, group: "inventory",    showInSidebar: true,  sortOrder: 32 },
 
   // ---- MASTERS ----
   { key: "vendors",   shortLabel: "Vendors",name: "Vendors",     description: "Vendor master & rating", icon: "Users",   path: "/vendors", mvp: true,  gated: false, group: "procurement", showInSidebar: true, sortOrder: 40 },

@@ -7,3 +7,4 @@ export * from "./pr";
 export * from "./po";
 export * from "./gate-entry";
 export * from "./grn";
+export * from "./stock";

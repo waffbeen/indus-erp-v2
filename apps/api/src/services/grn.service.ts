@@ -7,6 +7,7 @@ import { users } from "../db/schema/users";
 import { auditLogs } from "../db/schema/audit_logs";
 import { NotFound, BadRequest } from "../lib/errors";
 import * as poService from "./po.service";
+import * as stockService from "./stock.service";
 import type { GrnCreateInput, GrnItemInput } from "@indus/shared";
 
 interface ListOpts { page?: number; pageSize?: number; status?: string; poId?: string; vendorId?: string; search?: string; }
@@ -247,6 +248,20 @@ export async function createGrn(input: GrnCreateInput, ctx: ActorContext) {
   // Update PO status based on cumulative received
   await poService.refreshPoReceivedStatus(ctx.tenantId, input.poId);
 
+  // Increment stock for accepted qty (skip cancelled status — won't apply here
+  // since we always create as non-cancelled, but explicit for safety).
+  if (derivedStatus !== "rejected" && derivedStatus !== "cancelled") {
+    await stockService.recordGrnAcceptances(
+      ctx.tenantId,
+      grn.id,
+      number,
+      input.companyId,
+      input.unitId,
+      ctx.userId,
+      input.items,
+    );
+  }
+
   await db.insert(auditLogs).values({
     tenantId: ctx.tenantId,
     actorUserId: ctx.userId,
@@ -276,6 +291,8 @@ export async function cancelGrn(id: string, ctx: ActorContext) {
     .where(eq(grns.id, id));
 
   await poService.refreshPoReceivedStatus(ctx.tenantId, grn.poId);
+  // Reverse stock movements so on-hand qty drops back to what it was.
+  await stockService.reverseGrnMovements(ctx.tenantId, id, ctx.userId);
 
   await db.insert(auditLogs).values({
     tenantId: ctx.tenantId, actorUserId: ctx.userId,

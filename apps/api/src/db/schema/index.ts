@@ -17,5 +17,6 @@ export * from "./po_amendments";
 export * from "./po_charges";
 export * from "./gate_entries";
 export * from "./grns";
+export * from "./stock";
 export * from "./approvals";
 export * from "./audit_logs";
