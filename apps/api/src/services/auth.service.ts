@@ -286,17 +286,19 @@ async function buildMe(
   user: typeof users.$inferSelect,
   chosen: { membership: typeof memberships.$inferSelect; tenant: typeof tenants.$inferSelect; role: typeof roles.$inferSelect } | undefined,
 ): Promise<Me> {
-  let enabledModules = MODULES.filter((m) => m.mvp).map((m) => m.key);
-
-  if (chosen) {
-    const fromRole = chosen.role.moduleKeys ?? [];
-    const fromMembership = chosen.membership.enabledModules ?? [];
-    if (fromMembership.length > 0) {
-      enabledModules = fromMembership;
-    } else if (fromRole.length > 0) {
-      enabledModules = fromRole;
-    }
-  }
+  // MVP modules are always visible — they're the free baseline. The role /
+  // membership lists ADD premium modules on top (CAPEX, AMC, AI Assist, etc).
+  // Earlier logic REPLACED the default with role.moduleKeys, which meant any
+  // role row written before a new MVP module was added (e.g. GRN) would hide
+  // that module forever. UNION semantics avoid the regression.
+  const mvpKeys = MODULES.filter((m) => m.mvp).map((m) => m.key);
+  const extras: string[] = chosen
+    ? [
+        ...(chosen.role.moduleKeys ?? []),
+        ...(chosen.membership.enabledModules ?? []),
+      ]
+    : [];
+  const enabledModules = Array.from(new Set([...mvpKeys, ...extras]));
 
   return {
     id: user.id,

@@ -1,35 +1,57 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 
+/**
+ * Testing-phase auto-login. While set to true, opening /login auto-submits the
+ * seeded demo credentials so the tester lands straight on the dashboard.
+ * Flip to false (or wire to an env var) before opening the app to real users.
+ */
+const TESTING_AUTO_LOGIN = true;
+
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loading } = useAuth();
+  const { login, loading, me } = useAuth();
 
   const [email, setEmail] = useState("ramesh@acme.in");
   const [password, setPassword] = useState("Demo!2026");
   const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoTried, setAutoTried] = useState(false);
+  const autoFiredRef = useRef(false);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function performLogin(em: string, pw: string, keep: boolean) {
     setError(null);
     try {
-      await login({ email, password, keepSignedIn });
+      await login({ email: em, password: pw, keepSignedIn: keep });
       const me = useAuth.getState().me;
       if (me) router.push(`/t/${me.tenantSlug}/dashboard`);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Something went wrong. Please try again.");
-      }
+      if (err instanceof ApiError) setError(err.message);
+      else setError("Something went wrong. Please try again.");
     }
   }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    await performLogin(email, password, keepSignedIn);
+  }
+
+  // Auto-login on page mount during testing phase. Skips when:
+  //   - flag is off
+  //   - user is already logged in (would loop)
+  //   - a previous auto-login attempt already failed (so they can see the error)
+  useEffect(() => {
+    if (!TESTING_AUTO_LOGIN || autoFiredRef.current || me || autoTried) return;
+    autoFiredRef.current = true;
+    setAutoTried(true);
+    performLogin("ramesh@acme.in", "Demo!2026", false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me]);
 
   return (
     <div className="min-h-screen grid place-items-center p-8">
@@ -50,6 +72,13 @@ export default function LoginPage() {
 
           <h1 className="display text-4xl mb-2">Welcome back</h1>
           <p className="text-sm text-muted mb-8">Sign in to your procurement workspace.</p>
+
+          {TESTING_AUTO_LOGIN && loading && !error && (
+            <div className="mb-4 rounded-lg p-3 bg-tint-mint text-sm flex items-center gap-2" style={{ color: "var(--tint-mint-fg)" }}>
+              <span className="inline-block h-3 w-3 rounded-full bg-current animate-pulse" />
+              Testing mode — auto-signing you in as Demo Admin…
+            </div>
+          )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
