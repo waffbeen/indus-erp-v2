@@ -1,5 +1,5 @@
 "use client";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
@@ -7,6 +7,9 @@ import { Icon, type IconProps } from "./Icon";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useAuth } from "@/lib/auth";
 import { sidebarModulesFor } from "@indus/shared";
+
+/** localStorage key for the sidebar expanded/collapsed preference. */
+const SIDEBAR_KEY = "indus.sidebar.expanded";
 
 export function AppShell({
   tenantSlug,
@@ -20,75 +23,133 @@ export function AppShell({
 
   const base = `/t/${tenantSlug}`;
   const enabledKeys = me?.enabledModules ?? [];
-  /** Resolved sidebar items — driven by the module master + tenant's enabledModules. */
   const navItems = useMemo(() => sidebarModulesFor(enabledKeys), [enabledKeys]);
 
+  // Collapsible sidebar — small SaaS-style icon rail by default, expandable
+  // to show labels next to icons. Preference persists across navigation.
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(SIDEBAR_KEY);
+      if (stored === "true") setExpanded(true);
+    } catch {
+      /* localStorage unavailable — keep default */
+    }
+  }, []);
+  function toggleSidebar() {
+    setExpanded((v) => {
+      const next = !v;
+      try { window.localStorage.setItem(SIDEBAR_KEY, String(next)); } catch { /* noop */ }
+      return next;
+    });
+  }
+
   return (
-    <div className="p-1.5 h-screen overflow-hidden">
-      <div className="mx-auto grid grid-cols-[110px_1fr] rounded-2xl shadow-dark overflow-hidden h-full bg-bg">
+    <div className="h-screen overflow-hidden flex" style={{ background: "var(--frame)" }}>
 
-        {/* SIDEBAR — fixed height, scrolls internally only if too many modules */}
-        <aside className="bg-frame text-on-dark flex flex-col items-center py-6 overflow-y-auto">
-          <div className="mb-8 shrink-0">
-            <div className="h-9 w-9 rounded-xl grid place-items-center mx-auto bg-white/10">
-              <Icon name="Flower2" />
-            </div>
-            <p className="text-[11px] mt-1.5 text-center opacity-80 font-medium tracking-wide">Indus</p>
+      {/* SIDEBAR — fixed icon rail, optional expanded mode with labels */}
+      <aside
+        className={clsx(
+          "flex flex-col shrink-0 border-r border-border transition-[width] duration-150",
+          expanded ? "w-56" : "w-14",
+        )}
+        style={{ background: "var(--frame)", color: "var(--text-on-dark)" }}
+      >
+        {/* Logo */}
+        <div className="h-12 flex items-center px-3 border-b border-white/5">
+          <div className="h-7 w-7 rounded-md grid place-items-center bg-white/10 shrink-0">
+            <Icon name="Flower2" size={16} />
           </div>
+          {expanded && (
+            <span className="ml-2 text-sm font-semibold tracking-tight truncate">Prathvi&apos;s ERP</span>
+          )}
+        </div>
 
-          <nav className="flex-1 flex flex-col gap-1 items-stretch w-full px-3">
-            {navItems.map((m) => {
-              const href = `${base}${m.path}`;
-              const isActive =
-                m.key === "dashboard"
-                  ? pathname === `${base}/dashboard`
-                  : pathname?.startsWith(`${base}${m.path}`);
-              return (
-                <Link
-                  key={m.key}
-                  href={href}
-                  title={m.name}
-                  className={clsx(
-                    "flex flex-col items-center gap-1 py-2 rounded-md transition",
-                    isActive ? "bg-bg text-text-default" : "hover:bg-white/5 opacity-80 hover:opacity-100",
-                  )}
-                >
-                  <Icon name={m.icon as IconProps["name"]} />
-                  <span className="text-[10px] font-medium leading-tight text-center">{m.shortLabel}</span>
-                </Link>
-              );
-            })}
-          </nav>
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-2 px-1.5">
+          {navItems.map((m) => {
+            const href = `${base}${m.path}`;
+            const isActive =
+              m.key === "dashboard"
+                ? pathname === `${base}/dashboard`
+                : pathname?.startsWith(`${base}${m.path}`);
+            return (
+              <Link
+                key={m.key}
+                href={href}
+                title={m.name}
+                className={clsx(
+                  "flex items-center rounded-md mb-0.5 transition gap-2.5",
+                  expanded ? "px-2.5 py-1.5" : "justify-center py-2",
+                  isActive
+                    ? "bg-bg text-text-default font-semibold"
+                    : "opacity-70 hover:opacity-100 hover:bg-white/5",
+                )}
+              >
+                <Icon name={m.icon as IconProps["name"]} size={16} />
+                {expanded && (
+                  <span className="text-[12.5px] leading-none truncate flex-1">{m.name}</span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom: collapse toggle + user avatar */}
+        <div className="border-t border-white/5 p-1.5 flex flex-col gap-1">
+          <button
+            onClick={toggleSidebar}
+            className={clsx(
+              "flex items-center rounded-md text-[11px] opacity-70 hover:opacity-100 hover:bg-white/5",
+              expanded ? "px-2.5 py-1.5 gap-2.5" : "justify-center py-2",
+            )}
+            title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <Icon name={expanded ? "PanelLeftClose" : "PanelLeftOpen"} size={16} />
+            {expanded && <span>Collapse</span>}
+          </button>
 
           <button
             onClick={() => void logout()}
-            className="mt-6 h-10 w-10 rounded-xl overflow-hidden grid place-items-center text-sm font-semibold hover:opacity-90 shrink-0"
-            style={{
-              background: "linear-gradient(135deg, var(--tint-peach), var(--tint-peach-2))",
-              color: "var(--tint-peach-fg)",
-            }}
-            title={me ? `${me.fullName} · click to sign out` : "Sign out"}
+            className={clsx(
+              "flex items-center rounded-md text-[11px] opacity-70 hover:opacity-100 hover:bg-white/5",
+              expanded ? "px-2.5 py-1.5 gap-2.5" : "justify-center py-2",
+            )}
+            title={me ? `${me.fullName} — sign out` : "Sign out"}
           >
-            {(me?.fullName ?? "?")
-              .split(" ")
-              .map((s) => s[0])
-              .slice(0, 2)
-              .join("")}
+            <span
+              className="h-6 w-6 rounded-full grid place-items-center text-[10px] font-bold shrink-0"
+              style={{
+                background: "linear-gradient(135deg, var(--tint-peach), var(--tint-peach-2))",
+                color: "var(--tint-peach-fg)",
+              }}
+            >
+              {(me?.fullName ?? "?")
+                .split(" ")
+                .map((s) => s[0])
+                .slice(0, 2)
+                .join("")}
+            </span>
+            {expanded && (
+              <span className="truncate flex-1 text-left">{me?.fullName ?? "Sign out"}</span>
+            )}
           </button>
-        </aside>
+        </div>
+      </aside>
 
-        {/* MAIN — only this area scrolls when content overflows */}
-        <main className="overflow-y-auto">
-          <header className="sticky top-0 z-20 flex items-center justify-between px-8 h-20 border-b border-border bg-bg">
+      {/* MAIN COLUMN — only this scrolls */}
+      <main className="flex-1 min-w-0 overflow-y-auto" style={{ background: "var(--bg)" }}>
+        {/* Top bar — compact 48px height, sticky on scroll */}
+        <header className="sticky top-0 z-20 h-12 flex items-center justify-between px-4 border-b border-border bg-bg">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => history.back()}
-              className="h-10 w-10 rounded-pill border border-border grid place-items-center bg-bg shadow-sm hover:bg-surface"
+              className="h-7 w-7 rounded grid place-items-center hover:bg-surface text-muted hover:text-text-default"
               aria-label="Back"
             >
-              <Icon name="ChevronLeft" />
+              <Icon name="ChevronLeft" size={16} />
             </button>
-
-            <nav className="flex items-center gap-10">
+            <nav className="flex items-center gap-1">
               {[
                 { href: `${base}/dashboard`,  label: "Dashboard" },
                 { href: `${base}/approvals`,  label: "Approvals" },
@@ -99,28 +160,32 @@ export function AppShell({
                   <Link
                     key={it.href}
                     href={it.href}
-                    className="relative text-xs font-bold tracking-[0.18em] uppercase text-text-default hover:opacity-100 transition"
-                    style={{ opacity: active ? 1 : 0.6 }}
+                    className={clsx(
+                      "px-2.5 py-1 rounded text-[12px] font-medium transition",
+                      active
+                        ? "text-text-default bg-surface"
+                        : "text-muted hover:text-text-default hover:bg-surface/60",
+                    )}
                   >
                     {it.label}
-                    {active && <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full" style={{ background: "var(--primary)" }} />}
                   </Link>
                 );
               })}
             </nav>
+          </div>
 
-            <div className="flex items-center gap-3">
-              <ThemeSwitcher />
-              <button className="h-10 w-10 rounded-pill border border-border grid place-items-center bg-bg" aria-label="Notifications">
-                <Icon name="Bell" />
-              </button>
-            </div>
-          </header>
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
+            <button className="h-7 w-7 rounded grid place-items-center text-muted hover:text-text-default hover:bg-surface" aria-label="Notifications">
+              <Icon name="Bell" size={16} />
+            </button>
+          </div>
+        </header>
 
-          <div className="px-5 py-5 lg:px-6 lg:py-6">{children}</div>
-        </main>
+        {/* Content area — compact padding, no outer card chrome */}
+        <div className="px-4 py-4 lg:px-5 lg:py-5">{children}</div>
+      </main>
 
-      </div>
     </div>
   );
 }
