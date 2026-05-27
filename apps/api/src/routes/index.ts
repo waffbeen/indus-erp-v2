@@ -11,6 +11,7 @@ import { grnRoutes } from "./grn.routes";
 import { stockRoutes } from "./stock.routes";
 import { notificationRoutes } from "./notification.routes";
 import { inviteRoutes, inviteAcceptRoutes } from "./invite.routes";
+import { mastersRoutes } from "./masters.routes";
 import { dashboardRoutes } from "./dashboard.routes";
 
 export const apiRouter: Router = Router();
@@ -30,5 +31,6 @@ apiRouter.use("/gate-entry", gateEntryRoutes);
 apiRouter.use("/grn", grnRoutes);
 apiRouter.use("/stock", stockRoutes);
 apiRouter.use("/notifications", notificationRoutes);
+apiRouter.use("/masters", mastersRoutes);
 apiRouter.use("/invites", inviteRoutes);
 apiRouter.use("/accept-invite", inviteAcceptRoutes);

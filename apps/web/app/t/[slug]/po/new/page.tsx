@@ -24,6 +24,8 @@ interface Company {
 }
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
+interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
+interface UomRow { id: string; code: string; name: string; }
 
 /** Standard payment terms — buyer can also type a custom value. */
 const PAYMENT_TERMS_PRESETS = [
@@ -71,6 +73,8 @@ export default function NewPoPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [vendors, setVendors] = useState<VendorListItem[]>([]);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
+  const [hsnList, setHsnList] = useState<HsnRow[]>([]);
+  const [uomList, setUomList] = useState<UomRow[]>([]);
   const [sourcePr, setSourcePr] = useState<{ prNumber: string | null; title: string } | null>(null);
 
   const [form, setForm] = useState<PoCreateInput>(emptyForm());
@@ -130,16 +134,20 @@ export default function NewPoPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [comps, units, vens, usersList] = await Promise.all([
+        const [comps, units, vens, usersList, hsnRows, uomRows] = await Promise.all([
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
           api<{ items: VendorListItem[] }>("/api/vendors?pageSize=100"),
           api<TenantUser[]>("/api/tenant/users"),
+          api<HsnRow[]>("/api/masters/hsn"),
+          api<UomRow[]>("/api/masters/uoms"),
         ]);
         setCompanies(comps);
         setUnits(units);
         setVendors(vens.items);
         setTenantUsers(usersList);
+        setHsnList(hsnRows);
+        setUomList(uomRows);
 
         if (fromPrId) {
           const draft = await api<{
@@ -370,6 +378,49 @@ export default function NewPoPage() {
     const grand = taxable + tax + freight + other + roundOff + addlSum;
     return { sub, disc, taxable, cgst, sgst, igst, tax, freight, other, roundOff, addlSum, grand };
   })();
+
+  /** True when the typed HSN is long enough to save AND not already in the master list. */
+  function isHsnUnsaved(code: string | null | undefined): boolean {
+    if (!code) return false;
+    const trimmed = code.trim();
+    if (trimmed.length < 2) return false;
+    return !hsnList.some((h) => h.code.toLowerCase() === trimmed.toLowerCase());
+  }
+
+  /** POST a new HSN to the master, then refresh the local cache. */
+  async function saveHsnToMaster(idx: number) {
+    const it = form.items[idx];
+    const code = it?.hsnCode?.trim();
+    if (!code) return;
+    try {
+      const created = await api<HsnRow>("/api/masters/hsn", {
+        method: "POST",
+        body: JSON.stringify({ code, defaultGstRate: it?.taxRate ?? null }),
+      });
+      setHsnList((prev) => {
+        const without = prev.filter((h) => h.code.toLowerCase() !== created.code.toLowerCase());
+        return [...without, created].sort((a, b) => a.code.localeCompare(b.code));
+      });
+      toast.success("HSN saved to master", `${created.code} ab dropdown me available hai.`);
+    } catch (err) {
+      toast.error("Could not save HSN", err instanceof ApiError ? err.message : "Try again.");
+    }
+  }
+
+  /** When user picks an HSN whose default GST rate is set, auto-fill line.taxRate
+   *  unless the buyer has manually changed it from the default of 18. */
+  function onHsnChange(idx: number, raw: string) {
+    const code = raw.trim();
+    setItem(idx, { hsnCode: code || null });
+    if (!code) return;
+    const match = hsnList.find((h) => h.code.toLowerCase() === code.toLowerCase());
+    if (match?.defaultGstRate != null) {
+      const line = form.items[idx];
+      if (line && line.taxRate === 18) {
+        setItem(idx, { taxRate: match.defaultGstRate });
+      }
+    }
+  }
 
   async function handleSave(action: "draft" | "submit") {
     if (submitting) return;
@@ -777,13 +828,34 @@ export default function NewPoPage() {
                           )}
                         </td>
                         <td className="px-2 py-1.5">
-                          <input className="input !py-1 !h-8 font-mono text-[11px]" placeholder="HSN" value={it.hsnCode ?? ""} onChange={(e) => setItem(idx, { hsnCode: e.target.value || null })} />
+                          <input
+                            className="input !py-1 !h-8 font-mono text-[11px]"
+                            placeholder="HSN"
+                            list="po-hsn-master"
+                            value={it.hsnCode ?? ""}
+                            onChange={(e) => onHsnChange(idx, e.target.value)}
+                          />
+                          {isHsnUnsaved(it.hsnCode) && (
+                            <button
+                              type="button"
+                              className="text-[10px] text-primary hover:underline mt-0.5 whitespace-nowrap"
+                              onClick={() => saveHsnToMaster(idx)}
+                              title="Add this HSN to your master list"
+                            >
+                              + Save to master
+                            </button>
+                          )}
                         </td>
                         <td className="px-2 py-1.5">
                           <input className="input !py-1 !h-8 tabular-nums text-[12px]" type="number" step="0.001" min="0" value={it.quantity || ""} onChange={(e) => setItem(idx, { quantity: Number(e.target.value) })} />
                         </td>
                         <td className="px-2 py-1.5">
-                          <input className="input !py-1 !h-8 font-mono text-[11px]" value={it.uom} onChange={(e) => setItem(idx, { uom: e.target.value })} />
+                          <input
+                            className="input !py-1 !h-8 font-mono text-[11px]"
+                            list="po-uom-master"
+                            value={it.uom}
+                            onChange={(e) => setItem(idx, { uom: e.target.value })}
+                          />
                         </td>
                         <td className="px-2 py-1.5">
                           <input className="input !py-1 !h-8 tabular-nums text-[12px]" type="number" step="0.01" min="0" value={it.unitPrice || ""} onChange={(e) => setItem(idx, { unitPrice: Number(e.target.value) })} />
@@ -1180,6 +1252,21 @@ export default function NewPoPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Master-data datalists for line-item typeaheads. Rendered once at the
+          page level so every row's HSN/UoM combobox can reference them. */}
+      <datalist id="po-hsn-master">
+        {hsnList.map((h) => (
+          <option key={h.id} value={h.code}>
+            {h.description ?? ""}{h.defaultGstRate != null ? ` · ${h.defaultGstRate}% GST` : ""}
+          </option>
+        ))}
+      </datalist>
+      <datalist id="po-uom-master">
+        {uomList.map((u) => (
+          <option key={u.id} value={u.code}>{u.name}</option>
+        ))}
+      </datalist>
     </FormSheet>
   );
 }

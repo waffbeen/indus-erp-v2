@@ -20,5 +20,7 @@ export * from "./grns";
 export * from "./stock";
 export * from "./notifications";
 export * from "./invites";
+export * from "./hsn_codes";
+export * from "./uoms";
 export * from "./approvals";
 export * from "./audit_logs";

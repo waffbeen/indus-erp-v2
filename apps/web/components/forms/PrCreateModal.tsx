@@ -13,6 +13,8 @@ interface Company { id: string; name: string; isPrimary: boolean; }
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
 interface Department { id: string; unitId: string | null; name: string; code: string | null; }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
+interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
+interface UomRow { id: string; code: string; name: string; }
 
 const PR_TYPES = [
   { key: "stock",        label: "Stock replenishment" },
@@ -42,6 +44,8 @@ export function PrCreateModal({ open, onClose, onCreated }: Props) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [itemMaster, setItemMaster] = useState<ItemListItem[]>([]);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
+  const [hsnList, setHsnList] = useState<HsnRow[]>([]);
+  const [uomList, setUomList] = useState<UomRow[]>([]);
 
   const [form, setForm] = useState<PrCreateInput>(emptyForm());
   const [submitting, setSubmitting] = useState<"draft" | "submit" | null>(null);
@@ -55,18 +59,22 @@ export function PrCreateModal({ open, onClose, onCreated }: Props) {
     setErrors(emptyErrors);
     (async () => {
       try {
-        const [comps, units, depts, items, usersList] = await Promise.all([
+        const [comps, units, depts, items, usersList, hsnRows, uomRows] = await Promise.all([
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
           api<Department[]>("/api/tenant/departments"),
           api<{ items: ItemListItem[] }>("/api/items?pageSize=100"),
           api<TenantUser[]>("/api/tenant/users"),
+          api<HsnRow[]>("/api/masters/hsn"),
+          api<UomRow[]>("/api/masters/uoms"),
         ]);
         setCompanies(comps);
         setUnits(units);
         setDepartments(depts);
         setItemMaster(items.items);
         setTenantUsers(usersList);
+        setHsnList(hsnRows);
+        setUomList(uomRows);
         const primary = comps.find((c) => c.isPrimary) ?? comps[0];
         if (primary) {
           const firstUnit = units.find((u) => u.companyId === primary.id);
@@ -365,7 +373,13 @@ export function PrCreateModal({ open, onClose, onCreated }: Props) {
                             <FieldError error={nameErr} />
                           </td>
                           <td className="px-2 py-1.5">
-                            <input className="input !py-1 !h-8 font-mono text-[11px]" placeholder="HSN" value={it.hsnCode ?? ""} onChange={(e) => setItem(idx, { hsnCode: e.target.value || null })} />
+                            <input
+                              className="input !py-1 !h-8 font-mono text-[11px]"
+                              placeholder="HSN"
+                              list="pr-hsn-master"
+                              value={it.hsnCode ?? ""}
+                              onChange={(e) => setItem(idx, { hsnCode: e.target.value || null })}
+                            />
                             {(it.itemGroupName || it.itemSubGroupName) && (
                               <p className="text-[10px] text-muted mt-0.5 truncate">{[it.itemGroupName, it.itemSubGroupName].filter(Boolean).join(" / ")}</p>
                             )}
@@ -375,7 +389,12 @@ export function PrCreateModal({ open, onClose, onCreated }: Props) {
                             <FieldError error={qtyErr} />
                           </td>
                           <td className="px-2 py-1.5">
-                            <input className={fieldClass(uomErr, "input !py-1 !h-8 font-mono text-[11px]")} value={it.uom} onChange={(e) => setItem(idx, { uom: e.target.value })} />
+                            <input
+                              className={fieldClass(uomErr, "input !py-1 !h-8 font-mono text-[11px]")}
+                              list="pr-uom-master"
+                              value={it.uom}
+                              onChange={(e) => setItem(idx, { uom: e.target.value })}
+                            />
                             <FieldError error={uomErr} />
                           </td>
                           <td className="px-2 py-1.5">
@@ -421,6 +440,20 @@ export function PrCreateModal({ open, onClose, onCreated }: Props) {
           )}
         </div>
       </form>
+
+      {/* Master-data datalists for line-item typeaheads. */}
+      <datalist id="pr-hsn-master">
+        {hsnList.map((h) => (
+          <option key={h.id} value={h.code}>
+            {h.description ?? ""}{h.defaultGstRate != null ? ` · ${h.defaultGstRate}% GST` : ""}
+          </option>
+        ))}
+      </datalist>
+      <datalist id="pr-uom-master">
+        {uomList.map((u) => (
+          <option key={u.id} value={u.code}>{u.name}</option>
+        ))}
+      </datalist>
     </Modal>
   );
 }
