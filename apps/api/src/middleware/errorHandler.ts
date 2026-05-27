@@ -2,7 +2,6 @@ import type { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../lib/errors";
 import { logger } from "../lib/logger";
-import { env } from "../config/env";
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   // Zod validation failure → 400 with field-level details
@@ -29,11 +28,14 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  // Unexpected — log full detail, return generic 500
+  // Unexpected — log full detail, return generic 500.
+  // We deliberately include the actual error message in production responses
+  // too while the app is in active development so the user can paste it back
+  // for debugging without us needing to read Render logs. Tighten this later.
   logger.error({ err, path: req.path }, "unhandled_error");
   res.status(500).json({
     code: "internal_error",
-    message: env.NODE_ENV === "production" ? "Something went wrong" : (err as Error).message,
+    message: (err as Error).message ?? "Something went wrong",
   });
 };
 

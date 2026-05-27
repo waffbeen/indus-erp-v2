@@ -16,9 +16,13 @@ export async function listCompanies(tenantId: string) {
     .select({
       id: companies.id,
       name: companies.name,
-      isPrimary: companies.isPrimary,
+      legalName: companies.legalName,
+      gstin: companies.gstin,
+      address: companies.address,
       city: companies.city,
       state: companies.state,
+      pincode: companies.pincode,
+      isPrimary: companies.isPrimary,
     })
     .from(companies)
     .where(and(eq(companies.tenantId, tenantId), isNull(companies.deletedAt)));

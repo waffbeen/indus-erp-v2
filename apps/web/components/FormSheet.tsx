@@ -39,12 +39,12 @@ export function FormSheet({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4 modal-shell" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 grid place-items-center p-3 modal-shell" role="dialog" aria-modal="true">
       <div className="absolute inset-0 modal-backdrop" onClick={onClose} aria-hidden="true" />
 
       <div
-        className="relative w-full max-w-6xl bg-bg overflow-hidden max-h-[calc(100vh-32px)] flex flex-col modal-panel"
-        style={{ borderRadius: 10 }}
+        className="relative w-full bg-bg overflow-hidden max-h-[calc(100vh-24px)] flex flex-col modal-panel"
+        style={{ borderRadius: 10, maxWidth: "min(1500px, calc(100vw - 24px))" }}
       >
         {/* Sticky header */}
         <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-border shrink-0">

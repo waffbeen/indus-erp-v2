@@ -1,5 +1,5 @@
 "use client";
-import { type ReactNode, useEffect } from "react";
+import { type CSSProperties, type ReactNode, useEffect } from "react";
 import { Icon } from "./Icon";
 
 interface ModalProps {
@@ -17,8 +17,12 @@ const SIZES = {
   md: "max-w-lg",
   lg: "max-w-2xl",
   xl: "max-w-4xl",
-  "2xl": "max-w-6xl",
+  /** Used for the big entry forms (PR/PO/GRN). Effectively full-width with
+   *  a small viewport gutter so the line-items table doesn't crowd the edges. */
+  "2xl": "",
 } as const;
+
+const SIZE_2XL_STYLE: CSSProperties = { maxWidth: "min(1500px, calc(100vw - 24px))" };
 
 export function Modal({ open, onClose, title, description, children, footer, size = "md" }: ModalProps) {
   useEffect(() => {
@@ -44,7 +48,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       {/* Panel — soft pop entrance */}
       <div
         className={`relative w-full ${SIZES[size]} bg-bg overflow-hidden max-h-[calc(100vh-32px)] flex flex-col modal-panel`}
-        style={{ borderRadius: 10 }}
+        style={{ borderRadius: 10, ...(size === "2xl" ? SIZE_2XL_STYLE : {}) }}
       >
         {/* Header — tight, dense, hairline border below */}
         <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-border shrink-0">

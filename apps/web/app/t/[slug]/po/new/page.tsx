@@ -11,9 +11,54 @@ import { paiseToINR } from "@/lib/format";
 import { poCreateSchema, type PoCreateInput, type PoItemInput, type VendorListItem } from "@indus/shared";
 import { validate, apiErrorToFormErrors, emptyErrors, type FormErrorState } from "@/lib/form-errors";
 
-interface Company { id: string; name: string; isPrimary: boolean; }
+interface Company {
+  id: string;
+  name: string;
+  legalName?: string | null;
+  gstin?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  isPrimary: boolean;
+}
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
+
+/** Standard payment terms — buyer can also type a custom value. */
+const PAYMENT_TERMS_PRESETS = [
+  "Net 7 days",
+  "Net 15 days",
+  "Net 30 days",
+  "Net 45 days",
+  "Net 60 days",
+  "Net 90 days",
+  "50% advance + 50% on delivery",
+  "100% advance",
+  "100% on delivery",
+  "Against proforma invoice",
+  "LC at sight",
+  "Custom (type below)",
+] as const;
+
+/**
+ * If both company GSTIN and supplier GSTIN are set, derive isInterstate from
+ * the leading 2 digits (state code). When either is missing we default to
+ * intra-state (CGST+SGST) which is the more common case for SMEs.
+ */
+function deriveIsInterstate(companyGstin?: string | null, supplierGstin?: string | null): boolean {
+  if (!companyGstin || !supplierGstin) return false;
+  const a = companyGstin.trim().slice(0, 2);
+  const b = supplierGstin.trim().slice(0, 2);
+  if (a.length !== 2 || b.length !== 2) return false;
+  return a !== b;
+}
+
+/** Build a single-line address string from a Company's address fields. */
+function formatCompanyAddress(c: Company | undefined): string {
+  if (!c) return "";
+  return [c.address, c.city, c.state, c.pincode].filter(Boolean).join(", ");
+}
 
 export default function NewPoPage() {
   const router = useRouter();
@@ -107,16 +152,27 @@ export default function NewPoPage() {
               itemNarration: string | null;
               specifications: Record<string, unknown> | null;
               lineBuyerUserId: string | null;
+              committedDeliveryDate: string | null;
             }>;
             suggestedBuyerUserId: string | null;
+            suggestedPoType: string | null;
+            suggestedDeliveryDate: string | null;
           }>(`/api/po/from-pr/${fromPrId}`);
           setSourcePr({ prNumber: draft.pr.prNumber, title: draft.pr.title });
+          // Default delivery address from the PR's company (auto-fill so the
+          // buyer doesn't have to retype it for every PO).
+          const draftCompany = comps.find((c) => c.id === draft.pr.companyId);
+          const defaultAddress = formatCompanyAddress(draftCompany);
           setForm((f) => ({
             ...f,
             companyId: draft.pr.companyId,
             unitId: draft.pr.unitId,
             prId: draft.pr.id,
             title: draft.pr.title,
+            deliveryAddress: f.deliveryAddress || defaultAddress,
+            // Pre-fill from PR — buyer can override either field
+            poType: (draft.suggestedPoType ?? null) as typeof f.poType,
+            deliveryDate: draft.suggestedDeliveryDate ?? f.deliveryDate,
             items: draft.items.map((it) => ({
               prItemId: it.prItemId,
               itemId: it.itemId,
@@ -130,7 +186,7 @@ export default function NewPoPage() {
               unitPrice: it.estimatedUnitPrice,
               discountPercent: 0,
               taxRate: 18,
-              committedDeliveryDate: null,
+              committedDeliveryDate: it.committedDeliveryDate,
               itemNarration: it.itemNarration ?? "",
               notes: "",
               specifications: it.specifications ?? null,
@@ -146,7 +202,13 @@ export default function NewPoPage() {
           const primary = comps.find((c) => c.isPrimary) ?? comps[0];
           if (primary) {
             const firstUnit = units.find((u) => u.companyId === primary.id);
-            setForm((f) => ({ ...f, companyId: primary.id, unitId: firstUnit?.id ?? f.unitId }));
+            const defaultAddress = formatCompanyAddress(primary);
+            setForm((f) => ({
+              ...f,
+              companyId: primary.id,
+              unitId: firstUnit?.id ?? f.unitId,
+              deliveryAddress: f.deliveryAddress || defaultAddress,
+            }));
           }
         }
       } catch (err) {
@@ -156,6 +218,34 @@ export default function NewPoPage() {
   }, [fromPrId]);
 
   const filteredUnits = units.filter((u) => u.companyId === form.companyId);
+  const selectedCompany = companies.find((c) => c.id === form.companyId);
+  const selectedVendor = vendors.find((v) => v.id === form.vendorId);
+
+  // Auto-fill delivery address when company changes (only if user hasn't typed one).
+  // We guard via a ref so user edits are never overwritten silently.
+  const lastAutoAddressRef = React.useRef<string>("");
+  useEffect(() => {
+    const next = formatCompanyAddress(selectedCompany);
+    if (!next) return;
+    setForm((f) => {
+      // Only overwrite if address is empty or matches a previous auto-fill
+      if (!f.deliveryAddress || f.deliveryAddress === lastAutoAddressRef.current) {
+        lastAutoAddressRef.current = next;
+        return { ...f, deliveryAddress: next };
+      }
+      return f;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.companyId]);
+
+  // Auto-derive isInterstate from company.gstin vs supplier.gstin. The buyer
+  // can still override the IGST toggle manually.
+  useEffect(() => {
+    if (!selectedCompany?.gstin || !selectedVendor?.gstin) return;
+    const next = deriveIsInterstate(selectedCompany.gstin, selectedVendor.gstin);
+    setForm((f) => (f.isInterstate === next ? f : { ...f, isInterstate: next }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.vendorId, form.companyId]);
 
   const fe = errors.fields;
 
@@ -467,7 +557,28 @@ export default function NewPoPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="label">Payment terms</label>
-              <input className="input" placeholder="Net 30 / 50% advance / On delivery" value={form.paymentTerms ?? ""} onChange={(e) => set("paymentTerms", e.target.value)} />
+              {/* Dropdown of common Indian-procurement payment terms + free-text override.
+                  "Custom" makes the input editable; other options pre-fill the text input. */}
+              <div className="flex gap-2">
+                <select
+                  className="input w-44 shrink-0"
+                  value={PAYMENT_TERMS_PRESETS.includes(form.paymentTerms as typeof PAYMENT_TERMS_PRESETS[number]) ? form.paymentTerms ?? "" : "Custom (type below)"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "Custom (type below)") set("paymentTerms", "");
+                    else set("paymentTerms", v);
+                  }}
+                >
+                  <option value="">— Pick a preset —</option>
+                  {PAYMENT_TERMS_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <input
+                  className="input flex-1"
+                  placeholder="Or type custom terms..."
+                  value={form.paymentTerms ?? ""}
+                  onChange={(e) => set("paymentTerms", e.target.value)}
+                />
+              </div>
             </div>
             <div>
               <label className="label">Delivery terms</label>

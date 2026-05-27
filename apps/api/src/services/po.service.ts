@@ -306,10 +306,29 @@ export async function getPoDraftFromPr(tenantId: string, prId: string) {
       specifications: it.specifications,
       /** Carry per-line buyer from PR -> PO so requester's hint becomes default. */
       lineBuyerUserId: it.lineBuyerUserId ?? pr.buyerUserId ?? null,
+      /** Carry the requester's preferred delivery so the buyer doesn't have to retype. */
+      committedDeliveryDate: it.expectedDeliveryDate ? it.expectedDeliveryDate.toISOString().slice(0, 10) : null,
     })),
     /** Suggest header-level buyer fallback so the form can pre-fill. */
     suggestedBuyerUserId: pr.buyerUserId ?? null,
+    /** Carry priority/needed-by/po-type hints from the PR so the form pre-fills. */
+    suggestedPoType: mapPrTypeToPoType(pr.prType),
+    suggestedDeliveryDate: pr.neededBy ? pr.neededBy.toISOString().slice(0, 10) : null,
   };
+}
+
+/** Map the legacy PR-type taxonomy onto the PO-type taxonomy. */
+function mapPrTypeToPoType(prType: string | null): string | null {
+  switch (prType) {
+    case "capex":         return "capex";
+    case "amc":           return "amc";
+    case "service":       return "service";
+    case "stock":         return "opex";
+    case "maintenance":   return "opex";
+    case "job_specific":  return "opex";
+    case "other":         return "other";
+    default:              return null;
+  }
 }
 
 export async function createPo(input: PoCreateInput, ctx: ActorContext) {
