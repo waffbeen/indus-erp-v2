@@ -3,7 +3,7 @@ import React, { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
-import { PageHeader } from "@/components/PageHeader";
+import { FormSheet } from "@/components/FormSheet";
 import { FieldError, fieldClass } from "@/components/FieldError";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -276,35 +276,26 @@ export default function EditPrPage() {
   }
 
   return (
-    <>
-      <div className="flex items-center gap-3 mb-3 text-sm text-muted">
-        <Link href={base} className="hover:text-text-default">Requisitions</Link>
-        <Icon name="ChevronRight" size={14} />
-        <Link href={`${base}/${prId}`} className="hover:text-text-default">Draft</Link>
-        <Icon name="ChevronRight" size={14} />
-        <span className="text-text-default font-medium">Edit</span>
-      </div>
-
-      <PageHeader
-        title="Purchase Requisition Updation"
-        subtitle="Update the draft, then save or send for approval"
-        actions={
-          <>
-            <Link href={`${base}/${prId}`} className="btn btn-ghost">Cancel</Link>
-            <button type="button" className="btn btn-ghost" onClick={() => handleSave("save")} disabled={!!submitting}>
-              {submitting === "save" ? "Saving…" : "Save"}
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => handleSave("submit")} disabled={!!submitting}>
-              {submitting === "submit" ? "Sending…" : "Save & Send for Approval"}
-              <Icon name="ArrowRight" />
-            </button>
-          </>
-        }
-      />
-
+    <FormSheet
+      title="Purchase Requisition Updation"
+      subtitle="Update the draft, then save or send for approval"
+      onClose={() => router.push(`${base}/${prId}`)}
+      footer={
+        <>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => router.push(`${base}/${prId}`)}>Cancel</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleSave("save")} disabled={!!submitting}>
+            {submitting === "save" ? "Saving…" : "Save"}
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => handleSave("submit")} disabled={!!submitting}>
+            {submitting === "submit" ? "Sending…" : "Save & Send for Approval"}
+            <Icon name="ArrowRight" size={13} />
+          </button>
+        </>
+      }
+    >
       {errors.summary && (
-        <div className="mb-4 rounded-lg p-3 bg-danger-bg text-danger-fg text-sm flex items-start gap-2">
-          <Icon name="AlertTriangle" size={16} />
+        <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
+          <Icon name="AlertTriangle" size={14} />
           <span className="flex-1">{errors.summary}</span>
         </div>
       )}
@@ -577,7 +568,7 @@ export default function EditPrPage() {
           )}
         </div>
       </form>
-    </>
+    </FormSheet>
   );
 }
 

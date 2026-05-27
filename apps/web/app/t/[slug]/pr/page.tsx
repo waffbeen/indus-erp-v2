@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
 import { PrStatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { StatusTabs, SkeletonRows, EmptyState, FilterBar } from "@/components/ListPrimitives";
+import { PrCreateModal } from "@/components/forms/PrCreateModal";
 import { api, ApiError } from "@/lib/api";
 import { paiseToCompactINR, timeAgo } from "@/lib/format";
 import type { PrListItem } from "@indus/shared";
@@ -42,6 +42,7 @@ export default function PrListPage() {
   const [buyerMine, setBuyerMine] = useState(false);
   /** Cached counts per status — refreshed on each load. */
   const [counts, setCounts] = useState<Partial<Record<StatusKey, number>>>({});
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -104,9 +105,9 @@ export default function PrListPage() {
         title="Purchase Requisition"
         subtitle="Raise requests for materials and services"
         actions={
-          <Link href={`${base}/new`} className="btn btn-primary btn-sm">
+          <button onClick={() => setCreateOpen(true)} className="btn btn-primary btn-sm">
             <Icon name="Plus" size={14} /> Create
-          </Link>
+          </button>
         }
       />
 
@@ -160,19 +161,24 @@ export default function PrListPage() {
             <SkeletonRows rows={6} cols={8} />
           </table>
         ) : !data?.items.length ? (
-          <EmptyState
-            icon="FileText"
-            iconTint="var(--tint-teal)"
-            iconColor="var(--tint-teal-fg)"
-            title={appliedSearch || status !== "all" ? "No requisitions match these filters" : "No requisitions yet"}
-            description={
-              appliedSearch || status !== "all"
+          <div className="p-10 text-center">
+            <div className="h-10 w-10 rounded-md mx-auto grid place-items-center mb-2.5" style={{ background: "var(--tint-teal)", color: "var(--tint-teal-fg)" }}>
+              <Icon name="FileText" size={18} />
+            </div>
+            <h3 className="text-[14px] font-semibold tracking-tight mb-1">
+              {appliedSearch || status !== "all" ? "No requisitions match these filters" : "No requisitions yet"}
+            </h3>
+            <p className="text-[12px] text-muted leading-relaxed max-w-sm mx-auto">
+              {appliedSearch || status !== "all"
                 ? "Try clearing the search or switching the status tab."
-                : "Raise your first request — picks suppliers, gets approved, becomes a PO."
-            }
-            cta={!appliedSearch && status === "all" ? "Create requisition" : undefined}
-            ctaHref={`${base}/new`}
-          />
+                : "Raise your first request — picks suppliers, gets approved, becomes a PO."}
+            </p>
+            {!appliedSearch && status === "all" && (
+              <button onClick={() => setCreateOpen(true)} className="btn btn-primary btn-sm mt-4">
+                <Icon name="Plus" size={13} /> Create requisition
+              </button>
+            )}
+          </div>
         ) : (
           <table className="w-full">
             <thead className="bg-surface">
@@ -218,6 +224,13 @@ export default function PrListPage() {
           </table>
         )}
       </div>
+
+      {/* Legacy-style "Purchase Requisition Creation" modal */}
+      <PrCreateModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => { load(); loadCounts(); }}
+      />
     </>
   );
 }
