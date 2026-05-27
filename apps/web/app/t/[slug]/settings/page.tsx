@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth";
 import { Icon } from "@/components/Icon";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -16,16 +16,67 @@ interface TenantSettings {
   };
 }
 
+interface Department { id: string; name: string; code: string | null; unitId: string | null; }
+interface Unit { id: string; companyId: string; name: string; code: string | null; }
+
 export default function SettingsPage() {
   const { me } = useAuth();
   const [settings, setSettings] = useState<TenantSettings | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Departments admin
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptCode, setNewDeptCode] = useState("");
+  const [newDeptUnitId, setNewDeptUnitId] = useState("");
+  const [addingDept, setAddingDept] = useState(false);
+
   useEffect(() => {
     api<TenantSettings>("/api/tenant/settings")
       .then(setSettings)
       .catch(() => setSettings({}));
+    refreshDepartments();
+    api<Unit[]>("/api/tenant/units").then(setUnits).catch(() => setUnits([]));
   }, []);
+
+  function refreshDepartments() {
+    api<Department[]>("/api/tenant/departments").then(setDepartments).catch(() => setDepartments([]));
+  }
+
+  async function handleAddDept(e: FormEvent) {
+    e.preventDefault();
+    if (!newDeptName.trim() || addingDept) return;
+    setAddingDept(true);
+    try {
+      await api("/api/tenant/departments", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newDeptName.trim(),
+          code: newDeptCode.trim() || undefined,
+          unitId: newDeptUnitId || undefined,
+        }),
+      });
+      toast.success("Department added");
+      setNewDeptName("");
+      setNewDeptCode("");
+      refreshDepartments();
+    } catch (err) {
+      toast.error("Could not add", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setAddingDept(false);
+    }
+  }
+
+  async function handleDeleteDept(id: string) {
+    try {
+      await api(`/api/tenant/departments/${id}`, { method: "DELETE" });
+      toast.success("Department removed");
+      refreshDepartments();
+    } catch (err) {
+      toast.error("Could not remove", err instanceof ApiError ? err.message : "Try again");
+    }
+  }
 
   async function patchSettings(patch: Partial<TenantSettings>) {
     if (!me?.isTenantAdmin) {
@@ -77,6 +128,69 @@ export default function SettingsPage() {
           <dt className="text-muted">Tenant admin</dt>
           <dd className="col-span-2 font-medium">{me?.isTenantAdmin ? "Yes" : "No"}</dd>
         </dl>
+      </div>
+
+      <div className="card p-6">
+        <h2 className="font-semibold mb-1">Departments</h2>
+        <p className="text-sm text-muted mb-4">
+          Departments that can raise requisitions. Used in the "Requesting Department" field on every PR.
+        </p>
+
+        {me?.isTenantAdmin && (
+          <form onSubmit={handleAddDept} className="flex flex-wrap items-end gap-2 mb-4 pb-4 border-b border-border">
+            <div className="flex-1 min-w-[180px]">
+              <label className="label">Name</label>
+              <input className="input" placeholder="e.g. Production" value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} required />
+            </div>
+            <div className="w-28">
+              <label className="label">Code</label>
+              <input className="input font-mono" placeholder="PROD" value={newDeptCode} onChange={(e) => setNewDeptCode(e.target.value)} />
+            </div>
+            <div className="w-44">
+              <label className="label">Unit (optional)</label>
+              <select className="input" value={newDeptUnitId} onChange={(e) => setNewDeptUnitId(e.target.value)}>
+                <option value="">— Any unit —</option>
+                {units.map((u) => <option key={u.id} value={u.id}>{u.name}{u.code ? ` (${u.code})` : ""}</option>)}
+              </select>
+            </div>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={!newDeptName.trim() || addingDept}>
+              <Icon name="Plus" size={13} /> {addingDept ? "Adding…" : "Add"}
+            </button>
+          </form>
+        )}
+
+        {departments.length === 0 ? (
+          <p className="text-[12px] text-muted">No departments yet.</p>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-surface">
+              <tr>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Name</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Code</th>
+                <th className="text-left px-3 py-1.5 font-semibold uppercase tracking-wider text-muted">Unit</th>
+                <th className="text-right px-3 py-1.5"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {departments.map((d) => (
+                <tr key={d.id} className="border-t border-border">
+                  <td className="px-3 py-1.5 font-medium">{d.name}</td>
+                  <td className="px-3 py-1.5 font-mono text-[11px] text-muted">{d.code ?? "—"}</td>
+                  <td className="px-3 py-1.5 text-[11.5px] text-muted">
+                    {d.unitId ? units.find((u) => u.id === d.unitId)?.name ?? "—" : "Any"}
+                  </td>
+                  <td className="px-3 py-1.5 text-right">
+                    {me?.isTenantAdmin && (
+                      <button className="text-[11px] text-muted hover:text-danger-fg" onClick={() => handleDeleteDept(d.id)} title="Remove">
+                        <Icon name="Trash2" size={12} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="card p-6">

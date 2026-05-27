@@ -377,7 +377,21 @@ export default function NewPoPage() {
     const cleaned: PoCreateInput = {
       ...form,
       title: form.title.trim(),
-      items: form.items.filter((it) => it.itemName.trim() !== "" && (it.quantity ?? 0) > 0 && (it.unitPrice ?? 0) > 0),
+      // Strip empty schedule entries — Zod requires positive qty + valid date.
+      // Empty rows happen when a user opens the schedule modal and closes
+      // without filling everything in.
+      items: form.items
+        .filter((it) => it.itemName.trim() !== "" && (it.quantity ?? 0) > 0 && (it.unitPrice ?? 0) > 0)
+        .map((it) => ({
+          ...it,
+          deliverySchedule: (it.deliverySchedule ?? []).filter(
+            (s) => s.qty > 0 && s.deliveryDate && s.deliveryDate.length === 10,
+          ),
+        })),
+      // Same for additional charges — drop empty labels and zero-amount rows.
+      additionalCharges: (form.additionalCharges ?? []).filter(
+        (c) => c.label.trim() !== "" && c.amount > 0,
+      ),
     };
 
     const result = validate(poCreateSchema, cleaned);
@@ -702,39 +716,39 @@ export default function NewPoPage() {
           </div>
 
           {form.items.length === 0 ? (
-            <div className="p-10 text-center">
-              <p className="text-muted text-sm mb-3">No line items</p>
-              <button type="button" className="btn btn-primary btn-sm" onClick={addItem}><Icon name="Plus" /> Add first item</button>
+            <div className="p-8 text-center">
+              <p className="text-muted text-xs mb-2">No line items</p>
+              <button type="button" className="btn btn-primary btn-sm" onClick={addItem}><Icon name="Plus" size={13} /> Add first item</button>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-[11px] uppercase tracking-wider text-muted bg-surface">
+              <table className="w-full">
+                <thead className="bg-surface">
                   <tr>
-                    <th className="text-left px-3 py-2 font-semibold w-10">
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-7">
                       <input
                         type="checkbox"
-                        className="h-4 w-4"
+                        className="h-3.5 w-3.5"
                         checked={form.items.length > 0 && selectedLines.size === form.items.length}
                         ref={(el) => { if (el) el.indeterminate = selectedLines.size > 0 && selectedLines.size < form.items.length; }}
                         onChange={toggleAllLines}
                         title="Select all lines"
                       />
                     </th>
-                    <th className="text-left px-3 py-2 font-semibold w-8">#</th>
-                    <th className="text-left px-3 py-2 font-semibold min-w-[200px]">Item</th>
-                    <th className="text-left px-3 py-2 font-semibold w-24">HSN</th>
-                    <th className="text-left px-3 py-2 font-semibold w-24">Qty</th>
-                    <th className="text-left px-3 py-2 font-semibold w-20">UOM</th>
-                    <th className="text-left px-3 py-2 font-semibold w-28">Unit price (₹)</th>
-                    <th className="text-left px-3 py-2 font-semibold w-20">Disc %</th>
-                    <th className="text-left px-3 py-2 font-semibold w-20">GST %</th>
-                    <th className="text-left px-3 py-2 font-semibold w-44">
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-7">#</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted min-w-[180px]">Item</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-20">HSN</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-20">Qty</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-16">UOM</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-24">Rate (₹)</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-14">Disc</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-14">GST</th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-36">
                       Buyer <span className="text-danger">*</span>
                     </th>
-                    <th className="text-left px-3 py-2 font-semibold w-36">Committed</th>
-                    <th className="text-right px-3 py-2 font-semibold w-32">Line total</th>
-                    <th className="text-right px-3 py-2 font-semibold w-12"></th>
+                    <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-32">Committed</th>
+                    <th className="text-right px-2 py-1.5 font-semibold uppercase tracking-wider text-muted w-28">Line total</th>
+                    <th className="text-right px-2 py-1.5 font-semibold w-7"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -747,70 +761,68 @@ export default function NewPoPage() {
                     return (
                       <React.Fragment key={idx}>
                       <tr className={`border-t border-border align-top ${selectedLines.has(idx) ? "bg-tint-lilac/20" : ""}`}>
-                        <td className="px-3 py-2 pt-3.5">
+                        <td className="px-2 py-1.5 pt-2.5">
                           <input
                             type="checkbox"
-                            className="h-4 w-4"
+                            className="h-3.5 w-3.5"
                             checked={selectedLines.has(idx)}
                             onChange={() => toggleLine(idx)}
                           />
                         </td>
-                        <td className="px-3 py-2 text-muted text-xs pt-3.5">{idx + 1}</td>
-                        <td className="px-3 py-2">
-                          <input className="input !py-1.5 text-sm" placeholder="Item name" value={it.itemName} onChange={(e) => setItem(idx, { itemName: e.target.value })} />
+                        <td className="px-2 py-1.5 text-muted text-[11px] pt-2.5">{idx + 1}</td>
+                        <td className="px-2 py-1.5">
+                          <input className="input !py-1 !h-8 text-[12px]" placeholder="Item name" value={it.itemName} onChange={(e) => setItem(idx, { itemName: e.target.value })} />
                           {(it.itemGroupName || it.itemSubGroupName) && (
-                            <p className="text-[10px] text-muted mt-1 truncate">{[it.itemGroupName, it.itemSubGroupName].filter(Boolean).join(" / ")}</p>
+                            <p className="text-[10px] text-muted mt-0.5 truncate">{[it.itemGroupName, it.itemSubGroupName].filter(Boolean).join(" / ")}</p>
                           )}
                         </td>
-                        <td className="px-3 py-2">
-                          <input className="input !py-1.5 font-mono text-xs" placeholder="HSN" value={it.hsnCode ?? ""} onChange={(e) => setItem(idx, { hsnCode: e.target.value || null })} />
+                        <td className="px-2 py-1.5">
+                          <input className="input !py-1 !h-8 font-mono text-[11px]" placeholder="HSN" value={it.hsnCode ?? ""} onChange={(e) => setItem(idx, { hsnCode: e.target.value || null })} />
                         </td>
-                        <td className="px-3 py-2">
-                          <input className="input !py-1.5 tabular-nums" type="number" step="0.001" min="0" value={it.quantity || ""} onChange={(e) => setItem(idx, { quantity: Number(e.target.value) })} />
+                        <td className="px-2 py-1.5">
+                          <input className="input !py-1 !h-8 tabular-nums text-[12px]" type="number" step="0.001" min="0" value={it.quantity || ""} onChange={(e) => setItem(idx, { quantity: Number(e.target.value) })} />
                         </td>
-                        <td className="px-3 py-2">
-                          <input className="input !py-1.5 font-mono text-xs" value={it.uom} onChange={(e) => setItem(idx, { uom: e.target.value })} />
+                        <td className="px-2 py-1.5">
+                          <input className="input !py-1 !h-8 font-mono text-[11px]" value={it.uom} onChange={(e) => setItem(idx, { uom: e.target.value })} />
                         </td>
-                        <td className="px-3 py-2">
-                          <input className="input !py-1.5 tabular-nums" type="number" step="0.01" min="0" value={it.unitPrice || ""} onChange={(e) => setItem(idx, { unitPrice: Number(e.target.value) })} />
+                        <td className="px-2 py-1.5">
+                          <input className="input !py-1 !h-8 tabular-nums text-[12px]" type="number" step="0.01" min="0" value={it.unitPrice || ""} onChange={(e) => setItem(idx, { unitPrice: Number(e.target.value) })} />
                         </td>
-                        <td className="px-3 py-2">
-                          <input className="input !py-1.5 tabular-nums" type="number" step="0.01" min="0" max="100" value={it.discountPercent ?? 0} onChange={(e) => setItem(idx, { discountPercent: Number(e.target.value) })} />
+                        <td className="px-2 py-1.5">
+                          <input className="input !py-1 !h-8 tabular-nums text-[12px]" type="number" step="0.01" min="0" max="100" value={it.discountPercent ?? 0} onChange={(e) => setItem(idx, { discountPercent: Number(e.target.value) })} />
                         </td>
-                        <td className="px-3 py-2">
-                          <input className="input !py-1.5 tabular-nums" type="number" step="0.01" min="0" max="100" value={it.taxRate} onChange={(e) => setItem(idx, { taxRate: Number(e.target.value) })} />
+                        <td className="px-2 py-1.5">
+                          <input className="input !py-1 !h-8 tabular-nums text-[12px]" type="number" step="0.01" min="0" max="100" value={it.taxRate} onChange={(e) => setItem(idx, { taxRate: Number(e.target.value) })} />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-1.5">
                           <select
-                            className={`input !py-1.5 text-xs ${!it.lineBuyerUserId ? "!border-warning-bg" : ""}`}
+                            className={`input !py-1 !h-8 text-[11px] ${!it.lineBuyerUserId ? "!border-warning-bg" : ""}`}
                             value={it.lineBuyerUserId ?? ""}
                             onChange={(e) => setItem(idx, { lineBuyerUserId: e.target.value || null })}
                             title={!it.lineBuyerUserId ? "Assign a buyer before submitting" : ""}
                           >
                             <option value="">— Pick buyer —</option>
                             {tenantUsers.map((u) => (
-                              <option key={u.id} value={u.id}>
-                                {u.fullName} · {u.roleName}
-                              </option>
+                              <option key={u.id} value={u.id}>{u.fullName}</option>
                             ))}
                           </select>
                         </td>
-                        <td className="px-3 py-2">
-                          <input type="date" className="input !py-1.5 text-xs" value={it.committedDeliveryDate ?? ""} onChange={(e) => setItem(idx, { committedDeliveryDate: e.target.value || null })} />
+                        <td className="px-2 py-1.5">
+                          <input type="date" className="input !py-1 !h-8 text-[11px]" value={it.committedDeliveryDate ?? ""} onChange={(e) => setItem(idx, { committedDeliveryDate: e.target.value || null })} />
                         </td>
-                        <td className="px-3 py-2 font-semibold tabular-nums text-right pt-3">
+                        <td className="px-2 py-1.5 font-semibold tabular-nums text-right pt-2.5 text-[12px]">
                           {sub > 0 ? paiseToINR(lineTotal * 100) : <span className="text-muted">—</span>}
                         </td>
-                        <td className="px-3 py-2 text-right">
-                          <button type="button" className="h-8 w-8 rounded-pill grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg" onClick={() => removeItem(idx)} title="Remove">
-                            <Icon name="Trash2" size={16} />
+                        <td className="px-2 py-1.5 text-right">
+                          <button type="button" className="h-7 w-7 rounded grid place-items-center text-muted hover:bg-danger-bg hover:text-danger-fg" onClick={() => removeItem(idx)} title="Remove">
+                            <Icon name="Trash2" size={13} />
                           </button>
                         </td>
                       </tr>
                       <tr className="border-b border-border" style={{ background: "var(--surface)" }}>
                         <td />
                         <td />
-                        <td colSpan={11} className="px-3 pb-2 pt-1">
+                        <td colSpan={11} className="px-2 pb-1.5 pt-0.5">
                           <div className="flex flex-wrap items-center gap-2">
                             <input
                               className="input !py-1.5 text-xs flex-1 min-w-[280px]"

@@ -55,6 +55,32 @@ tenantMetaRoutes.get("/departments", async (req, res, next) => {
   }
 });
 
+const deptCreateSchema = z.object({
+  name: z.string().trim().min(2, "Name is required"),
+  code: z.string().trim().max(20).optional().nullable(),
+  unitId: z.string().uuid().optional().nullable(),
+});
+tenantMetaRoutes.post("/departments", async (req, res, next) => {
+  try {
+    if (!req.auth!.ta) throw Forbidden("admin_only", "Only tenant admins can add departments");
+    const input = deptCreateSchema.parse(req.body);
+    const row = await service.createDepartment(req.tenant!.id, input);
+    res.status(201).json(row);
+  } catch (err) {
+    next(err);
+  }
+});
+
+tenantMetaRoutes.delete("/departments/:id", async (req, res, next) => {
+  try {
+    if (!req.auth!.ta) throw Forbidden("admin_only", "Only tenant admins can remove departments");
+    await service.deleteDepartment(req.tenant!.id, req.params.id!);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
 tenantMetaRoutes.get("/settings", async (req, res, next) => {
   try {
     const settings = await service.getTenantSettings(req.tenant!.id);

@@ -83,6 +83,30 @@ export async function listDepartments(tenantId: string, unitId?: string) {
     .where(and(...conds));
 }
 
+export async function createDepartment(
+  tenantId: string,
+  input: { name: string; code?: string | null; unitId?: string | null },
+) {
+  if (!input.name.trim()) throw new Error("Department name is required");
+  const [created] = await db
+    .insert(departments)
+    .values({
+      tenantId,
+      name: input.name.trim(),
+      code: input.code?.trim() || null,
+      unitId: input.unitId ?? null,
+    })
+    .returning();
+  return created!;
+}
+
+export async function deleteDepartment(tenantId: string, id: string) {
+  await db
+    .update(departments)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(departments.tenantId, tenantId), eq(departments.id, id)));
+}
+
 /** Read the tenant's feature-toggle settings. Always returns an object. */
 export async function getTenantSettings(tenantId: string) {
   const [row] = await db
