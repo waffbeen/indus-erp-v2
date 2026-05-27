@@ -84,8 +84,8 @@ poRoutes.post("/:id/reject", requirePermission(Resources.PO, Actions.Reject), as
 poRoutes.post("/:id/send", requirePermission(Resources.PO, Actions.Update), async (req, res, next) => {
   try {
     const { comment } = decision.parse(req.body ?? {});
-    await poService.sendToVendor(req.params.id!, ctx(req), comment);
-    res.status(204).end();
+    const result = await poService.sendToVendor(req.params.id!, ctx(req), comment);
+    res.json(result);
   } catch (err) { next(err); }
 });
 

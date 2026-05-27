@@ -14,6 +14,8 @@ import { validate, apiErrorToFormErrors, emptyErrors, type FormErrorState } from
 interface Company { id: string; name: string; isPrimary: boolean; }
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
+interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
+interface UomRow { id: string; code: string; name: string; }
 
 interface PrItemRow {
   id: string;
@@ -73,6 +75,8 @@ export default function EditPrPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [itemMaster, setItemMaster] = useState<ItemListItem[]>([]);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
+  const [hsnList, setHsnList] = useState<HsnRow[]>([]);
+  const [uomList, setUomList] = useState<UomRow[]>([]);
 
   const [form, setForm] = useState<PrCreateInput | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -83,13 +87,17 @@ export default function EditPrPage() {
     if (!prId) return;
     (async () => {
       try {
-        const [pr, comps, units, items, usersList] = await Promise.all([
+        const [pr, comps, units, items, usersList, hsnRows, uomRows] = await Promise.all([
           api<PrDetail>(`/api/pr/${prId}`),
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
           api<{ items: ItemListItem[] }>("/api/items?pageSize=100"),
           api<TenantUser[]>("/api/tenant/users"),
+          api<HsnRow[]>("/api/masters/hsn"),
+          api<UomRow[]>("/api/masters/uoms"),
         ]);
+        setHsnList(hsnRows);
+        setUomList(uomRows);
         if (pr.status !== "draft") {
           setLoadError("Only draft requisitions can be edited. Submit or cancel actions are available on the detail page.");
           return;
@@ -472,6 +480,7 @@ export default function EditPrPage() {
                           <input
                             className="input !py-1.5 font-mono text-xs"
                             placeholder="HSN"
+                            list="pr-edit-hsn-master"
                             value={it.hsnCode ?? ""}
                             onChange={(e) => setItem(idx, { hsnCode: e.target.value || null })}
                           />
@@ -495,6 +504,7 @@ export default function EditPrPage() {
                         <td className="px-3 py-2">
                           <input
                             className={fieldClass(uomErr, "input !py-1.5 font-mono text-xs")}
+                            list="pr-edit-uom-master"
                             value={it.uom}
                             onChange={(e) => setItem(idx, { uom: e.target.value })}
                           />
@@ -568,6 +578,19 @@ export default function EditPrPage() {
           )}
         </div>
       </form>
+
+      <datalist id="pr-edit-hsn-master">
+        {hsnList.map((h) => (
+          <option key={h.id} value={h.code}>
+            {h.description ?? ""}{h.defaultGstRate != null ? ` · ${h.defaultGstRate}% GST` : ""}
+          </option>
+        ))}
+      </datalist>
+      <datalist id="pr-edit-uom-master">
+        {uomList.map((u) => (
+          <option key={u.id} value={u.code}>{u.name}</option>
+        ))}
+      </datalist>
     </FormSheet>
   );
 }

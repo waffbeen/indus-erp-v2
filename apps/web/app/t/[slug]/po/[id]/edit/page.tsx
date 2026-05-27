@@ -12,9 +12,49 @@ import { paiseToINR } from "@/lib/format";
 import { poCreateSchema, type PoCreateInput, type PoItemInput, type VendorListItem } from "@indus/shared";
 import { validate, apiErrorToFormErrors, emptyErrors, type FormErrorState } from "@/lib/form-errors";
 
-interface Company { id: string; name: string; isPrimary: boolean; }
+interface Company {
+  id: string;
+  name: string;
+  legalName?: string | null;
+  gstin?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  isPrimary: boolean;
+}
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
+interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
+interface UomRow { id: string; code: string; name: string; }
+
+const PAYMENT_TERMS_PRESETS = [
+  "Net 7 days",
+  "Net 15 days",
+  "Net 30 days",
+  "Net 45 days",
+  "Net 60 days",
+  "Net 90 days",
+  "50% advance + 50% on delivery",
+  "100% advance",
+  "100% on delivery",
+  "Against proforma invoice",
+  "LC at sight",
+  "Custom (type below)",
+] as const;
+
+function deriveIsInterstate(companyGstin?: string | null, supplierGstin?: string | null): boolean {
+  if (!companyGstin || !supplierGstin) return false;
+  const a = companyGstin.trim().slice(0, 2);
+  const b = supplierGstin.trim().slice(0, 2);
+  if (a.length !== 2 || b.length !== 2) return false;
+  return a !== b;
+}
+
+function formatCompanyAddress(c: Company | undefined): string {
+  if (!c) return "";
+  return [c.address, c.city, c.state, c.pincode].filter(Boolean).join(", ");
+}
 
 interface PoItemRow {
   id: string;
@@ -84,6 +124,8 @@ export default function EditPoPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [vendors, setVendors] = useState<VendorListItem[]>([]);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
+  const [hsnList, setHsnList] = useState<HsnRow[]>([]);
+  const [uomList, setUomList] = useState<UomRow[]>([]);
 
   const [form, setForm] = useState<PoCreateInput | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -100,12 +142,14 @@ export default function EditPoPage() {
     if (!poId) return;
     (async () => {
       try {
-        const [po, comps, units, vens, usersList] = await Promise.all([
+        const [po, comps, units, vens, usersList, hsnRows, uomRows] = await Promise.all([
           api<PoDetail>(`/api/po/${poId}`),
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
           api<{ items: VendorListItem[] }>("/api/vendors?pageSize=100"),
           api<TenantUser[]>("/api/tenant/users"),
+          api<HsnRow[]>("/api/masters/hsn"),
+          api<UomRow[]>("/api/masters/uoms"),
         ]);
         if (po.status !== "draft") {
           setLoadError("Only draft POs can be edited. Submitted/approved POs need an Amendment instead.");
@@ -115,6 +159,8 @@ export default function EditPoPage() {
         setUnits(units);
         setVendors(vens.items);
         setTenantUsers(usersList);
+        setHsnList(hsnRows);
+        setUomList(uomRows);
         setForm(rowToForm(po));
       } catch (err) {
         setLoadError(err instanceof ApiError ? err.message : "Could not load PO");
@@ -123,7 +169,58 @@ export default function EditPoPage() {
   }, [poId]);
 
   const filteredUnits = form ? units.filter((u) => u.companyId === form.companyId) : [];
+  const selectedCompany = form ? companies.find((c) => c.id === form.companyId) : undefined;
+  const selectedVendor = form ? vendors.find((v) => v.id === form.vendorId) : undefined;
   const fe = errors.fields;
+
+  // Auto-derive isInterstate from company.gstin vs supplier.gstin on either change.
+  useEffect(() => {
+    if (!form || !selectedCompany?.gstin || !selectedVendor?.gstin) return;
+    const next = deriveIsInterstate(selectedCompany.gstin, selectedVendor.gstin);
+    setForm((f) => (!f || f.isInterstate === next ? f : { ...f, isInterstate: next }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form?.vendorId, form?.companyId]);
+
+  function isHsnUnsaved(code: string | null | undefined): boolean {
+    if (!code) return false;
+    const trimmed = code.trim();
+    if (trimmed.length < 2) return false;
+    return !hsnList.some((h) => h.code.toLowerCase() === trimmed.toLowerCase());
+  }
+
+  async function saveHsnToMaster(idx: number) {
+    if (!form) return;
+    const it = form.items[idx];
+    const code = it?.hsnCode?.trim();
+    if (!code) return;
+    try {
+      const created = await api<HsnRow>("/api/masters/hsn", {
+        method: "POST",
+        body: JSON.stringify({ code, defaultGstRate: it?.taxRate ?? null }),
+      });
+      setHsnList((prev) => {
+        const without = prev.filter((h) => h.code.toLowerCase() !== created.code.toLowerCase());
+        return [...without, created].sort((a, b) => a.code.localeCompare(b.code));
+      });
+      toast.success("HSN saved to master", `${created.code} ab dropdown me available hai.`);
+    } catch (err) {
+      toast.error("Could not save HSN", err instanceof ApiError ? err.message : "Try again.");
+    }
+  }
+
+  function onHsnChange(idx: number, raw: string) {
+    if (!form) return;
+    const code = raw.trim();
+    setItem(idx, { hsnCode: code || null });
+    if (!code) return;
+    const match = hsnList.find((h) => h.code.toLowerCase() === code.toLowerCase());
+    if (match?.defaultGstRate != null) {
+      const line = form.items[idx];
+      if (line && line.taxRate === 18) {
+        setItem(idx, { taxRate: match.defaultGstRate });
+      }
+    }
+  }
 
   function clearFieldErrors(prefix: string) {
     setErrors((e) => {
@@ -429,7 +526,26 @@ export default function EditPoPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="label">Payment terms</label>
-              <input className="input" value={form.paymentTerms ?? ""} onChange={(e) => set("paymentTerms", e.target.value)} />
+              <div className="flex gap-2">
+                <select
+                  className="input w-44 shrink-0"
+                  value={PAYMENT_TERMS_PRESETS.includes(form.paymentTerms as typeof PAYMENT_TERMS_PRESETS[number]) ? form.paymentTerms ?? "" : "Custom (type below)"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "Custom (type below)") set("paymentTerms", "");
+                    else set("paymentTerms", v);
+                  }}
+                >
+                  <option value="">— Pick a preset —</option>
+                  {PAYMENT_TERMS_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <input
+                  className="input flex-1"
+                  placeholder="Or type custom terms..."
+                  value={form.paymentTerms ?? ""}
+                  onChange={(e) => set("paymentTerms", e.target.value)}
+                />
+              </div>
             </div>
             <div>
               <label className="label">Delivery terms</label>
@@ -438,7 +554,19 @@ export default function EditPoPage() {
           </div>
           <div className="grid grid-cols-1 gap-4 mb-4">
             <div>
-              <label className="label">Delivery address</label>
+              <label className="label">
+                Delivery address
+                {selectedCompany && (
+                  <button
+                    type="button"
+                    className="ml-2 text-[11px] text-primary hover:underline"
+                    onClick={() => set("deliveryAddress", formatCompanyAddress(selectedCompany))}
+                    title="Reload address from selected company"
+                  >
+                    Use company address
+                  </button>
+                )}
+              </label>
               <input className="input" value={form.deliveryAddress ?? ""} onChange={(e) => set("deliveryAddress", e.target.value)} />
             </div>
             <div>
@@ -545,13 +673,32 @@ export default function EditPoPage() {
                           <input className="input !py-1.5 text-sm" value={it.itemName} onChange={(e) => setItem(idx, { itemName: e.target.value })} />
                         </td>
                         <td className="px-3 py-2">
-                          <input className="input !py-1.5 font-mono text-xs" value={it.hsnCode ?? ""} onChange={(e) => setItem(idx, { hsnCode: e.target.value || null })} />
+                          <input
+                            className="input !py-1.5 font-mono text-xs"
+                            list="po-edit-hsn-master"
+                            value={it.hsnCode ?? ""}
+                            onChange={(e) => onHsnChange(idx, e.target.value)}
+                          />
+                          {isHsnUnsaved(it.hsnCode) && (
+                            <button
+                              type="button"
+                              className="text-[10px] text-primary hover:underline mt-0.5 whitespace-nowrap"
+                              onClick={() => saveHsnToMaster(idx)}
+                            >
+                              + Save to master
+                            </button>
+                          )}
                         </td>
                         <td className="px-3 py-2">
                           <input className="input !py-1.5 tabular-nums" type="number" step="0.001" min="0" value={it.quantity || ""} onChange={(e) => setItem(idx, { quantity: Number(e.target.value) })} />
                         </td>
                         <td className="px-3 py-2">
-                          <input className="input !py-1.5 font-mono text-xs" value={it.uom} onChange={(e) => setItem(idx, { uom: e.target.value })} />
+                          <input
+                            className="input !py-1.5 font-mono text-xs"
+                            list="po-edit-uom-master"
+                            value={it.uom}
+                            onChange={(e) => setItem(idx, { uom: e.target.value })}
+                          />
                         </td>
                         <td className="px-3 py-2">
                           <input className="input !py-1.5 tabular-nums" type="number" step="0.01" min="0" value={it.unitPrice || ""} onChange={(e) => setItem(idx, { unitPrice: Number(e.target.value) })} />
@@ -707,6 +854,19 @@ export default function EditPoPage() {
           </div>
         </div>
       </Modal>
+
+      <datalist id="po-edit-hsn-master">
+        {hsnList.map((h) => (
+          <option key={h.id} value={h.code}>
+            {h.description ?? ""}{h.defaultGstRate != null ? ` · ${h.defaultGstRate}% GST` : ""}
+          </option>
+        ))}
+      </datalist>
+      <datalist id="po-edit-uom-master">
+        {uomList.map((u) => (
+          <option key={u.id} value={u.code}>{u.name}</option>
+        ))}
+      </datalist>
     </FormSheet>
   );
 }

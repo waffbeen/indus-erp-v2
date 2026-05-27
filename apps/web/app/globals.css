@@ -53,3 +53,7 @@ html, body { background: var(--frame); min-height: 100vh; }
 
 /* Print-only elements stay hidden in normal view */
 .print-only { display: none; }
+
+/* Hide scrollbar but keep scrolling — used by the top-bar tab row on mobile. */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

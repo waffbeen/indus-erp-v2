@@ -157,6 +157,7 @@ export default function NewPoPage() {
               description: string | null; itemGroupName: string | null;
               itemSubGroupName: string | null; hsnCode: string | null;
               uom: string; quantity: number; estimatedUnitPrice: number;
+              defaultTaxRate: number | null;
               itemNarration: string | null;
               specifications: Record<string, unknown> | null;
               lineBuyerUserId: string | null;
@@ -193,7 +194,7 @@ export default function NewPoPage() {
               uom: it.uom,
               unitPrice: it.estimatedUnitPrice,
               discountPercent: 0,
-              taxRate: 18,
+              taxRate: it.defaultTaxRate ?? 18,
               committedDeliveryDate: it.committedDeliveryDate,
               itemNarration: it.itemNarration ?? "",
               notes: "",

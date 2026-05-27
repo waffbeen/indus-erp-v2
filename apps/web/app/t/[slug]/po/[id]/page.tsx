@@ -214,17 +214,32 @@ export default function PoDetailPage() {
       // Backend route slug: short-close (with hyphen). Other actions match the verb.
       const path = action === "short_close" ? "short-close" : action;
       const body = action === "short_close" ? { comment: shortCloseComment } : {};
-      await api(`/api/po/${po.id}/${path}`, { method: "POST", body: JSON.stringify(body) });
+      const resp = await api<{ emailStatus?: string; vendorEmail?: string | null }>(
+        `/api/po/${po.id}/${path}`,
+        { method: "POST", body: JSON.stringify(body) },
+      ).catch((e) => { throw e; });
       const title =
         action === "submit" ? "PO submitted" :
         action === "send" ? "PO sent to vendor" :
         action === "short_close" ? "PO short-closed" :
         "PO cancelled";
-      const desc =
+      // For "send" we surface whether the email actually went out.
+      let desc =
         action === "submit" ? "Approver ko notify ho gaya." :
         action === "send" ? "Vendor ko chala gaya — ab GRN raise ho sakta hai." :
         action === "short_close" ? "Status closed. Aur GRN raise nahi honge against iss PO ke." :
         "PO cancelled.";
+      if (action === "send" && resp?.emailStatus) {
+        if (resp.emailStatus === "sent") {
+          desc = `Email vendor ko send ho gaya (${resp.vendorEmail ?? "supplier"}).`;
+        } else if (resp.emailStatus === "no_email") {
+          desc = "PO status updated. Supplier ka email vendor master me set nahi hai — email skip kiya.";
+        } else if (resp.emailStatus === "smtp_not_configured") {
+          desc = "PO status updated. SMTP configure nahi hai server pe — admin se setup karwao.";
+        } else if (resp.emailStatus === "failed") {
+          desc = "PO status updated, lekin email bhejne me fail ho gaya. Logs check karo.";
+        }
+      }
       toast.success(title, desc);
       setConfirmAction(null);
       setShortCloseComment("");

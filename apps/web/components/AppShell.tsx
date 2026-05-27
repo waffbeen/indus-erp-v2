@@ -148,16 +148,17 @@ export function AppShell({
       {/* MAIN COLUMN — only this scrolls */}
       <main className="flex-1 min-w-0 overflow-y-auto" style={{ background: "var(--bg)" }}>
         {/* Top bar — 52px height, sticky on scroll */}
-        <header className="sticky top-0 z-20 h-[52px] flex items-center justify-between px-4 border-b border-border bg-bg">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 h-[52px] flex items-center justify-between px-2 sm:px-4 border-b border-border bg-bg gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => history.back()}
-              className="h-8 w-8 rounded-md grid place-items-center hover:bg-surface text-muted hover:text-text-default border border-transparent hover:border-border-strong"
+              className="h-8 w-8 rounded-md grid place-items-center hover:bg-surface text-muted hover:text-text-default border border-transparent hover:border-border-strong shrink-0"
               aria-label="Back"
             >
               <Icon name="ChevronLeft" size={16} />
             </button>
-            <nav className="flex items-center gap-0.5">
+            {/* On mobile we let this row scroll horizontally so the tabs never clip the bell + theme. */}
+            <nav className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
               {[
                 { href: `${base}/dashboard`,  label: "Dashboard" },
                 { href: `${base}/approvals`,  label: "Approvals" },
@@ -169,7 +170,7 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     className={clsx(
-                      "px-3 py-1.5 rounded-md text-[12.5px] font-medium transition",
+                      "px-2.5 sm:px-3 py-1.5 rounded-md text-[12.5px] font-medium transition whitespace-nowrap",
                       active
                         ? "text-text-default bg-surface"
                         : "text-muted hover:text-text-default hover:bg-surface/60",
@@ -182,14 +183,14 @@ export function AppShell({
             </nav>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <ThemeSwitcher />
             <NotificationsBell />
           </div>
         </header>
 
         {/* Content area — compact padding, no outer card chrome */}
-        <div className="px-4 py-4 lg:px-5 lg:py-5">{children}</div>
+        <div className="px-3 py-3 sm:px-4 sm:py-4 lg:px-5 lg:py-5">{children}</div>
       </main>
 
     </div>

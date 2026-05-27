@@ -11,6 +11,7 @@ import { auditLogs } from "../db/schema/audit_logs";
 import { approvalActions } from "../db/schema/approvals";
 import { companies } from "../db/schema/companies";
 import { units } from "../db/schema/units";
+import { items as itemMaster } from "../db/schema/items";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
 import { notifyTenantAdmins, notifyUsers } from "./notification.service";
 import type { PoCreateInput, PoAmendInput } from "@indus/shared";
@@ -282,6 +283,16 @@ export async function getPoDraftFromPr(tenantId: string, prId: string) {
   }
   const items = await db.select().from(prItems).where(eq(prItems.prId, prId)).orderBy(prItems.sortOrder);
 
+  // Pull item-master defaults so PR→PO converts with the master-defined GST %
+  // (instead of always defaulting to 18). Only itemIds present on PR lines.
+  const masterIds = Array.from(new Set(items.map((it) => it.itemId).filter((x): x is string => !!x)));
+  const masterRows = masterIds.length
+    ? await db.select({ id: itemMaster.id, defaultTaxRate: itemMaster.defaultTaxRate })
+        .from(itemMaster)
+        .where(inArray(itemMaster.id, masterIds))
+    : [];
+  const masterTaxByItemId = new Map(masterRows.map((r) => [r.id, r.defaultTaxRate]));
+
   return {
     pr: {
       id: pr.id,
@@ -302,6 +313,8 @@ export async function getPoDraftFromPr(tenantId: string, prId: string) {
       uom: it.uom,
       quantity: it.quantityScaled / 1000,
       estimatedUnitPrice: it.estimatedUnitPricePaise ? Number(it.estimatedUnitPricePaise) / 100 : 0,
+      /** From item master if known; null tells the frontend to fall back to its 18 % default. */
+      defaultTaxRate: it.itemId ? masterTaxByItemId.get(it.itemId) ?? null : null,
       itemNarration: it.itemNarration,
       specifications: it.specifications,
       /** Carry per-line buyer from PR -> PO so requester's hint becomes default. */
@@ -962,6 +975,14 @@ export async function sendToVendor(id: string, ctx: ActorContext, comment?: stri
   const po = await getPoRaw(ctx.tenantId, id);
   if (po.status !== "approved") throw BadRequest("invalid_status", "Only approved POs can be sent");
 
+  // Fetch vendor email so we can fire the supplier notification. Missing email
+  // is non-fatal — we still mark the PO as sent and audit, just no mail.
+  const [vendor] = await db
+    .select({ id: vendors.id, name: vendors.name, email: vendors.email, contactPerson: vendors.contactPerson })
+    .from(vendors)
+    .where(eq(vendors.id, po.vendorId))
+    .limit(1);
+
   await db.transaction(async (tx) => {
     await tx
       .update(purchaseOrders)
@@ -978,11 +999,80 @@ export async function sendToVendor(id: string, ctx: ActorContext, comment?: stri
     });
   });
 
+  let emailStatus: "sent" | "no_email" | "smtp_not_configured" | "failed" = "no_email";
+  if (vendor?.email) {
+    try {
+      const { sendMail, isMailConfigured } = await import("./mail.service");
+      if (!isMailConfigured()) {
+        emailStatus = "smtp_not_configured";
+      } else {
+        const publicUrl = process.env.PUBLIC_WEB_URL || "";
+        const subject = `Purchase Order ${po.poNumber ?? po.title}`;
+        const html = renderPoEmailBody({
+          poNumber: po.poNumber,
+          title: po.title,
+          totalPaise: po.totalPaise,
+          deliveryDate: po.deliveryDate,
+          paymentTerms: po.paymentTerms,
+          vendorContact: vendor.contactPerson,
+          publicUrl,
+        });
+        await sendMail({ to: vendor.email, subject, html });
+        emailStatus = "sent";
+      }
+    } catch {
+      emailStatus = "failed";
+      // Swallow — audit log records the failure; UI can show a hint.
+    }
+  }
+
   await db.insert(auditLogs).values({
     tenantId: ctx.tenantId, actorUserId: ctx.userId,
     action: "send_to_vendor", resourceType: "po", resourceId: id,
     ipAddress: ctx.ipAddress, userAgent: ctx.userAgent,
+    metadata: { vendorEmail: vendor?.email ?? null, emailStatus },
   });
+
+  return { emailStatus, vendorEmail: vendor?.email ?? null };
+}
+
+/** Minimal HTML body — no attachment yet, just a summary + link to the PO page. */
+function renderPoEmailBody(p: {
+  poNumber: string | null;
+  title: string;
+  totalPaise: string;
+  deliveryDate: Date | null;
+  paymentTerms: string | null;
+  vendorContact: string | null;
+  publicUrl: string;
+}): string {
+  const rupees = (Number(p.totalPaise) / 100).toLocaleString("en-IN", {
+    style: "currency", currency: "INR", minimumFractionDigits: 2,
+  });
+  const greeting = p.vendorContact ? `Dear ${p.vendorContact},` : "Hello,";
+  const link = p.publicUrl ? `<p><a href="${p.publicUrl}">View on portal</a></p>` : "";
+  const delivery = p.deliveryDate
+    ? `<li><strong>Expected delivery:</strong> ${p.deliveryDate.toISOString().slice(0, 10)}</li>`
+    : "";
+  const payment = p.paymentTerms
+    ? `<li><strong>Payment terms:</strong> ${p.paymentTerms}</li>`
+    : "";
+  return `
+    <div style="font-family:system-ui,Arial,sans-serif;color:#1a1a1a;line-height:1.5">
+      <p>${greeting}</p>
+      <p>Please find below the purchase order issued from our office.</p>
+      <ul>
+        <li><strong>PO number:</strong> ${p.poNumber ?? "(pending)"}</li>
+        <li><strong>Title:</strong> ${p.title}</li>
+        <li><strong>Total value:</strong> ${rupees}</li>
+        ${delivery}
+        ${payment}
+      </ul>
+      ${link}
+      <p>Please confirm receipt and the committed dispatch schedule at your earliest convenience.</p>
+      <p>Thank you.</p>
+    </div>
+  `;
 }
 
 /**

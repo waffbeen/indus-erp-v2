@@ -213,6 +213,9 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
+interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
+interface UomRow { id: string; code: string; name: string; }
+
 function ItemFormModal({
   open,
   editId,
@@ -227,7 +230,62 @@ function ItemFormModal({
   const [form, setForm] = useState<ItemCreateInput>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrorState>(emptyErrors);
+  const [hsnList, setHsnList] = useState<HsnRow[]>([]);
+  const [uomList, setUomList] = useState<UomRow[]>([]);
   const fe = errors.fields;
+
+  // Load masters once on first open
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const [hsn, uom] = await Promise.all([
+          api<HsnRow[]>("/api/masters/hsn"),
+          api<UomRow[]>("/api/masters/uoms"),
+        ]);
+        setHsnList(hsn);
+        setUomList(uom);
+      } catch {
+        /* non-fatal — datalists just won't suggest */
+      }
+    })();
+  }, [open]);
+
+  function isHsnUnsaved(code: string | null | undefined): boolean {
+    if (!code) return false;
+    const trimmed = code.trim();
+    if (trimmed.length < 2) return false;
+    return !hsnList.some((h) => h.code.toLowerCase() === trimmed.toLowerCase());
+  }
+
+  async function saveHsnToMaster() {
+    const code = form.hsnCode?.trim();
+    if (!code) return;
+    try {
+      const created = await api<HsnRow>("/api/masters/hsn", {
+        method: "POST",
+        body: JSON.stringify({ code, defaultGstRate: form.defaultTaxRate ?? null }),
+      });
+      setHsnList((prev) => {
+        const without = prev.filter((h) => h.code.toLowerCase() !== created.code.toLowerCase());
+        return [...without, created].sort((a, b) => a.code.localeCompare(b.code));
+      });
+      toast.success("HSN saved to master", `${created.code} ab dropdown me available hai.`);
+    } catch (err) {
+      toast.error("Could not save HSN", err instanceof ApiError ? err.message : "Try again.");
+    }
+  }
+
+  function onHsnChange(raw: string) {
+    setForm((f) => ({ ...f, hsnCode: raw }));
+    if (fe.hsnCode) setErrors((e) => ({ ...e, fields: { ...e.fields, hsnCode: "" } }));
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    const match = hsnList.find((h) => h.code.toLowerCase() === trimmed.toLowerCase());
+    if (match?.defaultGstRate != null && form.defaultTaxRate === 18) {
+      setForm((f) => ({ ...f, defaultTaxRate: match.defaultGstRate! }));
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -384,6 +442,7 @@ function ItemFormModal({
             <label className="label">Primary UOM <span className="text-danger">*</span></label>
             <input
               className={fieldClass(fe.uom)}
+              list="item-uom-master"
               value={form.uom}
               onChange={(e) => set("uom", e.target.value)}
               placeholder="nos, kg, ltr"
@@ -394,6 +453,7 @@ function ItemFormModal({
             <label className="label">Stock Unit</label>
             <input
               className="input font-mono text-xs"
+              list="item-uom-master"
               value={form.stockUnit ?? ""}
               onChange={(e) => set("stockUnit", e.target.value)}
               placeholder="(if different)"
@@ -403,6 +463,7 @@ function ItemFormModal({
             <label className="label">Purchase Unit</label>
             <input
               className="input font-mono text-xs"
+              list="item-uom-master"
               value={form.purchaseUnit ?? ""}
               onChange={(e) => set("purchaseUnit", e.target.value)}
               placeholder="box, carton"
@@ -426,10 +487,20 @@ function ItemFormModal({
             <label className="label">HSN code</label>
             <input
               className="input font-mono"
+              list="item-hsn-master"
               value={form.hsnCode ?? ""}
-              onChange={(e) => set("hsnCode", e.target.value)}
+              onChange={(e) => onHsnChange(e.target.value)}
               placeholder="84821000"
             />
+            {isHsnUnsaved(form.hsnCode) && (
+              <button
+                type="button"
+                className="text-[11px] text-primary hover:underline mt-1"
+                onClick={saveHsnToMaster}
+              >
+                + Save HSN to master
+              </button>
+            )}
           </div>
           <div>
             <label className="label">Default GST %</label>
@@ -443,6 +514,19 @@ function ItemFormModal({
             />
           </div>
         </div>
+
+        <datalist id="item-hsn-master">
+          {hsnList.map((h) => (
+            <option key={h.id} value={h.code}>
+              {h.description ?? ""}{h.defaultGstRate != null ? ` · ${h.defaultGstRate}% GST` : ""}
+            </option>
+          ))}
+        </datalist>
+        <datalist id="item-uom-master">
+          {uomList.map((u) => (
+            <option key={u.id} value={u.code}>{u.name}</option>
+          ))}
+        </datalist>
 
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted pt-2 border-t border-border">Type</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

@@ -24,6 +24,19 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 chars"),
   JWT_ACCESS_TTL: z.string().default("15m"),
   JWT_REFRESH_TTL: z.string().default("7d"),
+
+  /**
+   * Optional SMTP config — if all four are set, PO send-to-supplier emails go out.
+   * If any are missing, sends are no-ops (logged) so the app still works pre-config.
+   */
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  /** From address shown in vendor inbox. Falls back to SMTP_USER. */
+  SMTP_FROM: z.string().optional(),
+  /** Used for return links in emails — e.g. "https://prathvis-erp.vercel.app". */
+  PUBLIC_WEB_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
