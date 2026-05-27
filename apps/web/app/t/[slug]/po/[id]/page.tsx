@@ -132,6 +132,7 @@ export default function PoDetailPage() {
   const [cloning, setCloning] = useState(false);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
   const [amendOpen, setAmendOpen] = useState<"add" | "list" | null>(null);
+  const [cancelReasons, setCancelReasons] = useState<Array<{ id: string; label: string }>>([]);
   const [amendSummary, setAmendSummary] = useState("");
   const [amendRemark, setAmendRemark] = useState("");
   const [amendSubmitting, setAmendSubmitting] = useState(false);
@@ -164,6 +165,7 @@ export default function PoDetailPage() {
   useEffect(() => {
     // Fetch once, used to resolve per-line buyer IDs into readable names
     api<TenantUser[]>("/api/tenant/users").then(setTenantUsers).catch(() => setTenantUsers([]));
+    api<Array<{ id: string; label: string }>>("/api/masters/cancel-reasons").then(setCancelReasons).catch(() => setCancelReasons([]));
   }, []);
 
   async function handleClone() {
@@ -823,6 +825,19 @@ export default function PoDetailPage() {
           </div>
           <div>
             <label className="label">Reason <span className="text-danger">*</span></label>
+            {/* Quick-pick from Masters → Cancellation reasons; can still type free text below. */}
+            {cancelReasons.length > 0 && (
+              <select
+                className="input mb-2"
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) setShortCloseComment(e.target.value);
+                }}
+              >
+                <option value="">— Pick a reason —</option>
+                {cancelReasons.map((r) => <option key={r.id} value={r.label}>{r.label}</option>)}
+              </select>
+            )}
             <textarea
               className="input"
               rows={3}

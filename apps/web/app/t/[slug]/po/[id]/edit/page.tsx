@@ -27,21 +27,10 @@ interface Unit { id: string; companyId: string; name: string; code: string | nul
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
 interface UomRow { id: string; code: string; name: string; }
+interface PaymentTermRow { id: string; label: string; isActive: boolean }
+interface DeliveryTermRow { id: string; code: string; label: string; isActive: boolean }
 
-const PAYMENT_TERMS_PRESETS = [
-  "Net 7 days",
-  "Net 15 days",
-  "Net 30 days",
-  "Net 45 days",
-  "Net 60 days",
-  "Net 90 days",
-  "50% advance + 50% on delivery",
-  "100% advance",
-  "100% on delivery",
-  "Against proforma invoice",
-  "LC at sight",
-  "Custom (type below)",
-] as const;
+const PAYMENT_TERMS_CUSTOM = "Custom (type below)";
 
 function deriveIsInterstate(companyGstin?: string | null, supplierGstin?: string | null): boolean {
   if (!companyGstin || !supplierGstin) return false;
@@ -126,6 +115,8 @@ export default function EditPoPage() {
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
   const [hsnList, setHsnList] = useState<HsnRow[]>([]);
   const [uomList, setUomList] = useState<UomRow[]>([]);
+  const [paymentTermsList, setPaymentTermsList] = useState<PaymentTermRow[]>([]);
+  const [deliveryTermsList, setDeliveryTermsList] = useState<DeliveryTermRow[]>([]);
 
   const [form, setForm] = useState<PoCreateInput | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -142,7 +133,7 @@ export default function EditPoPage() {
     if (!poId) return;
     (async () => {
       try {
-        const [po, comps, units, vens, usersList, hsnRows, uomRows] = await Promise.all([
+        const [po, comps, units, vens, usersList, hsnRows, uomRows, payRows, delRows] = await Promise.all([
           api<PoDetail>(`/api/po/${poId}`),
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
@@ -150,7 +141,11 @@ export default function EditPoPage() {
           api<TenantUser[]>("/api/tenant/users"),
           api<HsnRow[]>("/api/masters/hsn"),
           api<UomRow[]>("/api/masters/uoms"),
+          api<PaymentTermRow[]>("/api/masters/payment-terms"),
+          api<DeliveryTermRow[]>("/api/masters/delivery-terms"),
         ]);
+        setPaymentTermsList(payRows.filter((p) => p.isActive));
+        setDeliveryTermsList(delRows.filter((d) => d.isActive));
         if (po.status !== "draft") {
           setLoadError("Only draft POs can be edited. Submitted/approved POs need an Amendment instead.");
           return;
@@ -509,11 +504,9 @@ export default function EditPoPage() {
               <label className="label">F.O.R. delivery</label>
               <select className="input" value={form.forDelivery ?? ""} onChange={(e) => set("forDelivery", (e.target.value || null) as PoCreateInput["forDelivery"])}>
                 <option value="">— Select —</option>
-                <option value="ex_works">Ex Works</option>
-                <option value="for_plant">FOR Plant / Site</option>
-                <option value="cif">CIF</option>
-                <option value="annexure">Annexure</option>
-                <option value="upto_destination">Upto Destination</option>
+                {deliveryTermsList.map((d) => (
+                  <option key={d.id} value={d.code}>{d.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -529,15 +522,16 @@ export default function EditPoPage() {
               <div className="flex gap-2">
                 <select
                   className="input w-44 shrink-0"
-                  value={PAYMENT_TERMS_PRESETS.includes(form.paymentTerms as typeof PAYMENT_TERMS_PRESETS[number]) ? form.paymentTerms ?? "" : "Custom (type below)"}
+                  value={paymentTermsList.some((p) => p.label === form.paymentTerms) ? form.paymentTerms ?? "" : (form.paymentTerms ? PAYMENT_TERMS_CUSTOM : "")}
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (v === "Custom (type below)") set("paymentTerms", "");
+                    if (v === PAYMENT_TERMS_CUSTOM) set("paymentTerms", "");
                     else set("paymentTerms", v);
                   }}
                 >
                   <option value="">— Pick a preset —</option>
-                  {PAYMENT_TERMS_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  {paymentTermsList.map((p) => <option key={p.id} value={p.label}>{p.label}</option>)}
+                  <option value={PAYMENT_TERMS_CUSTOM}>{PAYMENT_TERMS_CUSTOM}</option>
                 </select>
                 <input
                   className="input flex-1"

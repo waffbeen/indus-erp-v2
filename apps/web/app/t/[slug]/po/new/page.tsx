@@ -26,22 +26,11 @@ interface Unit { id: string; companyId: string; name: string; code: string | nul
 interface TenantUser { id: string; fullName: string; email: string; isTenantAdmin: boolean; roleName: string; }
 interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
 interface UomRow { id: string; code: string; name: string; }
+interface PaymentTermRow { id: string; label: string; isActive: boolean }
+interface DeliveryTermRow { id: string; code: string; label: string; isActive: boolean }
 
-/** Standard payment terms — buyer can also type a custom value. */
-const PAYMENT_TERMS_PRESETS = [
-  "Net 7 days",
-  "Net 15 days",
-  "Net 30 days",
-  "Net 45 days",
-  "Net 60 days",
-  "Net 90 days",
-  "50% advance + 50% on delivery",
-  "100% advance",
-  "100% on delivery",
-  "Against proforma invoice",
-  "LC at sight",
-  "Custom (type below)",
-] as const;
+/** Sentinel for the "Custom" option in the payment-terms preset dropdown. */
+const PAYMENT_TERMS_CUSTOM = "Custom (type below)";
 
 /**
  * If both company GSTIN and supplier GSTIN are set, derive isInterstate from
@@ -75,6 +64,8 @@ export default function NewPoPage() {
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
   const [hsnList, setHsnList] = useState<HsnRow[]>([]);
   const [uomList, setUomList] = useState<UomRow[]>([]);
+  const [paymentTermsList, setPaymentTermsList] = useState<PaymentTermRow[]>([]);
+  const [deliveryTermsList, setDeliveryTermsList] = useState<DeliveryTermRow[]>([]);
   const [sourcePr, setSourcePr] = useState<{ prNumber: string | null; title: string } | null>(null);
 
   const [form, setForm] = useState<PoCreateInput>(emptyForm());
@@ -134,13 +125,15 @@ export default function NewPoPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [comps, units, vens, usersList, hsnRows, uomRows] = await Promise.all([
+        const [comps, units, vens, usersList, hsnRows, uomRows, payRows, delRows] = await Promise.all([
           api<Company[]>("/api/tenant/companies"),
           api<Unit[]>("/api/tenant/units"),
           api<{ items: VendorListItem[] }>("/api/vendors?pageSize=100"),
           api<TenantUser[]>("/api/tenant/users"),
           api<HsnRow[]>("/api/masters/hsn"),
           api<UomRow[]>("/api/masters/uoms"),
+          api<PaymentTermRow[]>("/api/masters/payment-terms"),
+          api<DeliveryTermRow[]>("/api/masters/delivery-terms"),
         ]);
         setCompanies(comps);
         setUnits(units);
@@ -148,6 +141,8 @@ export default function NewPoPage() {
         setTenantUsers(usersList);
         setHsnList(hsnRows);
         setUomList(uomRows);
+        setPaymentTermsList(payRows.filter((p) => p.isActive));
+        setDeliveryTermsList(delRows.filter((d) => d.isActive));
 
         if (fromPrId) {
           const draft = await api<{
@@ -598,11 +593,9 @@ export default function NewPoPage() {
               <label className="label">F.O.R. delivery</label>
               <select className="input" value={form.forDelivery ?? ""} onChange={(e) => set("forDelivery", (e.target.value || null) as PoCreateInput["forDelivery"])}>
                 <option value="">— Select —</option>
-                <option value="ex_works">Ex Works</option>
-                <option value="for_plant">FOR Plant / Site</option>
-                <option value="cif">CIF (Cost + Insurance + Freight)</option>
-                <option value="annexure">Annexure</option>
-                <option value="upto_destination">Upto Destination</option>
+                {deliveryTermsList.map((d) => (
+                  <option key={d.id} value={d.code}>{d.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -623,20 +616,22 @@ export default function NewPoPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="label">Payment terms</label>
-              {/* Dropdown of common Indian-procurement payment terms + free-text override.
-                  "Custom" makes the input editable; other options pre-fill the text input. */}
+              {/* Dropdown sourced from Masters → Payment Terms, plus a free-text
+                  override input. Picking a preset fills the input; typing in
+                  the input overrides the dropdown. */}
               <div className="flex gap-2">
                 <select
                   className="input w-44 shrink-0"
-                  value={PAYMENT_TERMS_PRESETS.includes(form.paymentTerms as typeof PAYMENT_TERMS_PRESETS[number]) ? form.paymentTerms ?? "" : "Custom (type below)"}
+                  value={paymentTermsList.some((p) => p.label === form.paymentTerms) ? form.paymentTerms ?? "" : (form.paymentTerms ? PAYMENT_TERMS_CUSTOM : "")}
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (v === "Custom (type below)") set("paymentTerms", "");
+                    if (v === PAYMENT_TERMS_CUSTOM) set("paymentTerms", "");
                     else set("paymentTerms", v);
                   }}
                 >
                   <option value="">— Pick a preset —</option>
-                  {PAYMENT_TERMS_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  {paymentTermsList.map((p) => <option key={p.id} value={p.label}>{p.label}</option>)}
+                  <option value={PAYMENT_TERMS_CUSTOM}>{PAYMENT_TERMS_CUSTOM}</option>
                 </select>
                 <input
                   className="input flex-1"

@@ -43,6 +43,7 @@ export const MODULES: ModuleDef[] = [
   // ---- MASTERS ----
   { key: "vendors",   shortLabel: "Vendors",name: "Vendors",     description: "Vendor master & rating", icon: "Users",   path: "/vendors", mvp: true,  gated: false, group: "procurement", showInSidebar: true, sortOrder: 40 },
   { key: "items",     shortLabel: "Items",  name: "Items",       description: "Item master & UOM",      icon: "Package", path: "/items",   mvp: true,  gated: false, group: "procurement", showInSidebar: true, sortOrder: 41 },
+  { key: "masters",   shortLabel: "Masters",name: "Masters",     description: "HSN, UoM, payment terms, taxonomy & more", icon: "Database", path: "/masters", mvp: true,  gated: false, group: "procurement", showInSidebar: true, sortOrder: 42 },
 
   // ---- FINANCE (post-MVP) ----
   { key: "capex",     shortLabel: "CAPEX",  name: "CAPEX",       description: "Capital expense tracking",     icon: "TrendingUp",   path: "/capex",     mvp: false, gated: true, group: "finance", showInSidebar: true, sortOrder: 50 },

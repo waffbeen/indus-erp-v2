@@ -215,6 +215,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 interface HsnRow { id: string; code: string; description: string | null; defaultGstRate: number | null; }
 interface UomRow { id: string; code: string; name: string; }
+interface SimpleMasterRow { id: string; name: string; code?: string | null }
 
 function ItemFormModal({
   open,
@@ -232,6 +233,10 @@ function ItemFormModal({
   const [errors, setErrors] = useState<FormErrorState>(emptyErrors);
   const [hsnList, setHsnList] = useState<HsnRow[]>([]);
   const [uomList, setUomList] = useState<UomRow[]>([]);
+  const [groups, setGroups] = useState<SimpleMasterRow[]>([]);
+  const [subGroups, setSubGroups] = useState<SimpleMasterRow[]>([]);
+  const [categoryList, setCategoryList] = useState<SimpleMasterRow[]>([]);
+  const [brandList, setBrandList] = useState<SimpleMasterRow[]>([]);
   const fe = errors.fields;
 
   // Load masters once on first open
@@ -239,12 +244,20 @@ function ItemFormModal({
     if (!open) return;
     (async () => {
       try {
-        const [hsn, uom] = await Promise.all([
+        const [hsn, uom, ig, isg, ic, br] = await Promise.all([
           api<HsnRow[]>("/api/masters/hsn"),
           api<UomRow[]>("/api/masters/uoms"),
+          api<SimpleMasterRow[]>("/api/masters/item-groups"),
+          api<SimpleMasterRow[]>("/api/masters/item-sub-groups"),
+          api<SimpleMasterRow[]>("/api/masters/item-categories"),
+          api<SimpleMasterRow[]>("/api/masters/brands"),
         ]);
         setHsnList(hsn);
         setUomList(uom);
+        setGroups(ig);
+        setSubGroups(isg);
+        setCategoryList(ic);
+        setBrandList(br);
       } catch {
         /* non-fatal — datalists just won't suggest */
       }
@@ -396,6 +409,7 @@ function ItemFormModal({
             <label className="label">Category</label>
             <input
               className="input"
+              list="item-categories-master"
               value={form.category ?? ""}
               onChange={(e) => set("category", e.target.value)}
               placeholder="Bearings"
@@ -420,6 +434,7 @@ function ItemFormModal({
             <label className="label">Item Group</label>
             <input
               className="input"
+              list="item-groups-master"
               value={form.itemGroupName ?? ""}
               onChange={(e) => set("itemGroupName", e.target.value)}
               placeholder="Raw Material / Spares / Consumables"
@@ -429,6 +444,7 @@ function ItemFormModal({
             <label className="label">Sub Group</label>
             <input
               className="input"
+              list="item-sub-groups-master"
               value={form.itemSubGroupName ?? ""}
               onChange={(e) => set("itemSubGroupName", e.target.value)}
               placeholder="Bearings / Belts / Lubricants"
@@ -526,6 +542,18 @@ function ItemFormModal({
           {uomList.map((u) => (
             <option key={u.id} value={u.code}>{u.name}</option>
           ))}
+        </datalist>
+        <datalist id="item-groups-master">
+          {groups.map((g) => <option key={g.id} value={g.name}>{g.code ?? ""}</option>)}
+        </datalist>
+        <datalist id="item-sub-groups-master">
+          {subGroups.map((s) => <option key={s.id} value={s.name}>{s.code ?? ""}</option>)}
+        </datalist>
+        <datalist id="item-categories-master">
+          {categoryList.map((c) => <option key={c.id} value={c.name}>{c.code ?? ""}</option>)}
+        </datalist>
+        <datalist id="item-brands-master">
+          {brandList.map((b) => <option key={b.id} value={b.name} />)}
         </datalist>
 
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted pt-2 border-t border-border">Type</p>
