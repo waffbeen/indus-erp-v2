@@ -40,6 +40,7 @@ export default function SettingsPage() {
 
   const [settings, setSettings] = useState<TenantSettings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   // Departments
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -138,6 +139,19 @@ export default function SettingsPage() {
       toast.error("Could not save", err instanceof ApiError ? err.message : "Try again");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function loadSampleData() {
+    if (seeding) return;
+    setSeeding(true);
+    try {
+      const r = await api<{ vendors: number; items: number; prs: number; pos: number }>("/api/tenant/sample-data", { method: "POST" });
+      toast.success("Sample data loaded", `${r.vendors} vendors, ${r.items} items, ${r.prs} requisitions, ${r.pos} orders. Refresh to see them.`);
+    } catch (err) {
+      toast.error("Could not load sample data", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setSeeding(false);
     }
   }
 
@@ -265,6 +279,17 @@ export default function SettingsPage() {
                 <dt className="text-muted">Role</dt>
                 <dd className="col-span-2 font-medium">{me?.isTenantAdmin ? "Workspace admin" : "Member"}</dd>
               </dl>
+              {isAdmin && (
+                <div className="mt-5 pt-5 border-t border-border flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold">Load sample data</p>
+                    <p className="text-[11.5px] text-muted">Fill this workspace with demo vendors, items and a live PR → PO chain to explore the app.</p>
+                  </div>
+                  <button className="btn btn-ghost btn-sm shrink-0" onClick={() => void loadSampleData()} disabled={seeding}>
+                    <Icon name="Sparkles" size={13} /> {seeding ? "Loading…" : "Load sample data"}
+                  </button>
+                </div>
+              )}
             </Card>
           )}
 

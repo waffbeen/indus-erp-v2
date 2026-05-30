@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireTenant } from "../middleware/tenant";
 import { Forbidden } from "../lib/errors";
 import * as service from "../services/tenant-meta.service";
+import * as sampleData from "../services/sample-data.service";
 
 export const tenantMetaRoutes: Router = Router();
 
@@ -98,6 +99,17 @@ tenantMetaRoutes.patch("/settings", async (req, res, next) => {
     const patch = settingsPatchSchema.parse(req.body ?? {});
     const next = await service.updateTenantSettings(req.tenant!.id, patch);
     res.json(next);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** POST /tenant/sample-data — fill the workspace with demo vendors/items + a PR->PO chain. */
+tenantMetaRoutes.post("/sample-data", async (req, res, next) => {
+  try {
+    if (!req.auth!.ta) throw Forbidden("admin_only", "Only workspace admins can load sample data");
+    const result = await sampleData.seedSampleData({ tenantId: req.tenant!.id, userId: req.auth!.sub });
+    res.json(result);
   } catch (err) {
     next(err);
   }

@@ -70,6 +70,8 @@ export default function SignupPage() {
 
           <p className="mt-8 text-xs text-muted text-center">
             Already have an account? <Link href="/login" className="font-semibold" style={{ color: "var(--primary)" }}>Sign in</Link>
+            <span className="mx-2">·</span>
+            <Link href="/pricing" className="font-semibold" style={{ color: "var(--primary)" }}>See plans</Link>
           </p>
         </div>
 
