@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "../config/env";
 import { logger } from "../lib/logger";
+import { resolveTenantMailConfig } from "./mail-settings.service";
 
 /**
  * Transactional email with two interchangeable transports:
@@ -43,8 +44,15 @@ function getSmtp(): Transporter | null {
   return smtpTransport;
 }
 
+/** Platform-level (env) mail configured? */
 export function isMailConfigured(): boolean {
   return Boolean(env.SMTP_HOST || env.RESEND_API_KEY);
+}
+
+/** Can this tenant send mail — via their OWN SMTP or the platform fallback? */
+export async function isMailConfiguredFor(tenantId?: string): Promise<boolean> {
+  if (tenantId && (await resolveTenantMailConfig(tenantId))) return true;
+  return isMailConfigured();
 }
 
 export interface MailMessage {
@@ -54,6 +62,8 @@ export interface MailMessage {
   html: string;
   cc?: string | string[];
   replyTo?: string;
+  /** When set, the tenant's own SMTP config (if any) is used in preference to the platform transport. */
+  tenantId?: string;
 }
 
 export async function sendMail(msg: MailMessage): Promise<boolean> {
@@ -62,7 +72,35 @@ export async function sendMail(msg: MailMessage): Promise<boolean> {
     return false;
   }
 
-  // 1) SMTP transport takes precedence when configured.
+  // 0) Per-tenant SMTP takes highest precedence when the tenant has configured one.
+  if (msg.tenantId) {
+    const cfg = await resolveTenantMailConfig(msg.tenantId);
+    if (cfg) {
+      try {
+        const transport = nodemailer.createTransport({
+          host: cfg.host,
+          port: cfg.port,
+          secure: cfg.secure,
+          auth: cfg.auth,
+        });
+        const info = await transport.sendMail({
+          from: cfg.from,
+          to: recipients,
+          cc: msg.cc,
+          replyTo: msg.replyTo,
+          subject: msg.subject,
+          html: msg.html,
+        });
+        logger.info({ messageId: info.messageId, to: msg.to, tenantId: msg.tenantId }, "mail_sent_tenant_smtp");
+        return true;
+      } catch (err) {
+        logger.error({ err, to: msg.to, tenantId: msg.tenantId }, "mail_send_error_tenant_smtp");
+        return false;
+      }
+    }
+  }
+
+  // 1) Platform SMTP transport when configured.
   const smtp = getSmtp();
   if (smtp) {
     try {

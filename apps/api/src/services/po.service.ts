@@ -958,6 +958,7 @@ export async function approvePo(id: string, ctx: ActorContext, comment?: string)
     const to = await userEmail(po.createdByUserId);
     if (!to) return;
     await sendMail({
+      tenantId: ctx.tenantId,
       to,
       subject: `PO ${po.poNumber ?? ""} approved`.trim(),
       html: renderEmail({
@@ -1012,6 +1013,7 @@ export async function rejectPo(id: string, ctx: ActorContext, comment?: string) 
     const to = await userEmail(po.createdByUserId);
     if (!to) return;
     await sendMail({
+      tenantId: ctx.tenantId,
       to,
       subject: `PO ${po.poNumber ?? ""} rejected`.trim(),
       html: renderEmail({
@@ -1057,8 +1059,8 @@ export async function sendToVendor(id: string, ctx: ActorContext, comment?: stri
   let emailStatus: "sent" | "no_email" | "smtp_not_configured" | "failed" = "no_email";
   if (vendor?.email) {
     try {
-      const { sendMail, isMailConfigured } = await import("./mail.service");
-      if (!isMailConfigured()) {
+      const { sendMail, isMailConfiguredFor } = await import("./mail.service");
+      if (!(await isMailConfiguredFor(ctx.tenantId))) {
         emailStatus = "smtp_not_configured";
       } else {
         const publicUrl = process.env.PUBLIC_WEB_URL || "";
@@ -1072,7 +1074,7 @@ export async function sendToVendor(id: string, ctx: ActorContext, comment?: stri
           vendorContact: vendor.contactPerson,
           publicUrl,
         });
-        await sendMail({ to: vendor.email, subject, html });
+        await sendMail({ to: vendor.email, subject, html, tenantId: ctx.tenantId });
         emailStatus = "sent";
       }
     } catch {
@@ -1093,6 +1095,7 @@ export async function sendToVendor(id: string, ctx: ActorContext, comment?: stri
     const to = await userEmail(po.createdByUserId);
     if (!to) return;
     await sendMail({
+      tenantId: ctx.tenantId,
       to,
       subject: `PO ${po.poNumber ?? ""} sent to vendor`.trim(),
       html: renderEmail({

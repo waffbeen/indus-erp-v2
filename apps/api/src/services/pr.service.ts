@@ -429,6 +429,7 @@ export async function submitPr(id: string, ctx: ActorContext, comment?: string) 
     const emails = await tenantApproverEmails(ctx.tenantId, ctx.userId);
     if (!emails.length) return;
     await sendMail({
+      tenantId: ctx.tenantId,
       to: emails,
       subject: `PR ${prNumber} awaiting your approval`,
       html: renderEmail({
@@ -531,6 +532,7 @@ export async function approvePr(id: string, ctx: ActorContext, comment?: string)
       const to = await userEmail(pr.requesterId);
       if (!to) return;
       await sendMail({
+        tenantId: ctx.tenantId,
         to,
         subject: `PR ${pr.prNumber ?? ""} approved`.trim(),
         html: renderEmail({
@@ -731,6 +733,7 @@ export async function rejectPr(id: string, ctx: ActorContext, comment?: string) 
     const to = await userEmail(pr.requesterId);
     if (!to) return;
     await sendMail({
+      tenantId: ctx.tenantId,
       to,
       subject: `PR ${pr.prNumber ?? ""} rejected`.trim(),
       html: renderEmail({

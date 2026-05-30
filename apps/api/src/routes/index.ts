@@ -17,6 +17,7 @@ import { valuationRoutes, reorderRoutes, locationRoutes, stockCountRoutes } from
 import { vendorInvoiceRoutes } from "./vendor-invoice.routes";
 import { paymentRoutes } from "./payment.routes";
 import { aiRoutes } from "./ai.routes";
+import { mailRoutes } from "./mail.routes";
 
 export const apiRouter: Router = Router();
 
@@ -45,3 +46,4 @@ apiRouter.use("/stock-counts", stockCountRoutes);
 apiRouter.use("/vendor-invoices", vendorInvoiceRoutes);
 apiRouter.use("/payments", paymentRoutes);
 apiRouter.use("/ai", aiRoutes);
+apiRouter.use("/mail", mailRoutes);

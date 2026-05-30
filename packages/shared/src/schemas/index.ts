@@ -14,3 +14,4 @@ export * from "./stock-count";
 export * from "./vendor-invoice";
 export * from "./payment";
 export * from "./ai";
+export * from "./mail-settings";
