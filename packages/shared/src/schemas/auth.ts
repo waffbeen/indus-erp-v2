@@ -24,6 +24,15 @@ export const signupRequestSchema = z.object({
 });
 export type SignupRequestInput = z.infer<typeof signupRequestSchema>;
 
+/** Self-serve account creation — provisions a new workspace + admin user. */
+export const registerSchema = z.object({
+  fullName: z.string().trim().min(2, "Enter your full name").max(100),
+  email: emailSchema,
+  password: passwordSchema,
+  organizationName: z.string().trim().min(2, "Enter a workspace name").max(120),
+});
+export type RegisterInput = z.infer<typeof registerSchema>;
+
 export const passwordResetRequestSchema = z.object({
   email: emailSchema,
 });

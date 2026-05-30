@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useAuth } from "@/lib/auth";
@@ -142,7 +143,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-8 text-xs text-muted text-center">
-            New to Indus? <a href="#" className="font-semibold text-primary">Request access</a>
+            New here? <Link href="/signup" className="font-semibold text-primary">Create a workspace</Link>
           </p>
         </div>
 

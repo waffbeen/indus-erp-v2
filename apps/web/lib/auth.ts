@@ -9,6 +9,7 @@ interface AuthState {
   setMe: (me: Me | null) => void;
   hydrate: () => Promise<void>;
   login: (input: { email: string; password: string; keepSignedIn?: boolean }) => Promise<void>;
+  register: (input: { fullName: string; email: string; password: string; organizationName: string }) => Promise<Me>;
   logout: () => Promise<void>;
 }
 
@@ -41,6 +42,21 @@ export const useAuth = create<AuthState>((set, get) => ({
       );
       setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
       set({ me: result.me, hydrated: true });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  register: async (input) => {
+    set({ loading: true });
+    try {
+      const result = await api<{ accessToken: string; refreshToken: string; me: Me }>(
+        "/api/auth/register",
+        { method: "POST", body: JSON.stringify(input) },
+      );
+      setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+      set({ me: result.me, hydrated: true });
+      return result.me;
     } finally {
       set({ loading: false });
     }

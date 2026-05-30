@@ -1,6 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { loginSchema, refreshSchema } from "@indus/shared";
+import { loginSchema, refreshSchema, registerSchema } from "@indus/shared";
 import * as authService from "../services/auth.service";
 import { requireAuth } from "../middleware/auth";
 import { verifyRefreshToken } from "../lib/jwt";
@@ -24,6 +24,19 @@ authRoutes.post("/login", authLimiter, async (req, res, next) => {
       userAgent: req.headers["user-agent"] ?? undefined,
     });
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRoutes.post("/register", authLimiter, async (req, res, next) => {
+  try {
+    const input = registerSchema.parse(req.body);
+    const result = await authService.register(input, {
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"] ?? undefined,
+    });
+    res.status(201).json(result);
   } catch (err) {
     next(err);
   }

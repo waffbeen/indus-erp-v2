@@ -1,7 +1,10 @@
 import { eq, and, isNull, gt } from "drizzle-orm";
 import { db } from "../db/index";
 import { users } from "../db/schema/users";
-import { tenants } from "../db/schema/tenants";
+import { tenants, tenantModules } from "../db/schema/tenants";
+import { tenantSubscriptions } from "../db/schema/modules";
+import { companies } from "../db/schema/companies";
+import { units } from "../db/schema/units";
 import { memberships } from "../db/schema/memberships";
 import { roles } from "../db/schema/roles";
 import { sessions } from "../db/schema/sessions";
@@ -14,8 +17,8 @@ import {
   hashRefreshToken,
 } from "../lib/jwt";
 import { BadRequest, Forbidden, Unauthorized } from "../lib/errors";
-import type { LoginInput, Me } from "@indus/shared";
-import { MODULES } from "@indus/shared";
+import type { LoginInput, Me, RegisterInput } from "@indus/shared";
+import { MODULES, SYSTEM_ROLES } from "@indus/shared";
 import { logger } from "../lib/logger";
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -165,6 +168,165 @@ export async function login(input: LoginInput, ctx: LoginContext = {}): Promise<
   logger.info({ userId: user.id, tenantId: tenant?.id, sessionId: session.id }, "user_logged_in");
 
   const me = await buildMe(user, chosen);
+
+  return {
+    accessToken: access.token,
+    refreshToken: refresh.token,
+    accessExpiresAt: access.expiresAt.toISOString(),
+    me,
+  };
+}
+
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "workspace"
+  );
+}
+
+const RESERVED_SLUGS = new Set(["system", "admin", "api", "app", "www", "login", "signup", "t", "static"]);
+
+async function uniqueSlug(base: string): Promise<string> {
+  const root = slugify(base);
+  let candidate = RESERVED_SLUGS.has(root) ? `${root}-1` : root;
+  for (let i = 0; i < 200; i++) {
+    const [hit] = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.slug, candidate)).limit(1);
+    if (!hit) return candidate;
+    candidate = `${root}-${i + 2}`;
+  }
+  return `${root}-${Date.now().toString(36)}`;
+}
+
+/**
+ * Self-serve registration: provisions a brand-new workspace (tenant + trial
+ * subscription + MVP modules + system roles + a company + a unit) and an admin
+ * user, all in one transaction, then auto-logs the user in (same result shape as
+ * login). No invite required.
+ */
+export async function register(input: RegisterInput, ctx: LoginContext = {}): Promise<AuthResult> {
+  const email = input.email.toLowerCase().trim();
+
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  if (existing) {
+    throw BadRequest("email_taken", "An account with this email already exists. Try signing in instead.");
+  }
+
+  const slug = await uniqueSlug(input.organizationName);
+  const passwordHash = await hashPassword(input.password);
+  const mvpModuleKeys = MODULES.filter((m) => m.mvp).map((m) => m.key);
+  const orgName = input.organizationName.trim();
+
+  const provisioned = await db.transaction(async (tx) => {
+    const [tenant] = await tx
+      .insert(tenants)
+      .values({ slug, name: orgName, status: "trial" })
+      .returning();
+    if (!tenant) throw new Error("tenant_create_failed");
+
+    await tx.insert(tenantSubscriptions).values({
+      tenantId: tenant.id,
+      status: "trial",
+      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    });
+
+    for (const key of mvpModuleKeys) {
+      await tx.insert(tenantModules).values({ tenantId: tenant.id, moduleKey: key, enabled: true, activatedAt: new Date() });
+    }
+
+    let adminRole: typeof roles.$inferSelect | undefined;
+    for (const r of SYSTEM_ROLES) {
+      const [created] = await tx
+        .insert(roles)
+        .values({
+          tenantId: tenant.id,
+          key: r.key,
+          name: r.name,
+          description: r.description,
+          isSystem: true,
+          permissions: r.permissions,
+          moduleKeys: mvpModuleKeys,
+        })
+        .returning();
+      if (created && r.key === "tenant_admin") adminRole = created;
+    }
+    if (!adminRole) throw new Error("admin_role_missing");
+
+    const [company] = await tx
+      .insert(companies)
+      .values({ tenantId: tenant.id, name: orgName, country: "IN", isPrimary: true })
+      .returning({ id: companies.id });
+    if (!company) throw new Error("company_create_failed");
+
+    const [unit] = await tx
+      .insert(units)
+      .values({ tenantId: tenant.id, companyId: company.id, name: "Head Office", code: "HO-01", type: "office" })
+      .returning({ id: units.id });
+    if (!unit) throw new Error("unit_create_failed");
+
+    const [user] = await tx
+      .insert(users)
+      .values({ email, passwordHash, fullName: input.fullName.trim(), status: "active", emailVerifiedAt: new Date() })
+      .returning();
+    if (!user) throw new Error("user_create_failed");
+
+    const [membership] = await tx
+      .insert(memberships)
+      .values({
+        tenantId: tenant.id,
+        userId: user.id,
+        roleId: adminRole.id,
+        companyId: company.id,
+        unitId: unit.id,
+        isTenantAdmin: true,
+        status: "active",
+        acceptedAt: new Date(),
+      })
+      .returning();
+    if (!membership) throw new Error("membership_create_failed");
+
+    return { tenant, role: adminRole, membership, user };
+  });
+
+  const { tenant, role, membership, user } = provisioned;
+
+  const access = signAccessToken({ sub: user.id, tid: tenant.id, tsl: tenant.slug, sa: false, ta: true });
+
+  const [session] = await db
+    .insert(sessions)
+    .values({
+      userId: user.id,
+      refreshTokenHash: "pending",
+      userAgent: ctx.userAgent,
+      ipAddress: ctx.ipAddress,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    })
+    .returning({ id: sessions.id });
+  if (!session) throw new Error("Failed to create session");
+
+  const refresh = signRefreshToken({ sub: user.id, sid: session.id });
+  await db
+    .update(sessions)
+    .set({ refreshTokenHash: refresh.tokenHash, expiresAt: refresh.expiresAt, lastUsedAt: new Date() })
+    .where(eq(sessions.id, session.id));
+
+  await db.insert(auditLogs).values({
+    tenantId: tenant.id,
+    actorUserId: user.id,
+    actorEmail: user.email,
+    action: "register",
+    resourceType: "tenant",
+    resourceId: tenant.id,
+    ipAddress: ctx.ipAddress,
+    userAgent: ctx.userAgent,
+  });
+
+  logger.info({ userId: user.id, tenantId: tenant.id, slug: tenant.slug }, "tenant_registered");
+
+  const me = await buildMe(user, { membership, tenant, role });
 
   return {
     accessToken: access.token,
