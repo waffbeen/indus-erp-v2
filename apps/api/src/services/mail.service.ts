@@ -1,29 +1,50 @@
 import { Resend } from "resend";
+import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "../config/env";
 import { logger } from "../lib/logger";
 
 /**
- * Transactional email on Resend.
+ * Transactional email with two interchangeable transports:
+ *  1. SMTP (preferred when SMTP_HOST is set) — send from an existing mailbox,
+ *     e.g. the same account the legacy app used.
+ *  2. Resend (when RESEND_API_KEY is set and SMTP is not).
  *
  * Design rules:
- *  - When RESEND_API_KEY is absent the service no-ops gracefully (logs a
- *    warning) so dev / pre-config environments still work end-to-end.
- *  - sendMail is fire-and-forget: it NEVER throws into the caller. A mail
- *    failure must not roll back a business action (an approval or a receipt).
- *    Callers get a boolean back if they care, or can `void sendMail(...)`.
+ *  - When NEITHER is configured, every send is a graceful no-op (logged) so dev
+ *    / pre-config environments still work end-to-end.
+ *  - sendMail is fire-and-forget: it NEVER throws into the caller. A mail failure
+ *    must not roll back a business action (an approval or a receipt). Callers get
+ *    a boolean if they care, or can `void sendMail(...)`.
  */
 
-let cached: Resend | null = null;
+let resendClient: Resend | null = null;
+// `undefined` = not yet resolved, `null` = SMTP not configured.
+let smtpTransport: Transporter | null | undefined;
 
-function getClient(): Resend | null {
-  if (cached) return cached;
+function getResend(): Resend | null {
+  if (resendClient) return resendClient;
   if (!env.RESEND_API_KEY) return null;
-  cached = new Resend(env.RESEND_API_KEY);
-  return cached;
+  resendClient = new Resend(env.RESEND_API_KEY);
+  return resendClient;
+}
+
+function getSmtp(): Transporter | null {
+  if (smtpTransport !== undefined) return smtpTransport;
+  if (!env.SMTP_HOST) {
+    smtpTransport = null;
+    return null;
+  }
+  smtpTransport = nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE, // true for 465; false for 587/STARTTLS
+    auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined,
+  });
+  return smtpTransport;
 }
 
 export function isMailConfigured(): boolean {
-  return !!env.RESEND_API_KEY;
+  return Boolean(env.SMTP_HOST || env.RESEND_API_KEY);
 }
 
 export interface MailMessage {
@@ -41,14 +62,34 @@ export async function sendMail(msg: MailMessage): Promise<boolean> {
     return false;
   }
 
-  const client = getClient();
-  if (!client) {
-    logger.warn({ to: msg.to, subject: msg.subject }, "resend_not_configured_logging_only");
-    return false;
+  // 1) SMTP transport takes precedence when configured.
+  const smtp = getSmtp();
+  if (smtp) {
+    try {
+      const info = await smtp.sendMail({
+        from: env.MAIL_FROM,
+        to: recipients,
+        cc: msg.cc,
+        replyTo: msg.replyTo,
+        subject: msg.subject,
+        html: msg.html,
+      });
+      logger.info({ messageId: info.messageId, to: msg.to }, "mail_sent_smtp");
+      return true;
+    } catch (err) {
+      logger.error({ err, to: msg.to }, "mail_send_error_smtp");
+      return false;
+    }
   }
 
+  // 2) Resend fallback.
+  const resend = getResend();
+  if (!resend) {
+    logger.warn({ to: msg.to, subject: msg.subject }, "mail_not_configured_logging_only");
+    return false;
+  }
   try {
-    const { data, error } = await client.emails.send({
+    const { data, error } = await resend.emails.send({
       from: env.MAIL_FROM,
       to: recipients,
       cc: msg.cc,
@@ -61,7 +102,7 @@ export async function sendMail(msg: MailMessage): Promise<boolean> {
       logger.error({ err: error, to: msg.to }, "mail_send_failed");
       return false;
     }
-    logger.info({ messageId: data?.id, to: msg.to }, "mail_sent");
+    logger.info({ messageId: data?.id, to: msg.to }, "mail_sent_resend");
     return true;
   } catch (err) {
     // Never propagate — a mail failure must not break the calling flow.

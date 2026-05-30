@@ -26,9 +26,40 @@ export type AiChatRequest = z.infer<typeof aiChatRequestSchema>;
 export const aiChatResponseSchema = z.object({
   /** The assistant's natural-language answer. */
   reply: z.string(),
-  /** False when ANTHROPIC_API_KEY is absent — UI shows a friendly "not configured" hint. */
+  /** False when no AI key (tenant or platform) is configured — UI shows a "not configured" hint. */
   configured: z.boolean(),
   /** Names of the read-only tools the assistant invoked to answer (for transparency). */
   toolsUsed: z.array(z.string()).default([]),
 });
 export type AiChatResponse = z.infer<typeof aiChatResponseSchema>;
+
+/**
+ * Per-tenant AI provider settings ("bring your own key"). A tenant admin picks a
+ * provider and pastes their API key; it's stored encrypted server-side and used
+ * automatically — no env change or redeploy. The raw key never comes back from
+ * the server; only a masked last-4 + a `configured` flag do.
+ */
+export const aiProviderSchema = z.enum(["gemini", "anthropic", "openai"]);
+export type AiProvider = z.infer<typeof aiProviderSchema>;
+
+/** Write contract. `apiKey` is optional so an admin can change just the model
+ *  without re-entering the key (omit it to keep the stored one). */
+export const aiSettingsUpdateSchema = z.object({
+  provider: aiProviderSchema,
+  apiKey: z.string().trim().min(10, "That key looks too short").max(400).optional(),
+  model: z.string().trim().max(100).optional().nullable(),
+});
+export type AiSettingsUpdate = z.infer<typeof aiSettingsUpdateSchema>;
+
+/** Read contract (safe to send to the browser — no raw key). */
+export const aiSettingsViewSchema = z.object({
+  provider: aiProviderSchema,
+  model: z.string().nullable(),
+  /** True when the assistant can run — either a tenant key or a platform fallback exists. */
+  configured: z.boolean(),
+  /** Where the active key comes from. */
+  source: z.enum(["tenant", "platform", "none"]),
+  /** Last 4 chars of the tenant's stored key, or null if none stored. */
+  last4: z.string().nullable(),
+});
+export type AiSettingsView = z.infer<typeof aiSettingsViewSchema>;

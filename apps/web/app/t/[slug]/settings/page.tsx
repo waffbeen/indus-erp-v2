@@ -18,6 +18,13 @@ interface TenantSettings {
 
 interface Department { id: string; name: string; code: string | null; unitId: string | null; }
 interface Unit { id: string; companyId: string; name: string; code: string | null; }
+interface AiSettings {
+  provider: "gemini" | "anthropic" | "openai";
+  model: string | null;
+  configured: boolean;
+  source: "tenant" | "platform" | "none";
+  last4: string | null;
+}
 
 export default function SettingsPage() {
   const { me } = useAuth();
@@ -32,12 +39,26 @@ export default function SettingsPage() {
   const [newDeptUnitId, setNewDeptUnitId] = useState("");
   const [addingDept, setAddingDept] = useState(false);
 
+  // AI assistant — bring-your-own-key
+  const [ai, setAi] = useState<AiSettings | null>(null);
+  const [aiProvider, setAiProvider] = useState<"gemini" | "anthropic" | "openai">("gemini");
+  const [aiKey, setAiKey] = useState("");
+  const [aiModel, setAiModel] = useState("");
+  const [aiSaving, setAiSaving] = useState(false);
+
   useEffect(() => {
     api<TenantSettings>("/api/tenant/settings")
       .then(setSettings)
       .catch(() => setSettings({}));
     refreshDepartments();
     api<Unit[]>("/api/tenant/units").then(setUnits).catch(() => setUnits([]));
+    api<AiSettings>("/api/ai/settings")
+      .then((s) => {
+        setAi(s);
+        setAiProvider(s.provider);
+        setAiModel(s.model ?? "");
+      })
+      .catch(() => setAi(null));
   }, []);
 
   function refreshDepartments() {
@@ -104,6 +125,30 @@ export default function SettingsPage() {
 
   async function setPrLevels(n: number) {
     await patchSettings({ approval: { prLevels: n } });
+  }
+
+  async function saveAiSettings(e: FormEvent) {
+    e.preventDefault();
+    if (aiSaving) return;
+    setAiSaving(true);
+    try {
+      const body: { provider: string; apiKey?: string; model?: string | null } = {
+        provider: aiProvider,
+        model: aiModel.trim() || null,
+      };
+      if (aiKey.trim()) body.apiKey = aiKey.trim();
+      const next = await api<AiSettings>("/api/ai/settings", {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      setAi(next);
+      setAiKey("");
+      toast.success("AI settings saved", next.configured ? "Assistant is ready." : undefined);
+    } catch (err) {
+      toast.error("Could not save", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setAiSaving(false);
+    }
   }
 
   const batchOn = settings?.grn?.batchMode ?? false;
@@ -271,6 +316,92 @@ export default function SettingsPage() {
           </p>
         )}
       </div>
+
+      {me?.isTenantAdmin && (
+        <div className="card p-6">
+          <h2 className="font-semibold mb-1 flex items-center gap-2">
+            <Icon name="Sparkles" size={16} /> AI Assistant
+          </h2>
+          <p className="text-sm text-muted mb-4">
+            Power <strong className="text-text-default">&ldquo;Ask your ERP&rdquo;</strong> with your own AI key.
+            Pick a provider and paste an API key — it&rsquo;s stored encrypted and used immediately, no redeploy.
+            Each workspace can bring its own key.
+          </p>
+
+          <div className="mb-4">
+            {ai?.configured ? (
+              <span className="badge badge-success text-[11px]">
+                Active — {ai.source === "tenant" ? "your key" : "platform key"}
+                {ai.last4 ? ` ••••${ai.last4}` : ""}
+              </span>
+            ) : (
+              <span className="badge badge-warning text-[11px]">Not configured</span>
+            )}
+          </div>
+
+          <form onSubmit={saveAiSettings} className="space-y-3">
+            <div className="flex flex-wrap gap-3">
+              <div className="w-48">
+                <label className="label">Provider</label>
+                <select
+                  className="input"
+                  value={aiProvider}
+                  onChange={(e) => setAiProvider(e.target.value as "gemini" | "anthropic" | "openai")}
+                >
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI (ChatGPT)</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="label">Model (optional)</label>
+                <input
+                  className="input font-mono"
+                  placeholder={
+                    aiProvider === "gemini"
+                      ? "gemini-2.0-flash"
+                      : aiProvider === "openai"
+                        ? "gpt-4o-mini"
+                        : "claude-opus-4-8"
+                  }
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="label">API key</label>
+              <input
+                type="password"
+                className="input font-mono"
+                autoComplete="off"
+                placeholder={
+                  ai?.last4
+                    ? `•••••••• saved (ending ${ai.last4}) — leave blank to keep`
+                    : aiProvider === "gemini"
+                      ? "Paste your Google AI Studio API key"
+                      : aiProvider === "openai"
+                        ? "Paste your OpenAI API key (sk-…)"
+                        : "Paste your Anthropic API key"
+                }
+                value={aiKey}
+                onChange={(e) => setAiKey(e.target.value)}
+              />
+              <p className="text-[11px] text-muted mt-1">
+                {aiProvider === "gemini"
+                  ? "Free key at aistudio.google.com/app/apikey."
+                  : aiProvider === "openai"
+                    ? "Key at platform.openai.com/api-keys."
+                    : "Key at console.anthropic.com."}{" "}
+                Stored encrypted; never shown again.
+              </p>
+            </div>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={aiSaving}>
+              <Icon name="Save" size={13} /> {aiSaving ? "Saving…" : "Save AI settings"}
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="card p-6">
         <h2 className="font-semibold mb-1">Appearance</h2>

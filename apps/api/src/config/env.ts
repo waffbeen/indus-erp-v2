@@ -33,12 +33,42 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   /**
    * From address used on outgoing mail. Resend requires either a verified
-   * domain or their shared sandbox sender (onboarding@resend.dev). Override in
-   * production once your domain is verified.
+   * domain or their shared sandbox sender (onboarding@resend.dev). For SMTP use
+   * a real mailbox you own (e.g. "Indus ERP <noreply@yourdomain.com>").
    */
   MAIL_FROM: z.string().default("Indus ERP <onboarding@resend.dev>"),
   /** Used for return links in emails — e.g. "https://prathvis-erp.vercel.app". */
   PUBLIC_WEB_URL: z.string().optional(),
+
+  /**
+   * SMTP transport (preferred over Resend when SMTP_HOST is set). Lets you send
+   * from an existing mailbox (e.g. the same one the legacy app used). When none
+   * of SMTP_HOST / RESEND_API_KEY is configured, mail sends are graceful no-ops.
+   */
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => v === true || v === "true" || v === "1"),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+
+  /**
+   * AI assistant — platform-level fallback keys, used when a tenant has not
+   * stored their own key in `tenant_ai_settings`. Each tenant can override these
+   * with their own key from the Settings screen (no redeploy needed).
+   */
+  GEMINI_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  /** Default provider when only platform keys are present: gemini | anthropic | openai. */
+  AI_DEFAULT_PROVIDER: z.enum(["gemini", "anthropic", "openai"]).optional(),
+  GEMINI_MODEL: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().optional(),
+  /** Secret used to encrypt stored per-tenant API keys. Falls back to JWT_ACCESS_SECRET. */
+  AI_KEY_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

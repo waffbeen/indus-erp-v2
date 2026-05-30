@@ -38,3 +38,4 @@ export * from "./stock_counts";
 export * from "./vendor_invoices";
 export * from "./payments";
 export * from "./ai_conversations";
+export * from "./tenant_ai_settings";
