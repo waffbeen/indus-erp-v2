@@ -1,0 +1,43 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Stack: Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo. There is a STRATEGY.md at the repo root — skim §2 and §5 for context.
+
+=== IMPORTANT: 4 OTHER AGENTS ARE EDITING THIS REPO AT THE SAME TIME. OBEY THESE RULES ===
+1. STAY IN YOUR LANE. Only create/edit files in your "YOU OWN" list. Never edit another tab's files or anything in "DO NOT TOUCH".
+2. SHARED REGISTRY FILES are append-only. If you must edit one of these, RE-READ it first, then add ONLY your one/two lines at the end of the relevant list; never reorder/reformat/remove other lines. If an Edit fails because the file changed, re-read and re-apply just your line. The shared files are:
+   - apps/api/src/db/schema/index.ts
+   - apps/api/src/routes/index.ts
+   - packages/shared/src/schemas/index.ts
+   - packages/shared/src/constants/modules.ts
+3. DO NOT RUN any of these (they cause cross-tab conflicts; they are done later in one consolidation pass): pnpm install / pnpm add ; pnpm db:generate / db:migrate / db:push ; anything that rewrites pnpm-lock.yaml ; edits to apps/api/src/db/seed.ts. If you need a new npm package, DO NOT install it — write the import and append a line "NEEDS DEP: <pkg>" to PARALLEL_BUILD_NOTES.md (create it if absent; it is append-only).
+4. FOLLOW EXISTING PATTERNS. Money = paise (integer, often stored as text); quantities = scaled x1000. Every business table has tenantId + soft-delete (deletedAt). Every query filters by tenantId. Wrap multi-row writes in db.transaction().
+5. SELF-CHECK with: pnpm --filter @indus/api typecheck. New-dependency imports may not type-check until consolidation installs them — that's OK, note them and continue. Do NOT run the dev server or migrations.
+6. SCOPE DISCIPLINE. Build exactly what is asked. Do not refactor unrelated code or touch another lane. End with a short summary of what you changed.
+=================================================================================
+
+YOUR MISSION (Phase 0 — make the existing backend correct, atomic, safe, observable):
+
+A. GRN atomicity + type fix (highest priority)
+   - apps/api/src/services/grn.service.ts has a DUPLICATE import of `purchaseOrders` (imported ~line 4 alongside poItems, and AGAIN ~line 12). Remove the duplicate import line.
+   - Wrap the body of createGrn() in a single db.transaction(): the grns insert, the grnItems insert, poService.refreshPoReceivedStatus, stockService.recordGrnAcceptances, and the auditLogs insert must all commit or roll back together. (Keep the existing stock posting — it already works; you are only making it atomic.) Notifications/email may stay OUTSIDE the transaction (a mail failure must not roll back a receipt).
+   - Wrap cancelGrn() similarly (status update + reverseGrnMovements + audit) in one transaction.
+
+B. Restore type safety
+   - Run: pnpm --filter @indus/api typecheck. Fix EVERY error it reports (likely in auth.service.ts, item.service.ts, vendor.service.ts, grn.service.ts). Fix the real type — avoid `any` unless truly unavoidable.
+   - In apps/web/next.config.mjs there is typescript.ignoreBuildErrors and eslint.ignoreDuringBuilds. Leave a clear TODO comment that these should be removed once web type-checks clean, but DO NOT flip them yet (web may not compile until other tabs finish). Only remove ignoreBuildErrors if `pnpm --filter @indus/web typecheck` is ALREADY clean.
+
+C. Email delivery (Resend)
+   - Implement apps/api/src/services/mail.service.ts using Resend. RESEND_API_KEY is in .env (if missing, check .env.example). Export an async sendMail({to, subject, html}) that no-ops gracefully (logs a warning) when the key is absent, so dev without a key still works. All sends are fire-and-forget (never throw into the caller). NEEDS DEP: resend (note it, do not install).
+   - Wire emails at the existing notification points in pr.service.ts and po.service.ts: PR submitted -> email approvers; PR/PO approved or rejected -> email the requester; PO sent to vendor -> email the PO creator. Reuse data already gathered there. Simple HTML; include the resource number and a link placeholder.
+
+D. Security hardening (apps/api)
+   - In app.ts / middleware: tighten CORS to read allowed origins from env (WEB_ORIGIN), not a wildcard. Add login rate limiting on POST /auth/login (NEEDS DEP: express-rate-limit, note it; or a tiny in-memory limiter if you prefer no dep). Ensure any auth cookies use httpOnly + secure + sameSite in production.
+   - Create a SECURITY_TODO.md at repo root listing ops tasks that can't be done in code (rotate Neon password, rotate JWT secrets, change default admin password ChangeMe!2026, split a dedicated prod DB). DO NOT put any real secrets in it.
+
+YOU OWN (create/edit only these):
+   apps/api/src/services/ : grn.service.ts, stock.service.ts, mail.service.ts, pr.service.ts, po.service.ts, auth.service.ts, item.service.ts, vendor.service.ts
+   apps/api/src/app.ts, apps/api/src/middleware/*, apps/api/src/config/env.ts
+   apps/web/next.config.mjs
+   New file: SECURITY_TODO.md (root)
+
+DO NOT TOUCH: any db/schema files (no new tables), any NEW domain files (invoices, payments, inventory extras, ai), seed.ts, package.json, pnpm-lock.yaml.
+
+DONE WHEN: pnpm --filter @indus/api typecheck is clean; createGrn/cancelGrn are transactional; mail.service is implemented and wired; CORS + rate-limit + cookie flags done; SECURITY_TODO.md written. Summarize what changed and list any NEEDS DEP notes you added.

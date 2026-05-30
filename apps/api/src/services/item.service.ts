@@ -136,7 +136,7 @@ export async function createItem(input: ItemCreateInput, ctx: ActorContext) {
     .values({
       tenantId: ctx.tenantId,
       code,
-      ...(data as object),
+      ...data,
     })
     .returning();
 
@@ -163,7 +163,7 @@ export async function updateItem(id: string, input: ItemUpdateInput, ctx: ActorC
 
   const [updated] = await db
     .update(items)
-    .set({ ...(data as object), updatedAt: new Date() })
+    .set({ ...data, updatedAt: new Date() })
     .where(and(eq(items.id, id), eq(items.tenantId, ctx.tenantId)))
     .returning();
 

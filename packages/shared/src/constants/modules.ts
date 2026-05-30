@@ -48,16 +48,25 @@ export const MODULES: ModuleDef[] = [
   // ---- FINANCE (post-MVP) ----
   { key: "capex",     shortLabel: "CAPEX",  name: "CAPEX",       description: "Capital expense tracking",     icon: "TrendingUp",   path: "/capex",     mvp: false, gated: true, group: "finance", showInSidebar: true, sortOrder: 50 },
   { key: "amc",       shortLabel: "AMC",    name: "AMC",         description: "Annual maintenance contracts", icon: "Wrench",       path: "/amc",       mvp: false, gated: true, group: "finance", showInSidebar: true, sortOrder: 51 },
-  { key: "payments",  shortLabel: "Pay",    name: "Payments",    description: "Vendor payments & invoices",   icon: "IndianRupee",  path: "/payments",  mvp: false, gated: true, group: "finance", showInSidebar: true, sortOrder: 52 },
+  { key: "payments",  shortLabel: "Pay",    name: "Payments",    description: "Vendor payments & invoices",   icon: "IndianRupee",  path: "/payments",  mvp: true,  gated: false, group: "finance", showInSidebar: true, sortOrder: 52 },
 
   // ---- INTELLIGENCE ----
   { key: "reports",   shortLabel: "Reports",name: "Reports",        description: "Standard & custom reports",      icon: "BarChart3", path: "/reports",  mvp: true,  gated: false, group: "intelligence", showInSidebar: true,  sortOrder: 60 },
-  { key: "ai_assist", shortLabel: "AI",     name: "AI Assistant",   description: "Procurement chat assistant",    icon: "Sparkles",  path: "/ai",       mvp: false, gated: true,  group: "intelligence", showInSidebar: true,  sortOrder: 61 },
+  { key: "ai_assist", shortLabel: "AI",     name: "AI Assistant",   description: "Procurement chat assistant",    icon: "Sparkles",  path: "/ai",       mvp: true,  gated: false, group: "intelligence", showInSidebar: true,  sortOrder: 61 },
   { key: "ai_predict",shortLabel: "Predict",name: "AI Predictions", description: "Stock & vendor risk forecasts", icon: "Brain",     path: "/ai/predict", mvp: false, gated: true,  group: "intelligence", showInSidebar: false, sortOrder: 62 },
 
   // ---- ADMIN (always at bottom) ----
   { key: "users",     shortLabel: "Team",   name: "Team",       description: "Members & invitations",      icon: "UsersRound", path: "/users",    mvp: true,  gated: false, group: "admin", showInSidebar: true, sortOrder: 98 },
   { key: "settings",  shortLabel: "Settings",name: "Settings",  description: "Workspace & user settings", icon: "Settings",   path: "/settings", mvp: true,  gated: false, group: "admin", showInSidebar: true, sortOrder: 99 },
+
+  // ---- INVENTORY (Phase 2 depth) ----
+  { key: "inventory_valuation", shortLabel: "Value",   name: "Stock Valuation", description: "Closing stock value (Weighted Avg / FIFO)", icon: "Calculator",     path: "/inventory/valuation", mvp: true, gated: false, group: "inventory", showInSidebar: true, sortOrder: 33 },
+  { key: "inventory_reorder",   shortLabel: "Reorder", name: "Reorder",         description: "Reorder dashboard & stocking policies",     icon: "TrendingDown",   path: "/inventory/reorder",   mvp: true, gated: false, group: "inventory", showInSidebar: true, sortOrder: 34 },
+  { key: "locations",           shortLabel: "Locs",    name: "Storage Locations", description: "Warehouse → zone → rack → bin hierarchy",  icon: "MapPin",         path: "/locations",           mvp: true, gated: false, group: "inventory", showInSidebar: true, sortOrder: 35 },
+  { key: "stock_count",         shortLabel: "Counts",  name: "Cycle Counts",    description: "Physical stock verification & adjustments", icon: "ClipboardCheck", path: "/stock-count",         mvp: true, gated: false, group: "inventory", showInSidebar: true, sortOrder: 36 },
+
+  // ---- FINANCE (Phase 1 AP) ----
+  { key: "invoices",            shortLabel: "Bills",   name: "Vendor Invoices", description: "Supplier bills & 3-way match",              icon: "ReceiptText",    path: "/invoices",            mvp: true, gated: false, group: "finance",   showInSidebar: true, sortOrder: 49 },
 ];
 
 export const MODULE_KEYS = MODULES.map((m) => m.key);

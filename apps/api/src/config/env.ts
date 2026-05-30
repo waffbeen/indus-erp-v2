@@ -26,15 +26,17 @@ const envSchema = z.object({
   JWT_REFRESH_TTL: z.string().default("7d"),
 
   /**
-   * Optional SMTP config — if all four are set, PO send-to-supplier emails go out.
-   * If any are missing, sends are no-ops (logged) so the app still works pre-config.
+   * Transactional email via Resend. When RESEND_API_KEY is absent, all sends
+   * are no-ops (logged) so the app still works in dev / pre-config without
+   * breaking approval or receipt flows.
    */
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().int().positive().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional(),
-  /** From address shown in vendor inbox. Falls back to SMTP_USER. */
-  SMTP_FROM: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  /**
+   * From address used on outgoing mail. Resend requires either a verified
+   * domain or their shared sandbox sender (onboarding@resend.dev). Override in
+   * production once your domain is verified.
+   */
+  MAIL_FROM: z.string().default("Indus ERP <onboarding@resend.dev>"),
   /** Used for return links in emails — e.g. "https://prathvis-erp.vercel.app". */
   PUBLIC_WEB_URL: z.string().optional(),
 });
@@ -54,3 +56,13 @@ export const allowedOrigins = env.WEB_ORIGIN
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+/**
+ * Build an absolute link back into the web app — used for "View" links in
+ * emails. Prefers PUBLIC_WEB_URL, falling back to the first allowed origin.
+ */
+export function appUrl(path = ""): string {
+  const base = (env.PUBLIC_WEB_URL || allowedOrigins[0] || "").replace(/\/+$/, "");
+  if (!base) return path;
+  return path ? `${base}/${path.replace(/^\/+/, "")}` : base;
+}

@@ -9,7 +9,6 @@ import { NotFound, BadRequest } from "../lib/errors";
 import * as poService from "./po.service";
 import * as stockService from "./stock.service";
 import { notifyUsers } from "./notification.service";
-import { purchaseOrders } from "../db/schema/po";
 import type { GrnCreateInput, GrnItemInput } from "@indus/shared";
 
 interface ListOpts { page?: number; pageSize?: number; status?: string; poId?: string; vendorId?: string; search?: string; }
@@ -204,67 +203,87 @@ export async function createGrn(input: GrnCreateInput, ctx: ActorContext) {
   const invoicePaise = input.invoiceAmount ? Math.round(input.invoiceAmount * 100).toString() : null;
   const derivedStatus = deriveStatusFromItems(input.items);
 
-  const [grn] = await db
-    .insert(grns)
-    .values({
-      tenantId: ctx.tenantId,
-      companyId: input.companyId,
-      unitId: input.unitId,
-      poId: input.poId,
-      vendorId: input.vendorId,
-      gateEntryId: input.gateEntryId ?? null,
-      receivedByUserId: ctx.userId,
-      grnNumber: number,
-      status: derivedStatus,
-      invoiceNumber: input.invoiceNumber ?? null,
-      invoiceDate: input.invoiceDate ? new Date(input.invoiceDate) : null,
-      invoiceAmountPaise: invoicePaise,
-      receivedDate: new Date(input.receivedDate),
-      remarks: input.remarks ?? null,
-    })
-    .returning();
+  // Atomic receipt: the GRN header, its line items, the PO-status refresh, the
+  // stock movements, and the audit entry all commit or roll back together. A
+  // partial failure must never leave stock posted without a GRN (or vice-versa).
+  const grn = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(grns)
+      .values({
+        tenantId: ctx.tenantId,
+        companyId: input.companyId,
+        unitId: input.unitId,
+        poId: input.poId,
+        vendorId: input.vendorId,
+        gateEntryId: input.gateEntryId ?? null,
+        receivedByUserId: ctx.userId,
+        grnNumber: number,
+        status: derivedStatus,
+        invoiceNumber: input.invoiceNumber ?? null,
+        invoiceDate: input.invoiceDate ? new Date(input.invoiceDate) : null,
+        invoiceAmountPaise: invoicePaise,
+        receivedDate: new Date(input.receivedDate),
+        remarks: input.remarks ?? null,
+      })
+      .returning();
 
-  if (!grn) throw new Error("Failed to create GRN");
+    if (!created) throw new Error("Failed to create GRN");
 
-  await db.insert(grnItems).values(
-    input.items.map((it, idx) => ({
-      grnId: grn.id,
-      poItemId: it.poItemId ?? null,
-      itemId: it.itemId ?? null,
-      itemName: it.itemName,
-      uom: it.uom,
-      orderedQuantityScaled: Math.round(it.orderedQuantity * 1000),
-      receivedQuantityScaled: Math.round(it.receivedQuantity * 1000),
-      acceptedQuantityScaled: Math.round(it.acceptedQuantity * 1000),
-      rejectedQuantityScaled: Math.round(it.rejectedQuantity * 1000),
-      unitPricePaise: Math.round(it.unitPrice * 100).toString(),
-      condition: it.condition,
-      remarks: it.remarks ?? null,
-      batchNumber: it.batchNumber?.trim() || null,
-      mfgDate: it.mfgDate ? new Date(it.mfgDate) : null,
-      expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
-      sortOrder: idx,
-    })),
-  );
-
-  // Update PO status based on cumulative received
-  await poService.refreshPoReceivedStatus(ctx.tenantId, input.poId);
-
-  // Increment stock for accepted qty (skip cancelled status — won't apply here
-  // since we always create as non-cancelled, but explicit for safety).
-  if (derivedStatus !== "rejected" && derivedStatus !== "cancelled") {
-    await stockService.recordGrnAcceptances(
-      ctx.tenantId,
-      grn.id,
-      number,
-      input.companyId,
-      input.unitId,
-      ctx.userId,
-      input.items,
+    await tx.insert(grnItems).values(
+      input.items.map((it, idx) => ({
+        grnId: created.id,
+        poItemId: it.poItemId ?? null,
+        itemId: it.itemId ?? null,
+        itemName: it.itemName,
+        uom: it.uom,
+        orderedQuantityScaled: Math.round(it.orderedQuantity * 1000),
+        receivedQuantityScaled: Math.round(it.receivedQuantity * 1000),
+        acceptedQuantityScaled: Math.round(it.acceptedQuantity * 1000),
+        rejectedQuantityScaled: Math.round(it.rejectedQuantity * 1000),
+        unitPricePaise: Math.round(it.unitPrice * 100).toString(),
+        condition: it.condition,
+        remarks: it.remarks ?? null,
+        batchNumber: it.batchNumber?.trim() || null,
+        mfgDate: it.mfgDate ? new Date(it.mfgDate) : null,
+        expiryDate: it.expiryDate ? new Date(it.expiryDate) : null,
+        sortOrder: idx,
+      })),
     );
-  }
 
-  // Notify the PO creator that a GRN was raised against their PO
+    // Update PO status based on cumulative received
+    await poService.refreshPoReceivedStatus(ctx.tenantId, input.poId, tx);
+
+    // Increment stock for accepted qty. `derivedStatus` can only be accepted /
+    // partially_accepted / rejected — skip the rejected-only case (nothing to post).
+    if (derivedStatus !== "rejected") {
+      await stockService.recordGrnAcceptances(
+        ctx.tenantId,
+        created.id,
+        number,
+        input.companyId,
+        input.unitId,
+        ctx.userId,
+        input.items,
+        tx,
+      );
+    }
+
+    await tx.insert(auditLogs).values({
+      tenantId: ctx.tenantId,
+      actorUserId: ctx.userId,
+      action: "create",
+      resourceType: "grn",
+      resourceId: created.id,
+      ipAddress: ctx.ipAddress,
+      userAgent: ctx.userAgent,
+      after: { number, poId: created.poId, items: input.items.length } as Record<string, unknown>,
+    });
+
+    return created;
+  });
+
+  // Notify the PO creator that a GRN was raised against their PO. Kept OUTSIDE
+  // the transaction — a notification failure must not roll back a real receipt.
   const [po] = await db
     .select({ createdByUserId: purchaseOrders.createdByUserId, poNumber: purchaseOrders.poNumber, title: purchaseOrders.title })
     .from(purchaseOrders)
@@ -283,17 +302,6 @@ export async function createGrn(input: GrnCreateInput, ctx: ActorContext) {
     });
   }
 
-  await db.insert(auditLogs).values({
-    tenantId: ctx.tenantId,
-    actorUserId: ctx.userId,
-    action: "create",
-    resourceType: "grn",
-    resourceId: grn.id,
-    ipAddress: ctx.ipAddress,
-    userAgent: ctx.userAgent,
-    after: { number, poId: grn.poId, items: input.items.length } as Record<string, unknown>,
-  });
-
   return grn;
 }
 
@@ -306,18 +314,22 @@ export async function cancelGrn(id: string, ctx: ActorContext) {
   if (!grn) throw NotFound("grn_not_found", "GRN not found");
   if (grn.status === "cancelled") return;
 
-  await db
-    .update(grns)
-    .set({ status: "cancelled", updatedAt: new Date() })
-    .where(eq(grns.id, id));
+  // Atomic cancel: the status flip, the PO-status refresh, the stock reversal,
+  // and the audit entry all commit or roll back together.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(grns)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(eq(grns.id, id));
 
-  await poService.refreshPoReceivedStatus(ctx.tenantId, grn.poId);
-  // Reverse stock movements so on-hand qty drops back to what it was.
-  await stockService.reverseGrnMovements(ctx.tenantId, id, ctx.userId);
+    await poService.refreshPoReceivedStatus(ctx.tenantId, grn.poId, tx);
+    // Reverse stock movements so on-hand qty drops back to what it was.
+    await stockService.reverseGrnMovements(ctx.tenantId, id, ctx.userId, tx);
 
-  await db.insert(auditLogs).values({
-    tenantId: ctx.tenantId, actorUserId: ctx.userId,
-    action: "cancel", resourceType: "grn", resourceId: id,
-    ipAddress: ctx.ipAddress, userAgent: ctx.userAgent,
+    await tx.insert(auditLogs).values({
+      tenantId: ctx.tenantId, actorUserId: ctx.userId,
+      action: "cancel", resourceType: "grn", resourceId: id,
+      ipAddress: ctx.ipAddress, userAgent: ctx.userAgent,
+    });
   });
 }

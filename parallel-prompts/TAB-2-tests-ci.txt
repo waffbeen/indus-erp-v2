@@ -1,0 +1,34 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Stack: Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo. There is a STRATEGY.md at the repo root — skim §5.4 and §10 for context.
+
+=== IMPORTANT: 4 OTHER AGENTS ARE EDITING THIS REPO AT THE SAME TIME. OBEY THESE RULES ===
+1. STAY IN YOUR LANE. Only create/edit files in your "YOU OWN" list. Never edit another tab's files or anything in "DO NOT TOUCH".
+2. SHARED REGISTRY FILES are append-only. If you must edit one, RE-READ it first, then add ONLY your line(s) at the end of the relevant list; never reorder/reformat/remove other lines. If an Edit fails because the file changed, re-read and re-apply just your line. Shared files: apps/api/src/db/schema/index.ts ; apps/api/src/routes/index.ts ; packages/shared/src/schemas/index.ts ; packages/shared/src/constants/modules.ts
+3. DO NOT RUN: pnpm install / pnpm add ; pnpm db:generate / db:migrate / db:push ; anything that rewrites pnpm-lock.yaml ; edits to seed.ts. If you need an npm package, DO NOT install it — append "NEEDS DEP: <pkg>" to PARALLEL_BUILD_NOTES.md (create if absent; append-only).
+4. FOLLOW EXISTING PATTERNS. Money = paise (integer/text); quantities = scaled x1000. Every table has tenantId + deletedAt. Every query filters tenantId. Multi-row writes use db.transaction().
+5. SELF-CHECK with pnpm --filter @indus/api typecheck. New-dep imports may not type-check until consolidation — that's OK, note them and continue. Do NOT run the dev server or migrations.
+6. SCOPE DISCIPLINE. Build exactly what is asked. No unrelated refactors. End with a short summary.
+=================================================================================
+
+YOUR MISSION: stand up the testing + CI foundation. Test BEHAVIOR via public function signatures (other tabs are changing internals, so don't assert on private details).
+
+A. Test runner
+   - Add Vitest config for apps/api (apps/api/vitest.config.ts) and packages/shared (packages/shared/vitest.config.ts). NEEDS DEP: vitest (note it; do NOT install). You must NOT edit package.json or turbo.json — instead, in a NEW file PARALLEL_BUILD_NOTES.md (append-only), write the exact script lines to add during consolidation: a "test": "vitest run" script in apps/api/package.json and packages/shared/package.json, and a "test" task in turbo.json.
+
+B. Unit tests (create *.test.ts files only):
+   - GST split: given line items + an isInterstate flag, CGST+SGST (intrastate) vs IGST (interstate) compute correctly and sum to the tax total. Find the PO tax/calc logic in apps/api/src/services/po.service.ts (or in packages/shared). If the math is inlined and hard to import, extract a PURE helper into a NEW file apps/api/src/lib/po-math.ts and test that helper (only extract math; do not rewrite po.service — if extraction would conflict, instead test through whatever is already exported).
+   - PR approval state machine: valid transitions (draft -> submitted -> pending_l1 -> ... -> approved; reject/cancel from allowed states) and that invalid transitions are refused.
+   - Stock on-hand: feed a sequence of in/out movements and assert the aggregation nets correctly (test the pure summation logic / helper).
+   - Tenant isolation: a query scoped to tenant A must never return tenant B rows (test the helper/middleware that injects tenantId).
+
+C. Integration test (the keystone): PR -> PO -> GRN -> assert inventory on-hand increased by the accepted qty; then cancel GRN -> assert on-hand returns to prior. If a live DB is required and not available, write the test fully but wrap it in describe.skip with a clear comment, and document in PARALLEL_BUILD_NOTES.md what env it needs.
+
+D. CI
+   - Create .github/workflows/ci.yml: on pull_request + push to main, run: corepack enable -> pnpm install --frozen-lockfile -> pnpm typecheck -> pnpm lint -> pnpm build (and `pnpm test` once the script exists). Use Node 20 and pnpm 9.15.0 (matches the repo's packageManager). Make the test step continue-on-error for now with a TODO to make it blocking after consolidation.
+
+E. Observability note (no install): in PARALLEL_BUILD_NOTES.md, add a short section recommending Sentry on web+api and an uptime ping for Render's sleeping free tier.
+
+YOU OWN: apps/api/vitest.config.ts, packages/shared/vitest.config.ts, all NEW *.test.ts files, apps/api/src/lib/po-math.ts (only if extraction is needed), .github/workflows/ci.yml, PARALLEL_BUILD_NOTES.md (append-only, shared with other tabs' notes).
+
+DO NOT TOUCH: service implementations (Tab 1 owns them), schema files, routes, package.json, turbo.json, pnpm-lock.yaml, any other tab's new files.
+
+DONE WHEN: vitest configs + the four unit suites + the integration test (skipped if it needs a DB) + ci.yml exist, and PARALLEL_BUILD_NOTES.md lists the package.json/turbo script changes and NEEDS DEP: vitest. Summarize the coverage you added.

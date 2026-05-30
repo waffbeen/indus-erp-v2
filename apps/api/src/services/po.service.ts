@@ -1,5 +1,5 @@
 import { eq, and, isNull, ilike, desc, sql, inArray } from "drizzle-orm";
-import { db } from "../db/index";
+import { db, type DB } from "../db/index";
 import { purchaseOrders, poItems } from "../db/schema/po";
 import { poAmendments } from "../db/schema/po_amendments";
 import { poCharges } from "../db/schema/po_charges";
@@ -14,7 +14,30 @@ import { units } from "../db/schema/units";
 import { items as itemMaster } from "../db/schema/items";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
 import { notifyTenantAdmins, notifyUsers } from "./notification.service";
+import { sendMail, renderEmail, escapeHtml } from "./mail.service";
+import { appUrl } from "../config/env";
+import { logger } from "../lib/logger";
 import type { PoCreateInput, PoAmendInput } from "@indus/shared";
+
+/** Root connection or an open transaction — lets callers run helpers atomically. */
+type Executor = DB | Parameters<Parameters<DB["transaction"]>[0]>[0];
+
+/** Look up a single user's email (null if missing). */
+async function userEmail(userId: string): Promise<string | null> {
+  const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  return u?.email ?? null;
+}
+
+/**
+ * Fire-and-forget email: runs after the business write has committed, swallows
+ * every error (a mail outage must never fail a PO flow), and never blocks the
+ * HTTP response.
+ */
+function fireEmail(label: string, fn: () => Promise<unknown>): void {
+  void Promise.resolve()
+    .then(fn)
+    .catch((err) => logger.warn({ err, label }, "email_dispatch_failed"));
+}
 
 interface ListOpts {
   page?: number; pageSize?: number; search?: string; status?: string; vendorId?: string;
@@ -930,6 +953,21 @@ export async function approvePo(id: string, ctx: ActorContext, comment?: string)
     resourceId: id,
     metadata: { poNumber: po.poNumber },
   });
+
+  fireEmail("po_approved", async () => {
+    const to = await userEmail(po.createdByUserId);
+    if (!to) return;
+    await sendMail({
+      to,
+      subject: `PO ${po.poNumber ?? ""} approved`.trim(),
+      html: renderEmail({
+        heading: "Your purchase order was approved",
+        bodyHtml: `<p><strong>${escapeHtml(po.poNumber ?? "")}</strong> — ${escapeHtml(po.title)} has been approved and is ready to send to the vendor.</p>`,
+        ctaLabel: "View purchase order",
+        ctaUrl: appUrl(`po/${id}`),
+      }),
+    });
+  });
 }
 
 export async function rejectPo(id: string, ctx: ActorContext, comment?: string) {
@@ -968,6 +1006,23 @@ export async function rejectPo(id: string, ctx: ActorContext, comment?: string) 
     resourceType: "po",
     resourceId: id,
     metadata: { poNumber: po.poNumber },
+  });
+
+  fireEmail("po_rejected", async () => {
+    const to = await userEmail(po.createdByUserId);
+    if (!to) return;
+    await sendMail({
+      to,
+      subject: `PO ${po.poNumber ?? ""} rejected`.trim(),
+      html: renderEmail({
+        heading: "Your purchase order was rejected",
+        bodyHtml:
+          `<p><strong>${escapeHtml(po.poNumber ?? "")}</strong> — ${escapeHtml(po.title)} was rejected.</p>` +
+          (comment ? `<p style="color:#6b7280">Reason: ${escapeHtml(comment)}</p>` : ""),
+        ctaLabel: "View purchase order",
+        ctaUrl: appUrl(`po/${id}`),
+      }),
+    });
   });
 }
 
@@ -1031,6 +1086,22 @@ export async function sendToVendor(id: string, ctx: ActorContext, comment?: stri
     action: "send_to_vendor", resourceType: "po", resourceId: id,
     ipAddress: ctx.ipAddress, userAgent: ctx.userAgent,
     metadata: { vendorEmail: vendor?.email ?? null, emailStatus },
+  });
+
+  // Confirm dispatch to the PO creator (separate from the supplier email above).
+  fireEmail("po_sent_to_vendor", async () => {
+    const to = await userEmail(po.createdByUserId);
+    if (!to) return;
+    await sendMail({
+      to,
+      subject: `PO ${po.poNumber ?? ""} sent to vendor`.trim(),
+      html: renderEmail({
+        heading: "Your purchase order was sent to the vendor",
+        bodyHtml: `<p><strong>${escapeHtml(po.poNumber ?? "")}</strong> — ${escapeHtml(po.title)} has been dispatched to the vendor${vendor?.email ? ` (${escapeHtml(vendor.email)})` : ""}.</p>`,
+        ctaLabel: "View purchase order",
+        ctaUrl: appUrl(`po/${id}`),
+      }),
+    });
   });
 
   return { emailStatus, vendorEmail: vendor?.email ?? null };
@@ -1104,7 +1175,10 @@ export async function shortClosePo(id: string, ctx: ActorContext, comment?: stri
       resourceType: "po",
       resourceId: id,
       actorUserId: ctx.userId,
-      action: "short_close",
+      // approval_actions.action is a plain text column; Drizzle's `enum` is a
+      // compile-time hint that doesn't yet list "short_close". Stored verbatim
+      // (no DB check constraint) so the timeline matches the audit log below.
+      action: "short_close" as unknown as (typeof approvalActions.$inferInsert)["action"],
       comment,
     });
   });
@@ -1163,16 +1237,20 @@ export async function cancelPo(id: string, ctx: ActorContext, comment?: string) 
   });
 }
 
-/** Called by GRN service — update PO status based on received qty. */
-export async function refreshPoReceivedStatus(tenantId: string, poId: string) {
+/**
+ * Called by GRN service — update PO status based on received qty.
+ * Accepts an optional executor so it can run inside the GRN's transaction and
+ * commit/roll back atomically with the receipt.
+ */
+export async function refreshPoReceivedStatus(tenantId: string, poId: string, exec: Executor = db) {
   // Sum received across all GRNs for this PO
-  const items = await db.select().from(poItems).where(eq(poItems.poId, poId));
+  const items = await exec.select().from(poItems).where(eq(poItems.poId, poId));
   if (items.length === 0) return;
 
   // Calculate received per po_item from grn_items, excluding cancelled GRNs
   const itemIds = items.map((i) => i.id);
   const receivedRows = itemIds.length
-    ? await db
+    ? await exec
         .select({
           poItemId: grnItems.poItemId,
           received: sql<number>`COALESCE(SUM(${grnItems.acceptedQuantityScaled}), 0)::int`.as("received"),
@@ -1200,11 +1278,11 @@ export async function refreshPoReceivedStatus(tenantId: string, poId: string) {
   if (allReceived) newStatus = "received";
   else if (anyReceived) newStatus = "partially_received";
   else {
-    const [po] = await db.select({ status: purchaseOrders.status }).from(purchaseOrders).where(eq(purchaseOrders.id, poId));
+    const [po] = await exec.select({ status: purchaseOrders.status }).from(purchaseOrders).where(eq(purchaseOrders.id, poId));
     newStatus = (po?.status as typeof newStatus) ?? "sent_to_vendor";
   }
 
-  await db
+  await exec
     .update(purchaseOrders)
     .set({ status: newStatus, updatedAt: new Date() })
     .where(and(eq(purchaseOrders.id, poId), eq(purchaseOrders.tenantId, tenantId)));

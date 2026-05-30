@@ -92,8 +92,9 @@ export async function login(input: LoginInput, ctx: LoginContext = {}): Promise<
 
   const allMemberships = await membershipQuery;
 
-  const chosen = input.tenantSlug
-    ? allMemberships.find((m) => m.tenant.slug === input.tenantSlug.toLowerCase())
+  const wantedSlug = input.tenantSlug?.toLowerCase();
+  const chosen = wantedSlug
+    ? allMemberships.find((m) => m.tenant.slug === wantedSlug)
     : allMemberships[0];
 
   if (!chosen && !user.isSuperAdmin) {

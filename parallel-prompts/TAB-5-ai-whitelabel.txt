@@ -1,0 +1,34 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Stack: Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo. There is a STRATEGY.md at the repo root — read §8.4 and §9.1 for context.
+
+=== IMPORTANT: 4 OTHER AGENTS ARE EDITING THIS REPO AT THE SAME TIME. OBEY THESE RULES ===
+1. STAY IN YOUR LANE. Only create/edit files in your "YOU OWN" list. Never edit another tab's files or anything in "DO NOT TOUCH".
+2. SHARED REGISTRY FILES are append-only. RE-READ before editing, add ONLY your line(s) at the end of the relevant list, never reorder/reformat/remove other lines. If an Edit fails because the file changed, re-read and re-apply just your line. Shared files: apps/api/src/db/schema/index.ts ; apps/api/src/routes/index.ts ; packages/shared/src/schemas/index.ts ; packages/shared/src/constants/modules.ts
+3. DO NOT RUN: pnpm install / pnpm add ; pnpm db:generate / db:migrate / db:push ; anything that rewrites pnpm-lock.yaml ; edits to seed.ts. New npm package needed? DO NOT install — append "NEEDS DEP: <pkg>" to PARALLEL_BUILD_NOTES.md (append-only).
+4. FOLLOW EXISTING PATTERNS. Money = paise (store as text); quantities = scaled x1000. Every table has tenantId + deletedAt. Every query filters tenantId. Multi-row writes use db.transaction().
+5. SELF-CHECK with pnpm --filter @indus/web typecheck and pnpm --filter @indus/api typecheck. The @anthropic-ai/sdk import will not type-check until consolidation installs it — that's expected; note it and continue. Do NOT run the dev server or migrations.
+6. SCOPE DISCIPLINE. Build exactly what is asked. End with a short summary.
+=================================================================================
+
+PATTERN TEMPLATES (read, don't edit): any apps/api/src/routes/*.routes.ts + services/*.service.ts for backend shape; apps/web/app/t/[slug]/dashboard/page.tsx for a data-driven screen; apps/web/lib/auth.ts + the Me type and apps/web/app/t/[slug]/layout.tsx for where tenant context loads.
+
+YOUR MISSION: (1) a natural-language "Ask your ERP" assistant — the top demo feature — and (2) per-tenant white-label theming. Everything tenant-scoped; the AI may only READ data for the current user's tenant and must NEVER write/mutate.
+
+PART 1 — AI Assistant (apps/api + apps/web)
+A. Service (NEW): apps/api/src/services/ai.service.ts using Anthropic (Claude). NEEDS DEP: @anthropic-ai/sdk (note it; do NOT install). Use ANTHROPIC_API_KEY (add a placeholder line to .env.example if absent; never a real key). Implement TOOL-CALLING where the tools are thin wrappers over EXISTING read logic, each receiving and enforcing the caller's tenantId:
+     - getDashboardStats(tenantId)        -> reuse dashboard.service
+     - listPurchaseOrders(tenantId, filt) -> reuse po.service list
+     - listPurchaseRequisitions(...)      -> reuse pr.service list
+     - vendorSpend / topItems / prAging   -> reuse dashboard report fns
+   The model turns a question ("what did we spend on bearings last quarter?", "which POs are pending approval over 1 lakh?") into tool calls, then answers from the results. If a question needs data with no tool, say so. Gracefully return a friendly "AI is not configured" message when ANTHROPIC_API_KEY is absent.
+B. Route (NEW): apps/api/src/routes/ai.routes.ts — POST /ai/chat { messages } guarded by auth + tenant middleware; pass req.auth.tid into every tool call. Append to routes/index.ts (append-only), mount at "/ai".
+C. (Optional) schema (NEW): apps/api/src/db/schema/ai_conversations.ts (aiConversations + aiMessages, tenantId + userId scoped) to persist chat; append to schema/index.ts (append-only). Shared Zod (NEW): packages/shared/src/schemas/ai.ts; append to schemas/index.ts (append-only).
+D. Web screen (NEW): apps/web/app/t/[slug]/ai/page.tsx — a chat UI (message list + input). New components under apps/web/components/ai/. Call POST /ai/chat via lib/api.ts (IMPORT ONLY — do not edit lib/api.ts). In modules.ts (append-only) the "ai_assist" module already exists as gated — set mvp:true, gated:false so it shows in the sidebar for the demo.
+
+PART 2 — White-label theming (apps/web only)
+E. The design system already supports runtime theming via <body data-theme="..."> and CSS tokens (packages/ui). Wire per-tenant branding: in apps/web/app/t/[slug]/layout.tsx, read the tenant's theme/brand from the existing /me or tenant settings payload (inspect lib/auth.ts and the Me type) and apply data-theme + a brand color/logo via a CSS variable. Provide a sensible default when none is set. Keep it ADDITIVE; DO NOT change AppShell's structure (only read tenant context). Branded login is a nice-to-have if time permits.
+
+YOU OWN: apps/api/src/services/ai.service.ts, apps/api/src/routes/ai.routes.ts, apps/api/src/db/schema/ai_conversations.ts, packages/shared/src/schemas/ai.ts, apps/web/app/t/[slug]/ai/*, apps/web/components/ai/*, and the additive theming changes in apps/web/app/t/[slug]/layout.tsx.
+SHARED (append-only): routes/index.ts, schema/index.ts, shared schemas/index.ts, modules.ts, .env.example (one placeholder line), PARALLEL_BUILD_NOTES.md (NEEDS DEP note).
+DO NOT TOUCH: Tab 1 backend services/app/middleware; Tab 3 invoice/payment files; Tab 4 inventory files; lib/api.ts; AppShell.tsx structure; seed.ts; package.json; pnpm-lock.yaml.
+
+DONE WHEN: POST /ai/chat + ai.service (tenant-scoped tool-calling, read-only) + the /ai chat screen exist; the ai_assist module is visible; per-tenant theming is wired with a safe default. apps/web typecheck passes except the @anthropic-ai/sdk import (note it). Summarize what you built.

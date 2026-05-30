@@ -1,11 +1,18 @@
 import { eq, and, isNull, desc, sql, ilike, inArray } from "drizzle-orm";
-import { db } from "../db/index";
+import { db, type DB } from "../db/index";
 import { stockMovements } from "../db/schema/stock";
 import { items } from "../db/schema/items";
 import { units } from "../db/schema/units";
 import { users } from "../db/schema/users";
 import { auditLogs } from "../db/schema/audit_logs";
 import { BadRequest, NotFound } from "../lib/errors";
+
+/**
+ * A DB handle that is either the root connection or an open transaction, so
+ * callers (e.g. GRN create/cancel) can run these movement writes inside their
+ * own transaction and have them commit/roll back atomically with the receipt.
+ */
+type Executor = DB | Parameters<Parameters<DB["transaction"]>[0]>[0];
 
 interface ActorContext {
   tenantId: string;
@@ -255,7 +262,7 @@ export async function recordGrnAcceptances(
   unitId: string,
   createdByUserId: string,
   lines: Array<{
-    itemId: string | null;
+    itemId?: string | null;
     uom: string;
     acceptedQuantity: number;
     unitPrice: number;
@@ -263,6 +270,7 @@ export async function recordGrnAcceptances(
     mfgDate?: string | null;
     expiryDate?: string | null;
   }>,
+  exec: Executor = db,
 ) {
   // Skip lines without an item id (free-text receipts can't increment stock).
   const inserts = lines
@@ -285,7 +293,7 @@ export async function recordGrnAcceptances(
       createdByUserId,
     }));
   if (inserts.length === 0) return;
-  await db.insert(stockMovements).values(inserts);
+  await exec.insert(stockMovements).values(inserts);
 }
 
 /**
@@ -293,14 +301,19 @@ export async function recordGrnAcceptances(
  * is cancelled — we insert inverse rows (sourceType "grn_reversal") so the
  * ledger stays append-only and the on-hand qty drops back.
  */
-export async function reverseGrnMovements(tenantId: string, grnId: string, actorUserId: string) {
-  const originals = await db
+export async function reverseGrnMovements(
+  tenantId: string,
+  grnId: string,
+  actorUserId: string,
+  exec: Executor = db,
+) {
+  const originals = await exec
     .select()
     .from(stockMovements)
     .where(and(eq(stockMovements.tenantId, tenantId), eq(stockMovements.sourceId, grnId), eq(stockMovements.sourceType, "grn")));
   if (originals.length === 0) return;
 
-  await db.insert(stockMovements).values(
+  await exec.insert(stockMovements).values(
     originals.map((m) => ({
       tenantId: m.tenantId,
       companyId: m.companyId,

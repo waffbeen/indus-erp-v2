@@ -7,9 +7,47 @@ import { auditLogs } from "../db/schema/audit_logs";
 import { approvalActions } from "../db/schema/approvals";
 import { companies } from "../db/schema/companies";
 import { units } from "../db/schema/units";
+import { memberships } from "../db/schema/memberships";
 import { BadRequest, Forbidden, NotFound } from "../lib/errors";
 import { notifyTenantAdmins, notifyUsers } from "./notification.service";
+import { sendMail, renderEmail, escapeHtml } from "./mail.service";
+import { appUrl } from "../config/env";
+import { logger } from "../lib/logger";
 import type { PrCreateInput } from "@indus/shared";
+
+/** Look up a single user's email (null if missing). */
+async function userEmail(userId: string): Promise<string | null> {
+  const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  return u?.email ?? null;
+}
+
+/** Emails of active tenant admins (the approver pool), excluding the actor. */
+async function tenantApproverEmails(tenantId: string, excludeUserId?: string): Promise<string[]> {
+  const rows = await db
+    .select({ userId: memberships.userId, email: users.email })
+    .from(memberships)
+    .innerJoin(users, eq(memberships.userId, users.id))
+    .where(
+      and(
+        eq(memberships.tenantId, tenantId),
+        eq(memberships.isTenantAdmin, true),
+        eq(memberships.status, "active"),
+        isNull(memberships.deletedAt),
+      ),
+    );
+  return rows.filter((r) => r.userId !== excludeUserId && r.email).map((r) => r.email as string);
+}
+
+/**
+ * Fire-and-forget email: runs after the business write has already committed,
+ * swallows every error (a mail outage must never fail an approval flow), and
+ * does not block the HTTP response.
+ */
+function fireEmail(label: string, fn: () => Promise<unknown>): void {
+  void Promise.resolve()
+    .then(fn)
+    .catch((err) => logger.warn({ err, label }, "email_dispatch_failed"));
+}
 
 interface ListOpts {
   page?: number;
@@ -385,6 +423,22 @@ export async function submitPr(id: string, ctx: ActorContext, comment?: string) 
     resourceId: id,
     metadata: { prNumber, total: pr.estimatedTotalPaise },
   });
+
+  // Email the approver pool so they don't have to be in-app to act.
+  fireEmail("pr_submitted", async () => {
+    const emails = await tenantApproverEmails(ctx.tenantId, ctx.userId);
+    if (!emails.length) return;
+    await sendMail({
+      to: emails,
+      subject: `PR ${prNumber} awaiting your approval`,
+      html: renderEmail({
+        heading: "New requisition awaiting approval",
+        bodyHtml: `<p><strong>${escapeHtml(prNumber)}</strong> — ${escapeHtml(pr.title)} was submitted and needs your review.</p>`,
+        ctaLabel: "Review requisition",
+        ctaUrl: appUrl(`pr/${id}`),
+      }),
+    });
+  });
 }
 
 export async function approvePr(id: string, ctx: ActorContext, comment?: string) {
@@ -471,6 +525,21 @@ export async function approvePr(id: string, ctx: ActorContext, comment?: string)
       resourceType: "pr",
       resourceId: id,
       metadata: { prNumber: pr.prNumber },
+    });
+
+    fireEmail("pr_approved", async () => {
+      const to = await userEmail(pr.requesterId);
+      if (!to) return;
+      await sendMail({
+        to,
+        subject: `PR ${pr.prNumber ?? ""} approved`.trim(),
+        html: renderEmail({
+          heading: "Your requisition was approved",
+          bodyHtml: `<p><strong>${escapeHtml(pr.prNumber ?? "")}</strong> — ${escapeHtml(pr.title)} has been approved.</p>`,
+          ctaLabel: "View requisition",
+          ctaUrl: appUrl(`pr/${id}`),
+        }),
+      });
     });
   }
 }
@@ -656,6 +725,23 @@ export async function rejectPr(id: string, ctx: ActorContext, comment?: string) 
     resourceType: "pr",
     resourceId: id,
     metadata: { prNumber: pr.prNumber },
+  });
+
+  fireEmail("pr_rejected", async () => {
+    const to = await userEmail(pr.requesterId);
+    if (!to) return;
+    await sendMail({
+      to,
+      subject: `PR ${pr.prNumber ?? ""} rejected`.trim(),
+      html: renderEmail({
+        heading: "Your requisition was rejected",
+        bodyHtml:
+          `<p><strong>${escapeHtml(pr.prNumber ?? "")}</strong> — ${escapeHtml(pr.title)} was rejected.</p>` +
+          (comment ? `<p style="color:#6b7280">Reason: ${escapeHtml(comment)}</p>` : ""),
+        ctaLabel: "View requisition",
+        ctaUrl: appUrl(`pr/${id}`),
+      }),
+    });
   });
 }
 

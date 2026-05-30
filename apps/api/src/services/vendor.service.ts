@@ -120,7 +120,7 @@ export async function createVendor(input: VendorCreateInput, ctx: ActorContext) 
     .values({
       tenantId: ctx.tenantId,
       code,
-      ...(data as object),
+      ...data,
     })
     .returning();
 
@@ -147,7 +147,7 @@ export async function updateVendor(id: string, input: VendorUpdateInput, ctx: Ac
 
   const [updated] = await db
     .update(vendors)
-    .set({ ...(data as object), updatedAt: new Date() })
+    .set({ ...data, updatedAt: new Date() })
     .where(and(eq(vendors.id, id), eq(vendors.tenantId, ctx.tenantId)))
     .returning();
 

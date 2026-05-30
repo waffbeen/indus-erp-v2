@@ -1,0 +1,43 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Stack: Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo. There is a STRATEGY.md at the repo root — read §6 for context.
+
+=== IMPORTANT: 4 OTHER AGENTS ARE EDITING THIS REPO AT THE SAME TIME. OBEY THESE RULES ===
+1. STAY IN YOUR LANE. Only create/edit files in your "YOU OWN" list. Never edit another tab's files or anything in "DO NOT TOUCH".
+2. SHARED REGISTRY FILES are append-only. RE-READ before editing, add ONLY your line(s) at the end of the relevant list, never reorder/reformat/remove other lines. If an Edit fails because the file changed, re-read and re-apply just your line. Shared files: apps/api/src/db/schema/index.ts ; apps/api/src/routes/index.ts ; packages/shared/src/schemas/index.ts ; packages/shared/src/constants/modules.ts
+3. DO NOT RUN: pnpm install / pnpm add ; pnpm db:generate / db:migrate / db:push ; anything that rewrites pnpm-lock.yaml ; edits to seed.ts. New npm package needed? DO NOT install — append "NEEDS DEP: <pkg>" to PARALLEL_BUILD_NOTES.md (append-only).
+4. FOLLOW EXISTING PATTERNS. Money = paise (store as text like existing tables); quantities = scaled x1000. Every table has tenantId + deletedAt. Every query filters tenantId. Multi-row writes use db.transaction().
+5. SELF-CHECK with pnpm --filter @indus/api typecheck (ignore errors that come only from other tabs' unfinished shared edits). Do NOT run the dev server or migrations.
+6. SCOPE DISCIPLINE. Build exactly what is asked. End with a short summary.
+=================================================================================
+
+STUDY THESE AS PATTERN TEMPLATES FIRST (read, don't edit):
+   schema:  apps/api/src/db/schema/grns.ts and po.ts
+   service: apps/api/src/services/grn.service.ts (list/get/create + audit + tenant scoping)
+   route:   apps/api/src/routes/grn.routes.ts
+   shared:  packages/shared/src/schemas/grn.ts
+   screen:  apps/web/app/t/[slug]/grn/ (page.tsx, new/page.tsx, [id]/page.tsx)
+
+YOUR MISSION (Phase 1): build the vendor-invoice -> 3-way match -> payment -> AP-aging flow.
+
+A. DB schema (NEW files only); append exports to apps/api/src/db/schema/index.ts (append-only):
+   - apps/api/src/db/schema/vendor_invoices.ts: vendorInvoices (FK tenantId, companyId, unitId, vendorId, poId nullable, grnId nullable; invoiceNumber, invoiceDate, paise amounts subtotal/tax/total, status enum [draft|matched|price_variance|qty_variance|unmatched|approved|cancelled], matchStatus, remarks, soft-delete) + vendorInvoiceItems (FK invoiceId, poItemId nullable, grnItemId nullable, itemId nullable, itemName, qtyScaled, uom, unitPricePaise, taxPaise, totalPaise).
+   - apps/api/src/db/schema/payments.ts: payments (tenantId, vendorId, paymentDate, method enum [neft|rtgs|cheque|upi|cash], amountPaise, reference, status [draft|posted|cancelled], remarks, soft-delete) + paymentAllocations (paymentId, vendorInvoiceId nullable, poId nullable for advances, allocatedPaise) so one payment can settle many invoices and an invoice can be paid in parts.
+
+B. Shared Zod (NEW files): packages/shared/src/schemas/vendor-invoice.ts and payment.ts (create/update/list shapes mirroring grn.ts). Append both to packages/shared/src/schemas/index.ts (append-only).
+
+C. Services (NEW files):
+   - apps/api/src/services/vendor-invoice.service.ts: CRUD + 3-WAY MATCH — given an invoice linked to a PO and GRN(s), compare invoice qty/price vs PO (ordered price) and GRN (received/accepted qty); set matchStatus (matched / price_variance / qty_variance / unmatched) using the PO line tolerancePercent. Block "approve" on a variance unless an over-tolerance approval flag is passed. Audit every action. Transactional writes.
+   - apps/api/src/services/payment.service.ts: record payments + allocations (transactional), advance payments, and an AP-AGING report (outstanding per vendor bucketed 0-30/30-60/60-90/90+ from unpaid invoice balances). Roll payment status up to invoices.
+
+D. Routes (NEW files): apps/api/src/routes/vendor-invoice.routes.ts and payment.routes.ts (mirror grn.routes.ts: auth + tenant + permission middleware). Append to apps/api/src/routes/index.ts (append-only): mount at "/vendor-invoices" and "/payments".
+
+E. Web screens (NEW folders under apps/web/app/t/[slug]/):
+   - invoices/ : page.tsx (list with status tabs), new/page.tsx (create, pre-fill from a PO/GRN), [id]/page.tsx (detail with the 3-way match panel + approve/cancel).
+   - payments/ : page.tsx (list), new/page.tsx (record payment + allocate to invoices). Add an AP-aging view (a tab here or on reports).
+   - Use components/ListPrimitives, FormSheet, StatusBadge, PageHeader; call the API via lib/api.ts (IMPORT ONLY — do not edit lib/api.ts). Put new components under apps/web/components/invoices/.
+   - In packages/shared/src/constants/modules.ts (append-only edit): the "payments" module already exists as gated — set it mvp:true, gated:false so it shows in the sidebar for now (P3 re-gates by plan). Optionally add an "invoices" module entry (group:"finance", mvp:true) if you want it as its own nav item.
+
+YOU OWN: the new schema/shared/service/route/screen/component files named above.
+SHARED (append-only): schema/index.ts, routes/index.ts, shared schemas/index.ts, modules.ts.
+DO NOT TOUCH: Tab 1's services (grn/stock/pr/po/auth/item/vendor/mail/app/middleware); Tab 4 inventory files; Tab 5 ai files; lib/api.ts; seed.ts; package.json; pnpm-lock.yaml.
+
+DONE WHEN: schema + shared + services + routes + screens exist and apps/api typecheck is clean (ignoring errors from other tabs' unfinished shared edits). Summarize the entities, endpoints, and screens you added.

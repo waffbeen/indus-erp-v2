@@ -13,6 +13,10 @@ import { notificationRoutes } from "./notification.routes";
 import { inviteRoutes, inviteAcceptRoutes } from "./invite.routes";
 import { mastersRoutes } from "./masters.routes";
 import { dashboardRoutes } from "./dashboard.routes";
+import { valuationRoutes, reorderRoutes, locationRoutes, stockCountRoutes } from "./inventory-extra.routes";
+import { vendorInvoiceRoutes } from "./vendor-invoice.routes";
+import { paymentRoutes } from "./payment.routes";
+import { aiRoutes } from "./ai.routes";
 
 export const apiRouter: Router = Router();
 
@@ -34,3 +38,10 @@ apiRouter.use("/notifications", notificationRoutes);
 apiRouter.use("/masters", mastersRoutes);
 apiRouter.use("/invites", inviteRoutes);
 apiRouter.use("/accept-invite", inviteAcceptRoutes);
+apiRouter.use("/valuation", valuationRoutes);
+apiRouter.use("/reorder", reorderRoutes);
+apiRouter.use("/locations", locationRoutes);
+apiRouter.use("/stock-counts", stockCountRoutes);
+apiRouter.use("/vendor-invoices", vendorInvoiceRoutes);
+apiRouter.use("/payments", paymentRoutes);
+apiRouter.use("/ai", aiRoutes);

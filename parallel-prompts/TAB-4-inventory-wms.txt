@@ -1,0 +1,49 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Stack: Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo. There is a STRATEGY.md at the repo root — read §7 for context.
+
+=== IMPORTANT: 4 OTHER AGENTS ARE EDITING THIS REPO AT THE SAME TIME. OBEY THESE RULES ===
+1. STAY IN YOUR LANE. Only create/edit files in your "YOU OWN" list. Never edit another tab's files or anything in "DO NOT TOUCH".
+2. SHARED REGISTRY FILES are append-only. RE-READ before editing, add ONLY your line(s) at the end of the relevant list, never reorder/reformat/remove other lines. If an Edit fails because the file changed, re-read and re-apply just your line. Shared files: apps/api/src/db/schema/index.ts ; apps/api/src/routes/index.ts ; packages/shared/src/schemas/index.ts ; packages/shared/src/constants/modules.ts
+3. DO NOT RUN: pnpm install / pnpm add ; pnpm db:generate / db:migrate / db:push ; anything that rewrites pnpm-lock.yaml ; edits to seed.ts. New npm package needed? DO NOT install — append "NEEDS DEP: <pkg>" to PARALLEL_BUILD_NOTES.md (append-only).
+4. FOLLOW EXISTING PATTERNS. Money = paise (store as text); quantities = scaled x1000. Every table has tenantId + deletedAt. Every query filters tenantId. Multi-row writes use db.transaction().
+5. SELF-CHECK with pnpm --filter @indus/api typecheck (ignore errors that come only from other tabs' unfinished shared edits). Do NOT run the dev server or migrations.
+6. SCOPE DISCIPLINE. Build exactly what is asked. End with a short summary.
+=================================================================================
+
+STUDY THESE AS PATTERN TEMPLATES FIRST (read, don't edit):
+   schema:  apps/api/src/db/schema/stock.ts, items.ts
+   service: apps/api/src/services/stock.service.ts  (READ it to reuse stockMovements; you MUST NOT edit it)
+   route:   apps/api/src/routes/stock.routes.ts
+   screen:  apps/web/app/t/[slug]/inventory/ (page.tsx, [itemId]/page.tsx)
+
+CRITICAL: stock.service.ts and grn.service.ts are owned by Tab 1 — DO NOT edit them. Build everything as NEW files that READ the existing stockMovements ledger.
+
+YOUR MISSION (Phase 2): add inventory depth — valuation, locations, reorder automation, cycle count.
+
+A. DB schema (NEW files); append exports to apps/api/src/db/schema/index.ts (append-only):
+   - storage_locations.ts: storageLocations (tenantId, unitId, code, name, type [warehouse|zone|rack|bin], parentId nullable for hierarchy, isActive, soft-delete).
+   - item_stock_policy.ts: itemStockPolicy (tenantId, itemId, unitId, minQtyScaled, maxQtyScaled, reorderLevelScaled, safetyStockScaled, leadTimeDays, isActive). Per item+unit.
+   - stock_counts.ts: stockCounts (tenantId, companyId, unitId, status [draft|in_progress|completed|cancelled], countedByUserId, remarks, soft-delete) + stockCountItems (countId, itemId, systemQtyScaled, countedQtyScaled, varianceScaled, uom).
+
+B. Shared Zod (NEW files): packages/shared/src/schemas/location.ts, stock-policy.ts, stock-count.ts ; append to schemas/index.ts (append-only).
+
+C. Services (NEW files — read stockMovements, never edit stock.service.ts):
+   - valuation.service.ts: compute item cost via Weighted Average (default) and FIFO from stockMovements (qtyScaled, unitPricePaise). Stock valuation report: qty x cost by item/group/unit + closing value.
+   - reorder.service.ts: list items whose on-hand (summed from stockMovements per item+unit) is at/below itemStockPolicy.reorderLevel; compute suggested order qty (up to max). DO NOT create PRs in the backend (that's Tab 1 / PR territory) — just RETURN suggestions; the frontend "Create PR" button will navigate to /pr/new prefilled.
+   - location.service.ts: CRUD for storageLocations.
+   - stock-count.service.ts: create a count sheet (snapshot system qty from the ledger), enter counted qty, compute variance, and "post" adjustments by inserting balancing stockMovements with sourceType "adjustment" (insert directly following the stock.ts schema shape; transactional). Audit everything.
+
+D. Routes (NEW file): apps/api/src/routes/inventory-extra.routes.ts mounting valuation/reorder/locations/counts. Append to routes/index.ts (append-only) under NEW paths (e.g. "/valuation", "/reorder", "/locations", "/stock-counts") so it never clashes with the existing "/stock" route owned by Tab 1.
+
+E. Web screens (NEW folders under apps/web/app/t/[slug]/):
+   - inventory/valuation/page.tsx (valuation report)
+   - inventory/reorder/page.tsx (reorder dashboard + "Create PR" buttons -> /pr/new)
+   - locations/page.tsx (locations master CRUD)
+   - stock-count/page.tsx (+ new/[id]) for cycle counts
+   Use ListPrimitives/FormSheet/PageHeader; call API via lib/api.ts (IMPORT ONLY). New components under apps/web/components/inventory/.
+   In modules.ts (append-only): add new module entries (group:"inventory", mvp:true, gated:false, showInSidebar:true) for the new screens, OR reuse the existing "inventory" module and add sub-links — keep edits to appended lines only.
+
+YOU OWN: the new schema/shared/service/route/screen/component files above.
+SHARED (append-only): schema/index.ts, routes/index.ts, shared schemas/index.ts, modules.ts.
+DO NOT TOUCH: stock.service.ts, grn.service.ts, pr.service.ts (Tab 1); Tab 3 invoice/payment files; Tab 5 ai files; lib/api.ts; seed.ts; package.json; pnpm-lock.yaml.
+
+DONE WHEN: schema + shared + services + routes + screens exist and apps/api typecheck is clean (ignoring cross-tab unfinished shared edits). Summarize what you added.
