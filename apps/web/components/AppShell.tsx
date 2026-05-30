@@ -1,198 +1,189 @@
 "use client";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { Icon, type IconProps } from "./Icon";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { NotificationsBell } from "./NotificationsBell";
 import { useAuth } from "@/lib/auth";
+import { useAppearance } from "@/lib/appearance";
 import { sidebarModulesFor } from "@indus/shared";
 
-/** localStorage key for the sidebar expanded/collapsed preference. */
-const SIDEBAR_KEY = "indus.sidebar.expanded";
+type Mod = ReturnType<typeof sidebarModulesFor>[number];
 
-export function AppShell({
-  tenantSlug,
-  children,
-}: {
-  tenantSlug: string;
-  children: ReactNode;
-}) {
+const GROUP_ORDER = ["core", "procurement", "inventory", "finance", "intelligence", "admin"] as const;
+const GROUP_LABEL: Record<string, string> = {
+  procurement: "Procurement",
+  inventory: "Inventory",
+  finance: "Finance",
+  intelligence: "Insights",
+  admin: "Workspace",
+};
+
+export function AppShell({ tenantSlug, children }: { tenantSlug: string; children: ReactNode }) {
   const pathname = usePathname();
   const { me, logout } = useAuth();
+  const { layout, mode, hydrate, update } = useAppearance();
+
+  useEffect(() => { hydrate(); }, [hydrate]);
 
   const base = `/t/${tenantSlug}`;
   const enabledKeys = me?.enabledModules ?? [];
   const navItems = useMemo(() => sidebarModulesFor(enabledKeys), [enabledKeys]);
 
-  // Collapsible sidebar — small SaaS-style icon rail by default, expandable
-  // to show labels next to icons. Preference persists across navigation.
-  const [expanded, setExpanded] = useState(false);
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(SIDEBAR_KEY);
-      if (stored === "true") setExpanded(true);
-    } catch {
-      /* localStorage unavailable — keep default */
+  const grouped = useMemo(() => {
+    const map = new Map<string, Mod[]>();
+    for (const m of navItems) {
+      const g = m.group ?? "core";
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(m);
     }
-  }, []);
-  function toggleSidebar() {
-    setExpanded((v) => {
-      const next = !v;
-      try { window.localStorage.setItem(SIDEBAR_KEY, String(next)); } catch { /* noop */ }
-      return next;
-    });
-  }
+    return GROUP_ORDER.filter((g) => map.has(g)).map((g) => ({ group: g, items: map.get(g)! }));
+  }, [navItems]);
 
-  return (
-    <div className="h-screen overflow-hidden flex" style={{ background: "var(--frame)" }}>
+  const isActive = (path: string) =>
+    path === "/dashboard" ? pathname === `${base}/dashboard` : Boolean(pathname?.startsWith(`${base}${path}`));
 
-      {/* SIDEBAR — fixed icon rail, optional expanded mode with labels */}
-      <aside
-        className={clsx(
-          "flex flex-col shrink-0 border-r border-border transition-[width] duration-150",
-          expanded ? "w-56" : "w-[58px]",
-        )}
-        style={{ background: "var(--frame)", color: "var(--text-on-dark)" }}
-      >
-        {/* Logo */}
-        <div className="h-12 flex items-center px-3 border-b border-white/5">
-          <div className="h-7 w-7 rounded-md grid place-items-center bg-white/10 shrink-0">
-            <Icon name="Flower2" size={16} />
-          </div>
-          {expanded && (
-            <span className="ml-2 text-[13px] font-semibold tracking-tight truncate">Prathvi&apos;s ERP</span>
+  const initials = (me?.fullName ?? "?").split(" ").map((s) => s[0]).slice(0, 2).join("");
+
+  const brand = (
+    <div className="flex items-center gap-2.5 px-2">
+      <div className="h-8 w-8 rounded-[10px] grid place-items-center shrink-0 text-white font-extrabold text-[15px]" style={{ background: "var(--primary)" }}>P</div>
+      <span className="display font-bold text-[15px] tracking-tight" style={{ color: "var(--text)" }}>Prathvi&apos;s ERP</span>
+    </div>
+  );
+
+  const darkToggle = (
+    <button
+      onClick={() => update({ mode: mode === "dark" ? "light" : "dark" })}
+      className="h-9 w-9 rounded-[11px] grid place-items-center border transition shrink-0"
+      style={{ borderColor: "var(--border)", background: "var(--bg)", color: "var(--muted)" }}
+      title={mode === "dark" ? "Switch to light" : "Switch to dark"}
+    >
+      <Icon name={mode === "dark" ? "Sun" : "Moon"} size={17} />
+    </button>
+  );
+
+  const userBlock = (
+    <button
+      onClick={() => void logout()}
+      className="flex items-center gap-2.5 p-2 rounded-xl transition w-full text-left hover:brightness-[0.98]"
+      style={{ background: "var(--surface)" }}
+      title="Sign out"
+    >
+      <span className="h-8 w-8 rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0" style={{ background: "var(--primary)" }}>{initials}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12.5px] font-semibold truncate" style={{ color: "var(--text)" }}>{me?.fullName ?? "Account"}</span>
+        <span className="block text-[10.5px] truncate" style={{ color: "var(--muted)" }}>{me?.tenantName ?? "Sign out"}</span>
+      </span>
+      <Icon name="LogOut" size={15} style={{ color: "var(--muted)" }} />
+    </button>
+  );
+
+  const sidebarNav = (
+    <nav className="flex-1 overflow-y-auto px-2 py-1.5 space-y-0.5">
+      {grouped.map(({ group, items }) => (
+        <div key={group} className="mb-0.5">
+          {GROUP_LABEL[group] && (
+            <div className="text-[10px] font-bold uppercase tracking-[0.09em] px-3 pt-3.5 pb-1.5" style={{ color: "var(--muted-2)" }}>{GROUP_LABEL[group]}</div>
           )}
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-2 px-1.5">
-          {navItems.map((m) => {
-            const href = `${base}${m.path}`;
-            const isActive =
-              m.key === "dashboard"
-                ? pathname === `${base}/dashboard`
-                : pathname?.startsWith(`${base}${m.path}`);
+          {items.map((m) => {
+            const active = isActive(m.path);
             return (
               <Link
                 key={m.key}
-                href={href}
+                href={`${base}${m.path}`}
                 title={m.name}
-                className={clsx(
-                  "flex items-center rounded-md mb-0.5 transition gap-2.5 relative",
-                  expanded ? "px-2.5 py-2" : "justify-center py-2.5",
-                  isActive
-                    ? "bg-bg text-text-default font-semibold shadow-sm"
-                    : "opacity-75 hover:opacity-100 hover:bg-white/5",
-                )}
+                className="flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13.5px] font-medium transition mb-px"
+                style={active
+                  ? { background: "var(--side-active-bg)", color: "var(--side-active-fg)", boxShadow: "var(--shadow-sm)" }
+                  : { color: "var(--side-text)" }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--side-hover)"; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
               >
-                {/* Active indicator strip on the left for collapsed mode */}
-                {isActive && !expanded && (
-                  <span
-                    className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r"
-                    style={{ background: "var(--tint-peach)" }}
-                  />
-                )}
-                <Icon name={m.icon as IconProps["name"]} size={16} />
-                {expanded && (
-                  <span className="text-[12.5px] leading-none truncate flex-1">{m.name}</span>
-                )}
+                <Icon name={m.icon as IconProps["name"]} size={17} />
+                <span className="truncate">{m.name}</span>
               </Link>
             );
           })}
-        </nav>
-
-        {/* Bottom: collapse toggle + user avatar */}
-        <div className="border-t border-white/5 p-1.5 flex flex-col gap-1">
-          <button
-            onClick={toggleSidebar}
-            className={clsx(
-              "flex items-center rounded-md text-[11px] opacity-70 hover:opacity-100 hover:bg-white/5",
-              expanded ? "px-2.5 py-1.5 gap-2.5" : "justify-center py-2",
-            )}
-            title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-          >
-            <Icon name={expanded ? "PanelLeftClose" : "PanelLeftOpen"} size={16} />
-            {expanded && <span>Collapse</span>}
-          </button>
-
-          <button
-            onClick={() => void logout()}
-            className={clsx(
-              "flex items-center rounded-md text-[11px] opacity-70 hover:opacity-100 hover:bg-white/5",
-              expanded ? "px-2.5 py-1.5 gap-2.5" : "justify-center py-2",
-            )}
-            title={me ? `${me.fullName} — sign out` : "Sign out"}
-          >
-            <span
-              className="h-6 w-6 rounded-full grid place-items-center text-[10px] font-bold shrink-0"
-              style={{
-                background: "linear-gradient(135deg, var(--tint-peach), var(--tint-peach-2))",
-                color: "var(--tint-peach-fg)",
-              }}
-            >
-              {(me?.fullName ?? "?")
-                .split(" ")
-                .map((s) => s[0])
-                .slice(0, 2)
-                .join("")}
-            </span>
-            {expanded && (
-              <span className="truncate flex-1 text-left">{me?.fullName ?? "Sign out"}</span>
-            )}
-          </button>
         </div>
-      </aside>
+      ))}
+    </nav>
+  );
 
-      {/* MAIN COLUMN — only this scrolls */}
-      <main className="flex-1 min-w-0 overflow-y-auto" style={{ background: "var(--bg)" }}>
-        {/* Top bar — 52px height, sticky on scroll */}
-        <header className="sticky top-0 z-20 h-[52px] flex items-center justify-between px-2 sm:px-4 border-b border-border bg-bg gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <button
-              onClick={() => history.back()}
-              className="h-8 w-8 rounded-md grid place-items-center hover:bg-surface text-muted hover:text-text-default border border-transparent hover:border-border-strong shrink-0"
-              aria-label="Back"
-            >
-              <Icon name="ChevronLeft" size={16} />
-            </button>
-            {/* On mobile we let this row scroll horizontally so the tabs never clip the bell + theme. */}
-            <nav className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
-              {[
-                { href: `${base}/dashboard`,  label: "Dashboard" },
-                { href: `${base}/approvals`,  label: "Approvals" },
-                { href: `${base}/reports`,    label: "Reports" },
-              ].map((it) => {
-                const active = pathname?.startsWith(it.href);
+  const topbar = (
+    <header
+      className="sticky top-0 z-10 h-[54px] flex items-center gap-2 px-4 border-b shrink-0"
+      style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--bg) 82%, transparent)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
+    >
+      <nav className="mr-auto flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+        {[
+          { href: `${base}/dashboard`, label: "Dashboard" },
+          { href: `${base}/approvals`, label: "Approvals" },
+          { href: `${base}/reports`, label: "Reports" },
+        ].map((it) => {
+          const active = pathname?.startsWith(it.href);
+          return (
+            <Link key={it.href} href={it.href} className="px-3 py-1.5 rounded-[9px] text-[12.5px] font-semibold whitespace-nowrap transition"
+              style={active ? { background: "var(--surface)", color: "var(--text)" } : { color: "var(--muted)" }}>
+              {it.label}
+            </Link>
+          );
+        })}
+      </nav>
+      {darkToggle}
+      <NotificationsBell />
+    </header>
+  );
+
+  // ---- TOP NAV layout ----
+  if (layout === "topnav") {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
+        <header className="sticky top-0 z-20 border-b" style={{ borderColor: "var(--border)", background: "color-mix(in srgb, var(--bg) 85%, transparent)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+          <div className="flex items-center gap-4 px-6 h-[60px]">
+            {brand}
+            <nav className="flex items-center gap-0.5 ml-3 overflow-x-auto no-scrollbar">
+              {navItems.map((m) => {
+                const active = isActive(m.path);
                 return (
-                  <Link
-                    key={it.href}
-                    href={it.href}
-                    className={clsx(
-                      "px-2.5 sm:px-3 py-1.5 rounded-md text-[12.5px] font-medium transition whitespace-nowrap",
-                      active
-                        ? "text-text-default bg-surface"
-                        : "text-muted hover:text-text-default hover:bg-surface/60",
-                    )}
-                  >
-                    {it.label}
+                  <Link key={m.key} href={`${base}${m.path}`} className="flex items-center gap-1.5 px-3 py-2 rounded-[9px] text-[13px] font-semibold whitespace-nowrap transition"
+                    style={active ? { background: "var(--accent-soft)", color: "var(--accent-ink)" } : { color: "var(--muted)" }}>
+                    <Icon name={m.icon as IconProps["name"]} size={14} />
+                    {m.name}
                   </Link>
                 );
               })}
             </nav>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <ThemeSwitcher />
-            <NotificationsBell />
+            <div className="ml-auto flex items-center gap-2">{darkToggle}<NotificationsBell /></div>
           </div>
         </header>
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[1200px] mx-auto px-7 py-6">{children}</div>
+        </main>
+      </div>
+    );
+  }
 
-        {/* Content area — compact padding, no outer card chrome */}
-        <div className="px-3 py-3 sm:px-4 sm:py-4 lg:px-5 lg:py-5">{children}</div>
+  // ---- EDITORIAL + FLOATING (left sidebar) ----
+  const floating = layout === "floating";
+  return (
+    <div className="h-screen overflow-hidden flex" style={{ background: floating ? "var(--frame)" : "var(--bg)", gap: floating ? 14 : 0, padding: floating ? 14 : 0 }}>
+      <aside
+        className={clsx("flex flex-col shrink-0 w-[246px]", floating ? "rounded-2xl border" : "border-r")}
+        style={{ background: "var(--side-bg)", borderColor: "var(--side-border)", boxShadow: floating ? "var(--shadow-md)" : "none", paddingTop: 14, paddingBottom: 14 }}
+      >
+        <div className="pb-2">{brand}</div>
+        {sidebarNav}
+        <div className="px-2 pt-2">{userBlock}</div>
+      </aside>
+      <main
+        className={clsx("flex-1 min-w-0 flex flex-col overflow-hidden", floating && "rounded-2xl border")}
+        style={{ background: "var(--bg)", borderColor: floating ? "var(--border)" : "transparent", boxShadow: floating ? "var(--shadow-md)" : "none" }}
+      >
+        {topbar}
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">{children}</div>
       </main>
-
     </div>
   );
 }

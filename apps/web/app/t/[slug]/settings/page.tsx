@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
-import { Icon } from "@/components/Icon";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Icon, type IconProps } from "@/components/Icon";
+import { useAppearance, type Layout, type Accent, type Mode } from "@/lib/appearance";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/lib/toast";
 
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                   active ? "bg-primary text-primary-fg shadow-sm" : "text-muted hover:text-text-default hover:bg-surface"
                 }`}
               >
-                <Icon name={t.icon} size={15} />
+                <Icon name={t.icon as IconProps["name"]} size={15} />
                 <span>{t.label}</span>
               </button>
             );
@@ -499,11 +499,7 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          {tab === "appearance" && (
-            <Card title="Appearance" subtitle="Theme is part of the global design system. Changes apply instantly across every page.">
-              <ThemeSwitcher />
-            </Card>
-          )}
+          {tab === "appearance" && <AppearancePanel />}
         </div>
       </div>
     </div>
@@ -518,5 +514,103 @@ function Card({ title, subtitle, children }: { title: ReactNode; subtitle?: Reac
       {!subtitle && <div className="mb-4" />}
       {children}
     </section>
+  );
+}
+
+function AppearancePanel() {
+  const { layout, accent, mode, hydrate, update } = useAppearance();
+  useEffect(() => { hydrate(); }, [hydrate]);
+
+  const LAYOUTS: { key: Layout; label: string; desc: string }[] = [
+    { key: "editorial", label: "Editorial", desc: "Light left sidebar, text-forward" },
+    { key: "floating", label: "Floating", desc: "Sidebar floats on a warm canvas" },
+    { key: "topnav", label: "Top nav", desc: "Horizontal menu, full width" },
+  ];
+  const ACCENTS: { key: Accent; color: string; label: string }[] = [
+    { key: "emerald", color: "#0E7C66", label: "Emerald" },
+    { key: "plum", color: "#6D3A9C", label: "Plum" },
+    { key: "clay", color: "#C2410C", label: "Clay" },
+    { key: "ink", color: "#26211B", label: "Ink" },
+  ];
+
+  return (
+    <Card title="Appearance" subtitle="Make it yours — changes apply instantly and are saved on this device.">
+      <div className="label">Sidebar layout</div>
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {LAYOUTS.map((l) => {
+          const on = layout === l.key;
+          return (
+            <button key={l.key} type="button" onClick={() => update({ layout: l.key })}
+              className="text-left p-2.5 rounded-xl border transition"
+              style={{ borderColor: on ? "var(--primary)" : "var(--border-strong)", background: "var(--bg)", boxShadow: on ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)" : "none" }}>
+              <LayoutThumb kind={l.key} active={on} />
+              <div className="font-semibold text-[13px] mt-2">{l.label}</div>
+              <div className="text-[11px] text-muted leading-snug">{l.desc}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="label">Accent colour</div>
+      <div className="flex gap-4 mb-6">
+        {ACCENTS.map((a) => {
+          const on = accent === a.key;
+          return (
+            <button key={a.key} type="button" onClick={() => update({ accent: a.key })} title={a.label}
+              className="flex flex-col items-center gap-1.5">
+              <span className="h-9 w-9 rounded-full grid place-items-center transition"
+                style={{ background: a.color, boxShadow: on ? `0 0 0 2.5px var(--bg), 0 0 0 4.5px ${a.color}` : "none" }}>
+                {on && <Icon name="Check" size={16} style={{ color: "#fff" }} />}
+              </span>
+              <span className="text-[11px] font-medium" style={{ color: on ? "var(--text)" : "var(--muted)" }}>{a.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="label">Mode</div>
+      <div className="inline-flex items-center gap-1 p-1 rounded-pill" style={{ background: "var(--surface)" }}>
+        {(["light", "dark"] as Mode[]).map((m) => {
+          const on = mode === m;
+          return (
+            <button key={m} type="button" onClick={() => update({ mode: m })}
+              className="px-4 py-2 rounded-pill text-[12.5px] font-semibold transition flex items-center gap-2"
+              style={on ? { background: "var(--primary)", color: "var(--primary-fg)" } : { color: "var(--muted)" }}>
+              <Icon name={m === "light" ? "Sun" : "Moon"} size={14} />{m === "light" ? "Light" : "Dark"}
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function LayoutThumb({ kind, active }: { kind: Layout; active: boolean }) {
+  const ac = active ? "var(--primary)" : "var(--muted-2)";
+  const line = (w: string | number = "70%") => (
+    <div style={{ height: 4, borderRadius: 2, background: "var(--border-strong)", width: w }} />
+  );
+  if (kind === "topnav") {
+    return (
+      <div className="rounded-lg overflow-hidden" style={{ height: 52, border: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div className="flex items-center gap-1 px-2" style={{ height: 12, background: "var(--surface-2)" }}>
+          <div style={{ width: 12, height: 4, borderRadius: 2, background: ac }} />
+          <div style={{ width: 8, height: 3, borderRadius: 2, background: "var(--border-strong)" }} />
+          <div style={{ width: 8, height: 3, borderRadius: 2, background: "var(--border-strong)" }} />
+        </div>
+        <div className="p-2 space-y-1.5">{line("90%")}{line("55%")}</div>
+      </div>
+    );
+  }
+  const fl = kind === "floating";
+  return (
+    <div className="flex rounded-lg overflow-hidden" style={{ height: 52, border: "1px solid var(--border)", background: "var(--surface)", gap: fl ? 3 : 0, padding: fl ? 3 : 0 }}>
+      <div style={{ width: "30%", background: fl ? "var(--bg)" : "var(--surface-2)", borderRadius: fl ? 4 : 0, padding: 4 }} className="space-y-1">
+        <div style={{ height: 4, borderRadius: 2, background: ac }} />
+        <div style={{ height: 3, borderRadius: 2, background: "var(--border-strong)" }} />
+        <div style={{ height: 3, borderRadius: 2, background: "var(--border-strong)" }} />
+      </div>
+      <div className="flex-1 p-2 space-y-1.5" style={{ background: fl ? "var(--bg)" : "transparent", borderRadius: fl ? 4 : 0 }}>{line("85%")}{line("55%")}</div>
+    </div>
   );
 }

@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en" data-layout="floating" data-accent="emerald">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prathvi's ERP — Layout Explorations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font-sans:"Inter",-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-display:"Fraunces",Georgia,serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  /* warm editorial palette */
+  --canvas:#EEEAE2; --bg:#FFFFFF; --surface:#F7F5F1; --surface-2:#EFEBE3;
+  --border:#E8E3D9; --border-strong:#DBD4C6;
+  --text:#1C1A17; --muted:#726B5F; --muted-2:#A8A192;
+  --primary-fg:#FFFFFF;
+  --success-bg:#DCEFE3; --success-fg:#0B6B45;
+  --warning-bg:#FBEBD2; --warning-fg:#8A5212;
+  --danger-bg:#FAE0DA; --danger-fg:#9A2A1A;
+  --info-bg:#E2EAF6; --info-fg:#28477E;
+  --r-sm:9px; --r-md:14px; --r-lg:20px; --r-pill:999px;
+  --sh-sm:0 1px 2px rgba(40,33,22,.05);
+  --sh-md:0 1px 3px rgba(40,33,22,.06),0 10px 24px -12px rgba(40,33,22,.16);
+  --sh-lg:0 18px 50px -16px rgba(40,33,22,.28);
+}
+[data-accent="emerald"]{--accent:#0E7C66;--accent-2:#0A5E4D;--accent-soft:#DCEFE9;--accent-ink:#063A30}
+[data-accent="plum"]   {--accent:#6D3A9C;--accent-2:#552E7C;--accent-soft:#EEE6F6;--accent-ink:#3A1E57}
+[data-accent="clay"]   {--accent:#C2410C;--accent-2:#9A330A;--accent-soft:#FBE6D9;--accent-ink:#6B2407}
+[data-accent="ink"]    {--accent:#1C1A17;--accent-2:#000;--accent-soft:#ECE8E0;--accent-ink:#000}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--canvas);color:var(--text);-webkit-font-smoothing:antialiased;letter-spacing:-.011em;line-height:1.5}
+.display{font-family:var(--font-display);font-weight:600;letter-spacing:-.01em}
+svg{stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* ============ SHARED CHROME BITS ============ */
+.logo{width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;flex-shrink:0}
+.wordmark{font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.01em}
+.kbd{font-family:var(--font-mono);font-size:10.5px;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:5px;padding:2px 6px;color:var(--muted)}
+.av{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700}
+.search{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:8px 12px;color:var(--muted-2);font-size:13px}
+.search svg{width:15px;height:15px}
+.btn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:600;padding:9px 15px;border-radius:11px;border:1px solid transparent;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn svg{width:15px;height:15px}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:var(--sh-sm)}
+.btn-primary:hover{background:var(--accent-2);transform:translateY(-1px);box-shadow:var(--sh-md)}
+.btn-ghost{background:var(--bg);color:var(--text);border-color:var(--border-strong)}
+.btn-ghost:hover{background:var(--surface)}
+.iconbtn{width:36px;height:36px;border-radius:11px;border:1px solid var(--border);background:var(--bg);display:grid;place-items:center;color:var(--muted);cursor:pointer;position:relative}
+.iconbtn svg{width:17px;height:17px}
+.iconbtn .d{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+/* ============ DASHBOARD CONTENT (shared) ============ */
+.phead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.phead h1{font-size:30px}.phead .sub{color:var(--muted);font-size:14px;margin-top:5px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:18px}
+.kpi{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);padding:17px 18px;box-shadow:var(--sh-sm);transition:.2s}
+.kpi:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.kpi .top{display:flex;justify-content:space-between;align-items:center}
+.kpi .ico{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center}
+.kpi .ico svg{width:17px;height:17px}
+.kpi .pct{font-size:11px;font-weight:700;padding:3px 7px;border-radius:var(--r-pill);background:var(--success-bg);color:var(--success-fg)}
+.kpi .pct.dn{background:var(--danger-bg);color:var(--danger-fg)}
+.kpi .lab{font-size:12.5px;color:var(--muted);margin:13px 0 3px}
+.kpi .val{font-size:25px;font-weight:700;letter-spacing:-.03em}
+.cols{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-sm)}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--border)}
+.card-h h3{font-size:14px;font-weight:700}.card-h a{font-size:12px;color:var(--accent);text-decoration:none;font-weight:600}
+.chart{padding:18px;display:flex;align-items:flex-end;gap:11px;height:150px}
+.bar{flex:1;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 45%,transparent));border-radius:6px 6px 2px 2px;min-height:8px;position:relative}
+.bar small{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--muted-2)}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);font-weight:600;padding:10px 18px;border-bottom:1px solid var(--border)}
+tbody td{padding:12px 18px;border-bottom:1px solid var(--border);font-size:13px}
+tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--surface)}
+.mono{font-family:var(--font-mono);font-size:12px}
+.amt{font-weight:600}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:var(--r-pill)}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.b-ok{background:var(--success-bg);color:var(--success-fg)}.b-wait{background:var(--warning-bg);color:var(--warning-fg)}
+.b-sent{background:var(--info-bg);color:var(--info-fg)}.b-rej{background:var(--danger-bg);color:var(--danger-fg)}
+.appr{padding:8px}.appr .row{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:11px}.appr .row:hover{background:var(--surface)}
+.appr .ic{width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center}.appr .ic svg{width:15px;height:15px}
+.appr b{font-size:12.5px;display:block}.appr small{font-size:11px;color:var(--muted)}.appr .a{margin-left:auto;font-weight:600;font-size:12.5px}
+
+/* ====================================================================== */
+/* LAYOUT 1 — TOP NAV (no sidebar)                                        */
+/* ====================================================================== */
+[data-layout="topnav"] .side{display:none}
+[data-layout="topnav"] .shell{min-height:100vh;background:var(--bg)}
+[data-layout="topnav"] .topnav{display:flex}
+.topnav{display:none;flex-direction:column;position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.topnav .row1{display:flex;align-items:center;gap:18px;padding:0 28px;height:62px}
+.topnav .brand{display:flex;align-items:center;gap:10px}
+.topnav nav{display:flex;gap:3px;margin-left:14px}
+.topnav nav a{font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 13px;border-radius:9px;display:flex;align-items:center;gap:6px}
+.topnav nav a svg{width:14px;height:14px;opacity:.8}
+.topnav nav a:hover{color:var(--text);background:var(--surface)}
+.topnav nav a.on{color:var(--accent-ink);background:var(--accent-soft)}
+.topnav .sp{flex:1}
+.topnav .row1 .right{display:flex;align-items:center;gap:10px}
+[data-layout="topnav"] .wrap{max-width:1180px;margin:0 auto;padding:28px 28px 60px}
+[data-layout="topnav"] .side, [data-layout="topnav"] .floatwrap{}
+
+/* ====================================================================== */
+/* LAYOUT 2 — FLOATING PANELS on warm canvas (light sidebar)             */
+/* ====================================================================== */
+[data-layout="floating"] body{background:var(--canvas)}
+[data-layout="floating"] .topnav{display:none}
+[data-layout="floating"] .app{display:flex;gap:14px;padding:14px;height:100vh}
+[data-layout="floating"] .side{display:flex;flex-direction:column;width:230px;flex-shrink:0;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-md);padding:16px 13px}
+[data-layout="floating"] .shell{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-md);overflow:hidden;display:flex;flex-direction:column}
+[data-layout="floating"] .shell .innertop{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+[data-layout="floating"] .wrap{overflow-y:auto;padding:24px 26px 40px}
+
+/* ====================================================================== */
+/* LAYOUT 3 — EDITORIAL light rail (text-forward, big type)              */
+/* ====================================================================== */
+[data-layout="editorial"] body{background:var(--bg)}
+[data-layout="editorial"] .topnav{display:none}
+[data-layout="editorial"] .app{display:flex;height:100vh}
+[data-layout="editorial"] .side{display:flex;flex-direction:column;width:250px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:26px 20px}
+[data-layout="editorial"] .shell{flex:1;min-width:0;overflow-y:auto;background:var(--bg)}
+[data-layout="editorial"] .shell .innertop{display:flex;align-items:center;justify-content:space-between;padding:18px 30px;border-bottom:1px solid var(--border);position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);z-index:5}
+[data-layout="editorial"] .wrap{padding:26px 32px 60px}
+[data-layout="editorial"] .side .nav a{font-size:15px;font-weight:600}
+[data-layout="editorial"] .side .nav a svg{display:none}
+
+/* sidebar internals (used by floating + editorial) */
+.side .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.side .navgrp{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted-2);font-weight:700;padding:16px 12px 7px}
+.side .nav a{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:500;margin-bottom:2px;transition:.13s}
+.side .nav a svg{width:17px;height:17px;opacity:.85}
+.side .nav a:hover{background:var(--bg);color:var(--text)}
+[data-layout="editorial"] .side .nav a:hover{background:var(--bg)}
+.side .nav a.on{background:var(--accent);color:#fff;font-weight:600;box-shadow:var(--sh-sm)}
+.side .nav a.on svg{opacity:1}
+.side .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;background:var(--surface)}
+[data-layout="editorial"] .side .me{background:var(--bg)}
+.side .me b{font-size:12.5px}.side .me small{display:block;color:var(--muted);font-size:10.5px}
+
+.note{text-align:center;color:var(--muted-2);font-size:11.5px;padding:24px 0 0}
+
+/* ---- dropdown mega-menus on the top nav ---- */
+.topnav nav .has-menu{position:relative}
+.topnav nav a .chev{width:13px;height:13px;opacity:.7;margin-left:-2px}
+.topnav nav .menu{position:absolute;top:calc(100% + 6px);left:0;min-width:248px;background:var(--bg);border:1px solid var(--border);border-radius:15px;box-shadow:var(--sh-lg);padding:8px;opacity:0;visibility:hidden;transform:translateY(-7px);transition:.16s;z-index:40}
+.topnav nav .has-menu:hover .menu{opacity:1;visibility:visible;transform:translateY(0)}
+.topnav nav .menu a{display:flex;gap:11px;align-items:flex-start;padding:9px 10px;border-radius:10px;color:var(--text);font-weight:500}
+.topnav nav .menu a:hover{background:var(--surface)}
+.topnav nav .menu a .mi{width:32px;height:32px;border-radius:9px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center;flex-shrink:0}
+.topnav nav .menu a .mi svg{width:16px;height:16px;opacity:1}
+.topnav nav .menu a b{font-size:13px;display:block;line-height:1.3}
+.topnav nav .menu a small{font-size:11px;color:var(--muted);font-weight:400}
+
+/* ---- secondary sub-nav (context tabs) ---- */
+.subnav{display:flex;gap:2px;border-bottom:1px solid var(--border);margin:-2px 0 22px;overflow-x:auto}
+.subnav a{font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;padding:11px 13px;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.subnav a .cnt{font-size:10.5px;background:var(--surface-2);color:var(--muted);border-radius:var(--r-pill);padding:1px 7px}
+.subnav a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+.subnav a.on .cnt{background:var(--accent-soft);color:var(--accent-ink)}
+.subnav a:hover{color:var(--text)}
+
+/* ---- mini widgets row ---- */
+.mini{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+.mini .li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px}
+.mini .li:hover{background:var(--surface)}
+.mini .li .bar2{flex:1;height:7px;border-radius:var(--r-pill);background:var(--surface-2);overflow:hidden}
+.mini .li .bar2 i{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill)}
+.mini .li b{font-size:12.5px;min-width:96px}.mini .li .v{font-size:12px;color:var(--muted);font-weight:600;min-width:54px;text-align:right}
+.alert{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;border:1px solid var(--border)}
+.alert+.alert{margin-top:8px}
+.alert .ai2{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;background:var(--warning-bg);color:var(--warning-fg)}
+.alert .ai2 svg{width:15px;height:15px}
+.alert b{font-size:12.5px;display:block}.alert small{font-size:11px;color:var(--muted)}
+
+/* ---- command palette (⌘K) ---- */
+.cmdk-back{position:fixed;inset:0;background:rgba(28,22,14,.42);backdrop-filter:blur(5px);z-index:90;display:none;align-items:flex-start;justify-content:center;padding-top:13vh}
+.cmdk-back.show{display:flex}
+.cmdk{width:580px;max-width:92vw;background:var(--bg);border:1px solid var(--border-strong);border-radius:17px;box-shadow:var(--sh-lg);overflow:hidden}
+.cmdk .in{display:flex;align-items:center;gap:11px;padding:16px 18px;border-bottom:1px solid var(--border);color:var(--muted)}
+.cmdk .in svg{width:18px;height:18px}
+.cmdk .in input{border:0;outline:0;font:inherit;font-size:15px;flex:1;background:transparent;color:var(--text)}
+.cmdk .body{padding:8px;max-height:340px;overflow-y:auto}
+.cmdk .glab{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-2);font-weight:700;padding:9px 10px 5px}
+.cmdk .it{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;font-size:13.5px;cursor:pointer;color:var(--text)}
+.cmdk .it:hover,.cmdk .it.sel{background:var(--accent-soft);color:var(--accent-ink)}
+.cmdk .it svg{width:16px;height:16px}
+.cmdk .it .k{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted-2)}
+
+/* CONTROLS */
+.controls{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:80;display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--r-pill);padding:6px;box-shadow:var(--sh-lg)}
+.controls .seg{display:flex;gap:2px;background:var(--surface);border-radius:var(--r-pill);padding:3px}
+.controls .seg button{font:inherit;font-size:12px;font-weight:600;border:0;background:transparent;color:var(--muted);padding:7px 13px;border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
+.controls .seg button.on{background:var(--accent);color:#fff}
+.controls .lbl{font-size:10px;color:var(--muted-2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding-left:6px}
+.controls .div{width:1px;height:22px;background:var(--border-strong)}
+.dotbtn{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.dotbtn.on{border-color:var(--text)}
+@media(max-width:1080px){.kpis{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}.topnav nav{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ======= TOP NAV (layout 1) ======= -->
+<div class="shell">
+  <header class="topnav">
+    <div class="row1">
+      <div class="brand"><div class="logo">P</div><span class="wordmark">Prathvi&rsquo;s&nbsp;ERP</span></div>
+      <nav>
+        <a class="on" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+        <div class="has-menu">
+          <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Procurement<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg></a>
+          <div class="menu">
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></span><span><b>Requisitions</b><small>Raise &amp; approve PRs</small></span></a>
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7"/></svg></span><span><b>Purchase Orders</b><small>Orders to vendors</small></span></a>
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/></svg></span><span><b>Approvals</b><small>Pending decisions</small></span></a>
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 7h-9M14 17H5M17 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg></span><span><b>Vendors</b><small>Supplier master</small></span></a>
+          </div>
+        </div>
+        <div class="has-menu">
+          <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Inventory<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg></a>
+          <div class="menu">
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><span><b>Stock ledger</b><small>On-hand &amp; movements</small></span></a>
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 3h20v14H2zM2 17l4 4M22 17l-4 4"/></svg></span><span><b>Goods Receipt</b><small>Receive against POs</small></span></a>
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M2 12h20"/></svg></span><span><b>Reorder &amp; valuation</b><small>FIFO / weighted-avg</small></span></a>
+          </div>
+        </div>
+        <div class="has-menu">
+          <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h12l-1 9H7zM6 3l-1 9"/></svg>Finance<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 9 6 6 6-6"/></svg></a>
+          <div class="menu">
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h12l-1 9H7zM6 3l-1 9"/></svg></span><span><b>Payments</b><small>Vendor payments &amp; AP</small></span></a>
+            <a href="#"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12h6M9 16h6M9 8h2M5 3h11l4 4v14H5z"/></svg></span><span><b>Invoices</b><small>3-way match</small></span></a>
+          </div>
+        </div>
+        <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>Assistant</a>
+      </nav>
+      <div class="sp"></div>
+      <div class="right">
+        <div class="search" style="width:200px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search <span class="kbd" style="margin-left:auto">⌘K</span></div>
+        <div class="iconbtn"><span class="d"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <div class="av">RK</div>
+      </div>
+    </div>
+  </header>
+  <div class="wrap" id="content-topnav"></div>
+</div>
+
+<!-- ======= FLOATING + EDITORIAL share .app (layout 2 & 3) ======= -->
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">P</div><span class="wordmark">Prathvi&rsquo;s&nbsp;ERP</span></div>
+    <nav class="nav">
+      <a class="on" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+      <div class="navgrp">Procurement</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Requisitions</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>Purchase Orders</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Approvals</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 7h-9M14 17H5M17 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM7 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>Vendors</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg>Items</a>
+      <div class="navgrp">Inventory</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Stock</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 3h20v14H2zM2 17l4 4M22 17l-4 4M8 9l3 3 5-5"/></svg>Goods Receipt</a>
+      <div class="navgrp">Finance</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h12l-1 9H7zM6 3l-1 9"/></svg>Payments</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h11l4 4v14H5zM9 12h6M9 16h6M9 8h2"/></svg>Invoices</a>
+      <div class="navgrp">Insights</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>AI Assistant</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18M8 16V9M13 16V5M18 16v-4"/></svg>Reports</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L4.1 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6a7 7 0 0 0 .1-1z"/></svg>Settings</a>
+    </nav>
+    <div class="me"><div class="av">RK</div><div><b>Ramesh Kumar</b><small>Acme Industries</small></div></div>
+  </aside>
+  <div class="shell">
+    <div class="innertop">
+      <div class="search" style="width:300px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search POs, vendors, items… <span class="kbd" style="margin-left:auto">⌘K</span></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="iconbtn"><span class="d"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+      </div>
+    </div>
+    <div class="wrap" id="content-app"></div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <span class="lbl">Layout</span>
+  <div class="seg" id="layouts">
+    <button data-l="floating" class="on">Floating</button>
+    <button data-l="editorial">Editorial</button>
+    <button data-l="topnav">Top nav</button>
+  </div>
+  <div class="div"></div>
+  <span class="lbl">Accent</span>
+  <button class="dotbtn on" data-a="emerald" style="background:#0E7C66"></button>
+  <button class="dotbtn" data-a="plum" style="background:#6D3A9C"></button>
+  <button class="dotbtn" data-a="clay" style="background:#C2410C"></button>
+  <button class="dotbtn" data-a="ink" style="background:#1C1A17"></button>
+</div>
+
+<!-- COMMAND PALETTE (⌘K) -->
+<div class="cmdk-back" id="cmdk">
+  <div class="cmdk" onclick="event.stopPropagation()">
+    <div class="in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search or jump to… (try 'new PO', 'vendors')"><span class="kbd">esc</span></div>
+    <div class="body">
+      <div class="glab">Quick actions</div>
+      <div class="it sel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>New Requisition<span class="k">C R</span></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>New Purchase Order<span class="k">C O</span></div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/></svg>Review approvals<span class="k">G A</span></div>
+      <div class="glab">Go to</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/></svg>Dashboard</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7"/></svg>Purchase Orders</div>
+      <div class="it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>Ask your ERP</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DASH=`
+  <div class="phead">
+    <div><h1 class="display">Good morning, Ramesh</h1><div class="sub">Here&rsquo;s what&rsquo;s happening across procurement today.</div></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>
+      <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>New Requisition</button>
+    </div>
+  </div>
+  <div class="subnav">
+    <a class="on">Overview</a>
+    <a>Analytics</a>
+    <a>Approvals <span class="cnt">5</span></a>
+    <a>Activity</a>
+    <a>Reports</a>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="top"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h12l-1 9H7zM6 3l-1 9"/></svg></div><span class="pct">▲ 12.4%</span></div><div class="lab">Spend this month</div><div class="val">₹42.8 L</div></div>
+    <div class="kpi"><div class="top"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><span class="pct dn">▼ 3</span></div><div class="lab">PRs pending approval</div><div class="val">18</div></div>
+    <div class="kpi"><div class="top"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7"/></svg></div><span class="pct">▲ 8</span></div><div class="lab">Open purchase orders</div><div class="val">63</div></div>
+    <div class="kpi"><div class="top"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 7h-9M14 17H5M17 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg></div><span class="pct">▲ 5</span></div><div class="lab">Active vendors</div><div class="val">147</div></div>
+  </div>
+  <div class="cols">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card"><div class="card-h"><h3>Spend trend</h3><a href="#">6 months ›</a></div>
+        <div class="chart">
+          <div class="bar" style="height:46%"><small>Dec</small></div><div class="bar" style="height:62%"><small>Jan</small></div>
+          <div class="bar" style="height:54%"><small>Feb</small></div><div class="bar" style="height:80%"><small>Mar</small></div>
+          <div class="bar" style="height:70%"><small>Apr</small></div><div class="bar" style="height:94%"><small>May</small></div>
+        </div></div>
+      <div class="card"><div class="card-h"><h3>Recent purchase orders</h3><a href="#">View all ›</a></div>
+        <table><thead><tr><th>PO</th><th>Vendor</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+          <tr><td class="mono">PO-2026-00412</td><td>Steelco Traders</td><td class="amt">₹8,40,000</td><td><span class="badge b-ok">Approved</span></td></tr>
+          <tr><td class="mono">PO-2026-00411</td><td>Bharat Motors</td><td class="amt">₹2,15,500</td><td><span class="badge b-sent">Sent</span></td></tr>
+          <tr><td class="mono">PO-2026-00410</td><td>Kirloskar Eng.</td><td class="amt">₹12,90,000</td><td><span class="badge b-wait">Pending</span></td></tr>
+          <tr><td class="mono">PO-2026-00409</td><td>Apex Polymers</td><td class="amt">₹74,200</td><td><span class="badge b-ok">Received</span></td></tr>
+        </tbody></table></div>
+    </div>
+    <div class="card" style="align-self:flex-start"><div class="card-h"><h3>Awaiting your approval</h3><span class="badge b-wait">5</span></div>
+      <div class="appr">
+        <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div><b>PR-2026-0231</b><small>Bearings &amp; spares · 2h</small></div><span class="a">₹1.4 L</span></div>
+        <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div><b>PR-2026-0230</b><small>Safety equipment · 5h</small></div><span class="a">₹86 K</span></div>
+        <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7"/></svg></div><div><b>PO-2026-00410</b><small>Kirloskar · 6h</small></div><span class="a">₹12.9 L</span></div>
+        <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div><b>PR-2026-0228</b><small>Lubricants · 1d</small></div><span class="a">₹52 K</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="mini">
+    <div class="card" style="padding:6px 8px 10px">
+      <div class="card-h" style="border:0"><h3>Top vendors by spend</h3><a href="#">All ›</a></div>
+      <div class="li"><b>Kirloskar Eng.</b><div class="bar2"><i style="width:92%"></i></div><span class="v">₹18.4L</span></div>
+      <div class="li"><b>Steelco Traders</b><div class="bar2"><i style="width:74%"></i></div><span class="v">₹14.8L</span></div>
+      <div class="li"><b>Bharat Motors</b><div class="bar2"><i style="width:48%"></i></div><span class="v">₹9.6L</span></div>
+      <div class="li"><b>Apex Polymers</b><div class="bar2"><i style="width:31%"></i></div><span class="v">₹6.2L</span></div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="card-h" style="border:0;padding:2px 4px 12px"><h3>Stock alerts</h3><span class="badge b-wait">3</span></div>
+      <div class="alert"><div class="ai2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div><div><b>SKF 6204 Bearing</b><small>Below reorder · 12 left (min 50)</small></div></div>
+      <div class="alert"><div class="ai2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div><div><b>Hydraulic Oil 68</b><small>Expiring in 21 days · batch B-2231</small></div></div>
+    </div>
+  </div>
+  <p class="note">Static preview · switch Layout &amp; Accent below · press <span class="kbd">⌘K</span> or click search for the command menu · nothing saved until you choose.</p>`;
+document.getElementById('content-topnav').innerHTML=DASH;
+document.getElementById('content-app').innerHTML=DASH;
+
+const root=document.documentElement;
+const topShell=document.querySelector('body > .shell');
+const appBlock=document.querySelector('.app');
+function setLayout(l){
+  root.dataset.layout=l;
+  document.querySelectorAll('#layouts button').forEach(x=>x.classList.toggle('on',x.dataset.l===l));
+  const isTop=l==='topnav';
+  topShell.style.display=isTop?'block':'none';
+  appBlock.style.display=isTop?'none':'flex';
+}
+document.querySelectorAll('#layouts button').forEach(b=>b.onclick=()=>setLayout(b.dataset.l));
+setLayout('floating');
+document.querySelectorAll('.dotbtn').forEach(b=>b.onclick=()=>{
+  root.dataset.accent=b.dataset.a;
+  document.querySelectorAll('.dotbtn').forEach(x=>x.classList.toggle('on',x===b));
+});
+
+// command palette (⌘K)
+const cmdk=document.getElementById('cmdk');
+function openCmdk(){cmdk.classList.add('show');const i=cmdk.querySelector('input');if(i)setTimeout(()=>i.focus(),30);}
+function closeCmdk(){cmdk.classList.remove('show');}
+cmdk.addEventListener('click',closeCmdk);
+document.addEventListener('click',e=>{const s=e.target.closest('.search');if(s)openCmdk();});
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCmdk();}
+  if(e.key==='Escape')closeCmdk();
+});
+</script>
+</body>
+</html>

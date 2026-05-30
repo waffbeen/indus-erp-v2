@@ -1,0 +1,152 @@
+/* ==========================================================================
+   THEME: "Porcelain" — classy warm-neutral system (default 2026-05-30)
+   --------------------------------------------------------------------------
+   - Warm porcelain neutrals (not flat white), refined type, soft layered shadows.
+   - Selectable ACCENT via [data-accent="emerald|plum|clay|ink"] (emerald default).
+   - LIGHT + DARK via [data-mode="light|dark"] (light default).
+   - Reuses every existing token name so all components restyle automatically.
+   Accent-derived tints use color-mix so they adapt to light/dark with no extra blocks.
+   ========================================================================== */
+
+/* -------- ACCENT (core hue only; everything else is derived) -------- */
+:root,
+[data-accent="emerald"] { --accent:#0E7C66; --accent-strong:#0A5E4D; }
+[data-accent="plum"]    { --accent:#6D3A9C; --accent-strong:#552E7C; }
+[data-accent="clay"]    { --accent:#C2410C; --accent-strong:#9A330A; }
+[data-accent="ink"]     { --accent:#26211B; --accent-strong:#000000; }
+
+/* ==========================================================================
+   LIGHT (default)
+   ========================================================================== */
+:root,
+[data-mode="light"] {
+  /* derived accent */
+  --primary:        var(--accent);
+  --primary-hover:  var(--accent-strong);
+  --primary-fg:     #FFFFFF;
+  --accent-soft:    color-mix(in srgb, var(--accent) 12%, #FFFFFF);
+  --accent-ink:     color-mix(in srgb, var(--accent) 72%, var(--text));
+
+  /* brand canvas + surfaces */
+  --frame:          #EBE7DE;   /* warm canvas behind floating panels */
+  --frame-2:        #E1DCD0;
+  --bg:             #FFFFFF;
+  --surface:        #F7F5F1;
+  --surface-2:      #EFEBE3;
+  --border:         #EAE5DB;
+  --border-strong:  #DBD4C6;
+
+  /* text */
+  --text:           #1C1A17;
+  --text-on-dark:   #FFFFFF;
+  --muted:          #6E675B;
+  --muted-2:        #A8A192;
+
+  /* pastel tints — refined, low-chroma (KPI cards, badges) */
+  --tint-teal:#D9E6E0; --tint-teal-2:#BFD3CC; --tint-teal-fg:#1E443A;
+  --tint-peach:#F2E2D1; --tint-peach-2:#E8D0B7; --tint-peach-fg:#6B4A2B;
+  --tint-sand:#F0EBDE; --tint-sand-fg:#5C5237;
+  --tint-mint:#DEEBDC; --tint-mint-fg:#2E5635;
+  --tint-lilac:#E6E1EF; --tint-lilac-fg:#473869;
+  --tint-blush:#F2E0DD; --tint-blush-fg:#6E3833;
+  --accent-orange:#C2410C; --accent-orange-fg:#FFFFFF;
+
+  /* semantic status */
+  --success:#0B6B45; --success-bg:#DCEFE3; --success-fg:#0B6B45;
+  --warning:#8A5212; --warning-bg:#FAEAD1; --warning-fg:#8A5212;
+  --danger:#9A2A1A;  --danger-bg:#F8DFD9;  --danger-fg:#9A2A1A;
+  --info:#28477E;    --info-bg:#E2EAF6;    --info-fg:#28477E;
+
+  /* sidebar (editorial = light surface; floating = card) */
+  --side-bg:        #F6F4EF;
+  --side-text:      #6E675B;
+  --side-hover:     #FFFFFF;
+  --side-active-bg: var(--primary);
+  --side-active-fg: var(--primary-fg);
+  --side-border:    #EAE5DB;
+
+  /* shadows — soft, warm-tinted, layered */
+  --shadow-sm: 0 1px 2px rgba(40,33,22,.05);
+  --shadow-md: 0 1px 3px rgba(40,33,22,.06), 0 10px 24px -12px rgba(40,33,22,.16);
+  --shadow-lg: 0 18px 50px -16px rgba(40,33,22,.26);
+  --shadow-dark: 0 12px 40px rgba(0,0,0,.18);
+}
+
+/* ==========================================================================
+   DARK
+   ========================================================================== */
+[data-mode="dark"] {
+  --primary:        var(--accent);
+  --primary-hover:  color-mix(in srgb, var(--accent) 78%, #FFFFFF);
+  --primary-fg:     #0B0E0C;
+  --accent-soft:    color-mix(in srgb, var(--accent) 22%, var(--bg));
+  --accent-ink:     color-mix(in srgb, var(--accent) 62%, var(--text));
+
+  --frame:          #0E0C09;
+  --frame-2:        #15120D;
+  --bg:             #16130F;
+  --surface:        #1D1914;
+  --surface-2:      #25201A;
+  --border:         #2A241D;
+  --border-strong:  #39322A;
+
+  --text:           #ECE7DD;
+  --text-on-dark:   #FFFFFF;
+  --muted:          #A49B8C;
+  --muted-2:        #6F6759;
+
+  --tint-teal:#173029; --tint-teal-2:#1F3F36; --tint-teal-fg:#86CFBE;
+  --tint-peach:#30231A; --tint-peach-2:#3C2C20; --tint-peach-fg:#E0B68F;
+  --tint-sand:#2A2418; --tint-sand-fg:#D8C79B;
+  --tint-mint:#152A1D; --tint-mint-fg:#8FCf9c;
+  --tint-lilac:#221C30; --tint-lilac-fg:#C3B4E6;
+  --tint-blush:#2E1A1B; --tint-blush-fg:#E6A6A0;
+  --accent-orange:#E2761F; --accent-orange-fg:#1B1206;
+
+  --success:#34B98A; --success-bg:#12291F; --success-fg:#5FD0A0;
+  --warning:#D9A441; --warning-bg:#2A2210; --warning-fg:#E3B873;
+  --danger:#E0786C;  --danger-bg:#2C1714;  --danger-fg:#F0A39A;
+  --info:#5C95D6;    --info-bg:#16243A;    --info-fg:#9BC2EE;
+
+  --side-bg:        #14110D;
+  --side-text:      #A49B8C;
+  --side-hover:     #1D1914;
+  --side-active-bg: var(--primary);
+  --side-active-fg: var(--primary-fg);
+  --side-border:    #2A241D;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.45), 0 12px 30px -12px rgba(0,0,0,.65);
+  --shadow-lg: 0 22px 55px -16px rgba(0,0,0,.75);
+  --shadow-dark: 0 14px 44px rgba(0,0,0,.6);
+}
+
+/* ==========================================================================
+   SHARED — typography, radii, motion (mode-independent)
+   ========================================================================== */
+:root {
+  --font-sans: var(--font-inter, "Inter"), -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-fraunces, "Fraunces"), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-jbmono, "JetBrains Mono"), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --tracking-tight: -0.014em;
+  --tracking-display: -0.02em;
+
+  --radius-sm: 9px;
+  --radius-md: 13px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --radius-pill: 999px;
+
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px;
+  --space-6:24px; --space-7:28px; --space-8:32px; --space-10:40px; --space-12:48px; --space-16:64px;
+
+  --ease-out: cubic-bezier(0.16,1,0.3,1);
+  --ease-spring: cubic-bezier(0.34,1.4,0.64,1);
+  --dur-fast: 130ms; --dur-normal: 220ms; --dur-slow: 340ms;
+}
+
+/* gradient presets kept for any hero usage */
+.gradient-teal  { background: linear-gradient(135deg, var(--tint-teal) 0%, var(--tint-teal-2) 100%); }
+.gradient-peach { background: linear-gradient(135deg, var(--tint-peach) 0%, var(--tint-peach-2) 100%); }
+.gradient-accent{ background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); }

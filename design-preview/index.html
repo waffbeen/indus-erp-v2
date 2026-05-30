@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en" data-theme="aurora" data-mode="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prathvi's ERP — Theme Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================== THEME TOKENS ============================== */
+:root{
+  --font-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-display:"Inter",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px; --r-pill:999px;
+}
+
+/* ---- AURORA (light) ---- */
+[data-theme="aurora"][data-mode="light"]{
+  --frame:#0E1117; --bg:#FFFFFF; --surface:#F7F8FA; --surface-2:#EEF0F4;
+  --border:#E7E9EF; --border-strong:#DCDFE7;
+  --text:#0B0F19; --muted:#5B6472; --muted-2:#8A92A1;
+  --primary:#6366F1; --primary-hover:#4F46E5; --primary-fg:#FFFFFF; --primary-soft:#EEF0FE;
+  --success:#10B981; --success-bg:#DCFCE7; --success-fg:#0F7A4E;
+  --warning:#F59E0B; --warning-bg:#FEF3C7; --warning-fg:#92600A;
+  --danger:#EF4444;  --danger-bg:#FEE2E2;  --danger-fg:#B42318;
+  --info:#3B82F6;    --info-bg:#DBEAFE;    --info-fg:#1D4FA8;
+  --c1:#6366F1; --c1-bg:#EEF0FE; --c2:#0EA5E9; --c2-bg:#E0F2FE; --c3:#10B981; --c3-bg:#DCFCE7; --c4:#F59E0B; --c4-bg:#FEF3C7;
+  --sh-sm:0 1px 2px rgba(16,24,40,.05);
+  --sh-md:0 1px 3px rgba(16,24,40,.07),0 6px 16px -6px rgba(16,24,40,.10);
+  --sh-lg:0 10px 30px -10px rgba(16,24,40,.18);
+  --side-bg:#0E1117; --side-text:#C7CCD6; --side-active-bg:#1B2230; --side-active-text:#FFFFFF; --side-accent:#818CF8;
+}
+/* ---- AURORA (dark) ---- */
+[data-theme="aurora"][data-mode="dark"]{
+  --frame:#070A12; --bg:#0E1422; --surface:#141B2B; --surface-2:#1B2333;
+  --border:#222B3D; --border-strong:#2C374B;
+  --text:#E7EAF1; --muted:#9AA3B2; --muted-2:#6B7484;
+  --primary:#818CF8; --primary-hover:#A5B0FF; --primary-fg:#0B0F19; --primary-soft:#1C2740;
+  --success:#34D399; --success-bg:#0E2A20; --success-fg:#5EE0AC;
+  --warning:#FBBF24; --warning-bg:#2A2310; --warning-fg:#F3C969;
+  --danger:#F87171;  --danger-bg:#2A1717;  --danger-fg:#FCA5A5;
+  --info:#60A5FA;    --info-bg:#11233E;    --info-fg:#93C5FD;
+  --c1:#818CF8; --c1-bg:#1C2740; --c2:#38BDF8; --c2-bg:#0C2436; --c3:#34D399; --c3-bg:#0E2A20; --c4:#FBBF24; --c4-bg:#2A2310;
+  --sh-sm:0 1px 2px rgba(0,0,0,.4);
+  --sh-md:0 2px 6px rgba(0,0,0,.4),0 10px 26px -10px rgba(0,0,0,.6);
+  --sh-lg:0 16px 40px -12px rgba(0,0,0,.7);
+  --side-bg:#070A12; --side-text:#9AA3B2; --side-active-bg:#161F30; --side-active-text:#FFFFFF; --side-accent:#818CF8;
+}
+
+/* ---- ONYX (dark only) ---- */
+[data-theme="onyx"]{
+  --frame:#060709; --bg:#0E1116; --surface:#161A21; --surface-2:#1E232C;
+  --border:#242A33; --border-strong:#2F3742;
+  --text:#ECEFF3; --muted:#8A93A0; --muted-2:#5E6672;
+  --primary:#10B981; --primary-hover:#34D399; --primary-fg:#04130C; --primary-soft:#10261C;
+  --success:#10B981; --success-bg:#0D241A; --success-fg:#4ADE9E;
+  --warning:#D4AF37; --warning-bg:#251F0E; --warning-fg:#E8C766;
+  --danger:#F26D6D;  --danger-bg:#2A1414;  --danger-fg:#F7A1A1;
+  --info:#5BB0E8;    --info-bg:#0E2233;    --info-fg:#9BD0F2;
+  --c1:#10B981; --c1-bg:#10261C; --c2:#D4AF37; --c2-bg:#251F0E; --c3:#5BB0E8; --c3-bg:#0E2233; --c4:#C084FC; --c4-bg:#221735;
+  --sh-sm:0 1px 2px rgba(0,0,0,.5);
+  --sh-md:0 2px 8px rgba(0,0,0,.5),0 12px 30px -10px rgba(0,0,0,.7);
+  --sh-lg:0 20px 50px -14px rgba(0,0,0,.8);
+  --side-bg:#060709; --side-text:#8A93A0; --side-active-bg:#11271E; --side-active-text:#ECEFF3; --side-accent:#10B981;
+  --glass:rgba(255,255,255,.03);
+}
+
+/* ---- PORCELAIN (light, editorial) ---- */
+[data-theme="porcelain"]{
+  --frame:#23201B; --bg:#FCFBF9; --surface:#F4F1EC; --surface-2:#ECE7DF;
+  --border:#E7E1D6; --border-strong:#DBD3C5;
+  --text:#1A1714; --muted:#6B6258; --muted-2:#9B9286;
+  --primary:#7C3AED; --primary-hover:#6D28D9; --primary-fg:#FFFFFF; --primary-soft:#F1EAFE;
+  --success:#166534; --success-bg:#DCEEDD; --success-fg:#14532D;
+  --warning:#B45309; --warning-bg:#FBEAD2; --warning-fg:#7C3D08;
+  --danger:#B91C1C;  --danger-bg:#F7DEDA;  --danger-fg:#8A1717;
+  --info:#1D4ED8;    --info-bg:#DEE6FA;    --info-fg:#1E3A8A;
+  --c1:#7C3AED; --c1-bg:#F1EAFE; --c2:#166534; --c2-bg:#DCEEDD; --c3:#B45309; --c3-bg:#FBEAD2; --c4:#1D4ED8; --c4-bg:#DEE6FA;
+  --sh-sm:0 1px 2px rgba(60,50,40,.06);
+  --sh-md:0 1px 3px rgba(60,50,40,.07),0 8px 20px -8px rgba(60,50,40,.12);
+  --sh-lg:0 14px 36px -12px rgba(60,50,40,.18);
+  --side-bg:#23201B; --side-text:#C9C0B2; --side-active-bg:#332E26; --side-active-text:#FFFFFF; --side-accent:#C4A8F5;
+  --font-display:"Fraunces",serif;
+}
+
+/* ---- REFINED TEAL (light) ---- */
+[data-theme="teal"][data-mode="light"]{
+  --frame:#0B1A18; --bg:#FFFFFF; --surface:#F6F8F8; --surface-2:#ECF1F0;
+  --border:#E3EAE8; --border-strong:#D6DFDD;
+  --text:#14211F; --muted:#5E6E6A; --muted-2:#8D9C98;
+  --primary:#0F766E; --primary-hover:#0B5D56; --primary-fg:#FFFFFF; --primary-soft:#E3F1EF;
+  --success:#0F9D58; --success-bg:#DDF2E6; --success-fg:#0A6B3C;
+  --warning:#C77B23; --warning-bg:#FBEBD6; --warning-fg:#824D0E;
+  --danger:#D14343;  --danger-bg:#FAE0DE;  --danger-fg:#8A2020;
+  --info:#2E7DA6;    --info-bg:#DBEDF5;    --info-fg:#1B4A66;
+  --c1:#0F766E; --c1-bg:#E3F1EF; --c2:#2E7DA6; --c2-bg:#DBEDF5; --c3:#0F9D58; --c3-bg:#DDF2E6; --c4:#C77B23; --c4-bg:#FBEBD6;
+  --sh-sm:0 1px 2px rgba(16,40,36,.05);
+  --sh-md:0 1px 3px rgba(16,40,36,.07),0 8px 20px -8px rgba(16,40,36,.10);
+  --sh-lg:0 14px 34px -12px rgba(16,40,36,.16);
+  --side-bg:#0B1A18; --side-text:#A7BEB9; --side-active-bg:#13302C; --side-active-text:#FFFFFF; --side-accent:#2DD4BF;
+}
+[data-theme="teal"][data-mode="dark"]{
+  --frame:#06100E; --bg:#0B1614; --surface:#11201D; --surface-2:#172925;
+  --border:#1F332E; --border-strong:#294039;
+  --text:#E6F0ED; --muted:#93A8A3; --muted-2:#637771;
+  --primary:#2DD4BF; --primary-hover:#5EEAD4; --primary-fg:#04130F; --primary-soft:#11302B;
+  --success:#34D399; --success-bg:#0E2A20; --success-fg:#5EE0AC;
+  --warning:#FBBF24; --warning-bg:#2A2310; --warning-fg:#F3C969;
+  --danger:#F87171;  --danger-bg:#2A1717;  --danger-fg:#FCA5A5;
+  --info:#60A5FA;    --info-bg:#11233E;    --info-fg:#93C5FD;
+  --c1:#2DD4BF; --c1-bg:#11302B; --c2:#60A5FA; --c2-bg:#11233E; --c3:#34D399; --c3-bg:#0E2A20; --c4:#FBBF24; --c4-bg:#2A2310;
+  --sh-sm:0 1px 2px rgba(0,0,0,.4);
+  --sh-md:0 2px 6px rgba(0,0,0,.4),0 10px 26px -10px rgba(0,0,0,.6);
+  --sh-lg:0 16px 40px -12px rgba(0,0,0,.7);
+  --side-bg:#06100E; --side-text:#93A8A3; --side-active-bg:#11211E; --side-active-text:#FFFFFF; --side-accent:#2DD4BF;
+}
+
+/* ============================== BASE ============================== */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--frame);color:var(--text);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.01em;line-height:1.5;transition:background .3s}
+.app{display:flex;height:100vh;overflow:hidden}
+.display{font-family:var(--font-display);letter-spacing:-.025em;font-weight:700}
+
+/* control bar */
+.controls{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:50;
+  display:flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--border-strong);
+  border-radius:var(--r-pill);padding:6px;box-shadow:var(--sh-lg)}
+.controls .seg{display:flex;gap:2px;background:var(--surface);border-radius:var(--r-pill);padding:3px}
+.controls button{font:inherit;font-size:12px;font-weight:600;border:0;background:transparent;color:var(--muted);
+  padding:7px 13px;border-radius:var(--r-pill);cursor:pointer;transition:.15s;white-space:nowrap}
+.controls button.on{background:var(--primary);color:var(--primary-fg);box-shadow:var(--sh-sm)}
+.controls .div{width:1px;height:22px;background:var(--border-strong);margin:0 3px}
+
+/* ============================== SIDEBAR ============================== */
+.side{width:228px;background:var(--side-bg);color:var(--side-text);display:flex;flex-direction:column;flex-shrink:0;padding:14px 12px}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--primary),var(--side-accent));
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0}
+.brand b{font-size:14.5px;color:var(--side-active-text);letter-spacing:-.02em}
+.navgrp{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--side-text);opacity:.5;padding:14px 10px 6px;font-weight:600}
+.nav a{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;color:var(--side-text);
+  text-decoration:none;font-size:13px;font-weight:500;margin-bottom:1px;transition:.13s;position:relative}
+.nav a svg{width:17px;height:17px;opacity:.85;flex-shrink:0}
+.nav a:hover{background:rgba(255,255,255,.05);color:var(--side-active-text)}
+.nav a.on{background:var(--side-active-bg);color:var(--side-active-text);font-weight:600}
+.nav a.on::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--side-accent)}
+.side .me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;background:rgba(255,255,255,.04)}
+.side .me .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--c2),var(--primary));
+  display:grid;place-items:center;color:#fff;font-size:11px;font-weight:700}
+.side .me small{display:block;color:var(--side-text);opacity:.6;font-size:10.5px}
+.side .me b{font-size:12.5px;color:var(--side-active-text)}
+
+/* ============================== MAIN ============================== */
+.main{flex:1;background:var(--bg);overflow-y:auto;border-radius:18px 0 0 0}
+.top{position:sticky;top:0;z-index:10;height:60px;background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;align-items:center;
+  justify-content:space-between;padding:0 26px}
+.search{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:8px 13px;width:320px;color:var(--muted-2);font-size:13px}
+.search svg{width:15px;height:15px}
+.top .right{display:flex;align-items:center;gap:10px}
+.iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);
+  display:grid;place-items:center;color:var(--muted);cursor:pointer;position:relative}
+.iconbtn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--danger);border:2px solid var(--surface)}
+.iconbtn svg{width:17px;height:17px}
+
+.content{padding:26px 30px 90px}
+.phead{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap}
+.phead h1{font-size:27px}.phead p{color:var(--muted);font-size:13.5px;margin-top:4px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:600;
+  padding:9px 15px;border-radius:10px;border:1px solid transparent;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn svg{width:15px;height:15px}
+.btn-primary{background:var(--primary);color:var(--primary-fg);box-shadow:var(--sh-sm)}
+.btn-primary:hover{background:var(--primary-hover);box-shadow:var(--sh-md);transform:translateY(-1px)}
+.btn-ghost{background:var(--bg);color:var(--text);border-color:var(--border-strong)}
+.btn-ghost:hover{background:var(--surface)}
+
+/* KPI cards */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.kpi{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);padding:18px;box-shadow:var(--sh-md);transition:.2s}
+.kpi:hover{box-shadow:var(--sh-lg);transform:translateY(-2px)}
+.kpi .ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:13px}
+.kpi .ico svg{width:19px;height:19px}
+.kpi .lab{font-size:12px;color:var(--muted);font-weight:500}
+.kpi .val{font-size:25px;font-weight:700;letter-spacing:-.03em;margin:5px 0 7px;font-family:var(--font-display)}
+.kpi .trend{font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.up{color:var(--success)}.down{color:var(--danger)}
+.i1{background:var(--c1-bg);color:var(--c1)}.i2{background:var(--c2-bg);color:var(--c2)}
+.i3{background:var(--c3-bg);color:var(--c3)}.i4{background:var(--c4-bg);color:var(--c4)}
+
+/* layout grid */
+.grid{display:grid;grid-template-columns:1.65fr 1fr;gap:18px}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-md)}
+.card.glass{background:var(--glass,var(--bg))}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
+.card-h h3{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.card-h a{font-size:12px;color:var(--primary);text-decoration:none;font-weight:600}
+
+/* chart */
+.chart{padding:18px;display:flex;align-items:flex-end;gap:10px;height:170px}
+.bar{flex:1;background:linear-gradient(180deg,var(--primary),color-mix(in srgb,var(--primary) 55%,transparent));
+  border-radius:7px 7px 3px 3px;position:relative;min-height:8px;transition:.3s}
+.bar span{position:absolute;top:-19px;left:0;right:0;text-align:center;font-size:10px;color:var(--muted);font-weight:600}
+.bar small{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--muted-2)}
+
+/* table */
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-2);
+  font-weight:600;padding:11px 18px;border-bottom:1px solid var(--border)}
+tbody td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface)}
+.mono{font-family:var(--font-mono);font-size:12px;color:var(--text)}
+.vend{display:flex;align-items:center;gap:9px}
+.vend .vav{width:28px;height:28px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--muted)}
+.amt{font-weight:600;font-family:var(--font-display)}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:var(--r-pill)}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.b-ok{background:var(--success-bg);color:var(--success-fg)}
+.b-wait{background:var(--warning-bg);color:var(--warning-fg)}
+.b-sent{background:var(--info-bg);color:var(--info-fg)}
+.b-rej{background:var(--danger-bg);color:var(--danger-fg)}
+
+/* approvals + AI */
+.appr{padding:8px 8px}
+.appr .row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:11px;transition:.13s}
+.appr .row:hover{background:var(--surface)}
+.appr .row .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;background:var(--c1-bg);color:var(--c1)}
+.appr .row .ic svg{width:16px;height:16px}
+.appr .row b{font-size:13px;display:block}
+.appr .row small{font-size:11.5px;color:var(--muted)}
+.appr .row .amt{margin-left:auto;font-size:13px}
+.ai{margin-top:18px;padding:18px;border-radius:var(--r-md);background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:var(--primary-fg);box-shadow:var(--sh-lg)}
+.ai .t{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px}
+.ai p{font-size:12.5px;opacity:.9;margin:7px 0 13px;line-height:1.55}
+.ai .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);padding:8px 12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer}
+.note{text-align:center;color:var(--muted-2);font-size:11.5px;padding:18px 0 0}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.side{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="brand"><div class="logo">P</div><b>Prathvi's ERP</b></div>
+    <nav class="nav">
+      <a class="on" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+      <div class="navgrp">Procurement</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>Requisitions</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>Purchase Orders</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Approvals</a>
+      <div class="navgrp">Inventory</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Inventory</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9M14 17H5M17 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM7 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>Vendors</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></svg>Items</a>
+      <div class="navgrp">Finance</div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12l-1 9H7zM6 3l-1 9M9 3v9"/><circle cx="9" cy="19" r="1.6"/><circle cx="16" cy="19" r="1.6"/></svg>Payments</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>AI Assistant</a>
+    </nav>
+    <div class="me"><div class="av">RK</div><div><b>Ramesh Kumar</b><small>Acme Industries</small></div></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="top">
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search POs, vendors, items…</div>
+      <div class="right">
+        <div class="iconbtn"><span class="dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="phead">
+        <div><h1 class="display">Good morning, Ramesh</h1><p>Here's what's happening across procurement today.</p></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>
+          <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New Requisition</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpis">
+        <div class="kpi"><div class="ico i1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12l-1 9H7zM6 3l-1 9"/><circle cx="9" cy="19" r="1.6"/><circle cx="16" cy="19" r="1.6"/></svg></div><div class="lab">Spend this month</div><div class="val">₹42.8 L</div><div class="trend up">▲ 12.4% vs last month</div></div>
+        <div class="kpi"><div class="ico i2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div><div class="lab">PRs pending approval</div><div class="val">18</div><div class="trend down">▼ 3 since yesterday</div></div>
+        <div class="kpi"><div class="ico i3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></div><div class="lab">Open purchase orders</div><div class="val">63</div><div class="trend up">▲ 8 this week</div></div>
+        <div class="kpi"><div class="ico i4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9M14 17H5M17 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM7 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg></div><div class="lab">Active vendors</div><div class="val">147</div><div class="trend up">▲ 5 onboarded</div></div>
+      </div>
+
+      <div class="grid">
+        <!-- left -->
+        <div>
+          <div class="card" style="margin-bottom:18px">
+            <div class="card-h"><h3>Spend trend</h3><a href="#">Last 6 months ›</a></div>
+            <div class="chart">
+              <div class="bar" style="height:46%"><span>₹28L</span><small>Dec</small></div>
+              <div class="bar" style="height:62%"><span>₹34L</span><small>Jan</small></div>
+              <div class="bar" style="height:54%"><span>₹31L</span><small>Feb</small></div>
+              <div class="bar" style="height:78%"><span>₹39L</span><small>Mar</small></div>
+              <div class="bar" style="height:70%"><span>₹37L</span><small>Apr</small></div>
+              <div class="bar" style="height:92%"><span>₹43L</span><small>May</small></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h3>Recent purchase orders</h3><a href="#">View all ›</a></div>
+            <table>
+              <thead><tr><th>PO</th><th>Vendor</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">PO-2026-00412</td><td><div class="vend"><div class="vav">ST</div>Steelco Traders</div></td><td class="amt">₹8,40,000</td><td><span class="badge b-ok">Approved</span></td></tr>
+                <tr><td class="mono">PO-2026-00411</td><td><div class="vend"><div class="vav">BM</div>Bharat Motors</div></td><td class="amt">₹2,15,500</td><td><span class="badge b-sent">Sent</span></td></tr>
+                <tr><td class="mono">PO-2026-00410</td><td><div class="vend"><div class="vav">KE</div>Kirloskar Eng.</div></td><td class="amt">₹12,90,000</td><td><span class="badge b-wait">Pending</span></td></tr>
+                <tr><td class="mono">PO-2026-00409</td><td><div class="vend"><div class="vav">AP</div>Apex Polymers</div></td><td class="amt">₹74,200</td><td><span class="badge b-ok">Received</span></td></tr>
+                <tr><td class="mono">PO-2026-00408</td><td><div class="vend"><div class="vav">SF</div>Sunfab Industries</div></td><td class="amt">₹3,68,900</td><td><span class="badge b-rej">Rejected</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- right -->
+        <div>
+          <div class="card glass">
+            <div class="card-h"><h3>Awaiting your approval</h3><span class="badge b-wait">5</span></div>
+            <div class="appr">
+              <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div><b>PR-2026-0231</b><small>Bearings & spares · 2h ago</small></div><span class="amt">₹1.4 L</span></div>
+              <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div><b>PR-2026-0230</b><small>Safety equipment · 5h ago</small></div><span class="amt">₹86 K</span></div>
+              <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7"/></svg></div><div><b>PO-2026-00410</b><small>Kirloskar Eng. · 6h ago</small></div><span class="amt">₹12.9 L</span></div>
+              <div class="row"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div><div><b>PR-2026-0228</b><small>Lubricants · 1d ago</small></div><span class="amt">₹52 K</span></div>
+            </div>
+          </div>
+          <div class="ai">
+            <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6 7 18.2l1.9-5.8L4 8.8h6.1z"/></svg>Ask your ERP</div>
+            <p>"What did we spend on bearings last quarter, and which vendor was cheapest?"</p>
+            <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Ask the assistant</span>
+          </div>
+        </div>
+      </div>
+      <p class="note">↑ This is a static preview. Use the switcher below to compare themes — nothing here is saved until you pick one.</p>
+    </div>
+  </main>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="seg" id="themes">
+    <button data-t="aurora" class="on">Aurora</button>
+    <button data-t="onyx">Onyx</button>
+    <button data-t="porcelain">Porcelain</button>
+    <button data-t="teal">Refined Teal</button>
+  </div>
+  <div class="div"></div>
+  <div class="seg" id="modes">
+    <button data-m="light" class="on">☀ Light</button>
+    <button data-m="dark">☾ Dark</button>
+  </div>
+</div>
+
+<script>
+const root=document.documentElement;
+// dark-only / light-only constraints
+const FORCE={onyx:"dark",porcelain:"light"};
+function setTheme(t){
+  root.dataset.theme=t;
+  document.querySelectorAll('#themes button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if(FORCE[t]){setMode(FORCE[t]);}
+  // disable mode buttons for forced themes
+  document.querySelectorAll('#modes button').forEach(b=>{
+    const dis=FORCE[t]&&FORCE[t]!==b.dataset.m;
+    b.style.opacity=dis?'.35':'1'; b.style.pointerEvents=dis?'none':'auto';
+  });
+}
+function setMode(m){
+  root.dataset.mode=m;
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+}
+document.querySelectorAll('#themes button').forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+</script>
+</body>
+</html>

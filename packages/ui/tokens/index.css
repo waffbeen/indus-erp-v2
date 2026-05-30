@@ -11,7 +11,8 @@
    [data-theme] attribute is set.
    ========================================================================== */
 
-@import "./circle.css";       /* ← ACTIVE theme (Variant 07). Default for :root + [data-theme="circle"] */
-@import "./starline.css";     /* ← Loaded but inert until <body data-theme="starline"> is set */
+@import "./porcelain.css";    /* ← ACTIVE theme. Warm neutrals + selectable accent + light/dark. */
 
-/* Future themes: add a file in this folder and @import it here. */
+/* Legacy themes (kept for reference; not loaded):
+   @import "./circle.css";
+   @import "./starline.css"; */

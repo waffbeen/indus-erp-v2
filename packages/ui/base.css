@@ -1,256 +1,166 @@
 /* ==========================================================================
    Base styles — typography, reset bits, shared utilities
-   Loaded AFTER tokens. Anything that should be theme-aware reads from vars.
+   Loaded AFTER tokens. Anything theme-aware reads from CSS vars.
    ========================================================================== */
 
 @import "./tokens/index.css";
 
 html, body {
   font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11", "tnum";
+  font-feature-settings: "ss01", "cv05", "cv11", "tnum";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.011em;
   color: var(--text);
   background: var(--bg);
   line-height: 1.5;
 }
 
-/* Tighten the base table row density app-wide — ERP shows lots of rows. */
-table { font-size: 12.5px; }
-th { font-size: 10.5px; letter-spacing: 0.04em; }
+/* Tighten base table density app-wide — ERP shows lots of rows. */
+table { font-size: 13px; }
+th { font-size: 10.5px; letter-spacing: 0.05em; }
 
 /* ==========================================================================
    Modal entrance animation
-   - Backdrop fades from 0 -> 1
-   - Panel does a soft pop (scale 0.96 -> 1 + 6px lift)
-   Spring ease so it feels alive without being bouncy.
    ========================================================================== */
 @keyframes modal-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-panel-in {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .modal-backdrop {
-  background: rgba(17, 24, 32, 0.45);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  animation: modal-backdrop-in 160ms var(--ease-out);
+  background: color-mix(in srgb, var(--frame) 55%, rgba(10,8,5,.5));
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  animation: modal-backdrop-in 170ms var(--ease-out);
 }
 .modal-panel {
   border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  animation: modal-panel-in 180ms var(--ease-spring);
+  animation: modal-panel-in 200ms var(--ease-spring);
 }
 
-/* Display type — for big numbers, hero headings */
+/* Display type — big numbers, hero headings */
 .display {
+  font-family: var(--font-display);
   letter-spacing: var(--tracking-display);
-  font-weight: 700;
+  font-weight: 600;
 }
 
-/* Lucide icon defaults — line style, rounded caps */
-[data-lucide] {
-  width: 18px;
-  height: 18px;
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
+/* Lucide icon defaults */
+[data-lucide] { width: 18px; height: 18px; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ==========================================================================
-   Semantic helper classes — use these in production, NOT raw hex
+   Semantic helper classes — use these, NOT raw hex
    ========================================================================== */
+.surface-bg{background:var(--bg)} .surface-1{background:var(--surface)} .surface-2{background:var(--surface-2)}
+.surface-frame{background:var(--frame)} .surface-frame-2{background:var(--frame-2)}
+.text-default{color:var(--text)} .text-muted{color:var(--muted)} .text-muted-2{color:var(--muted-2)}
+.text-on-dark{color:var(--text-on-dark)} .text-primary{color:var(--primary)}
+.text-danger{color:var(--danger)} .text-danger-fg{color:var(--danger-fg)} .text-success{color:var(--success)} .text-warning{color:var(--warning)}
+.border-faint{border-color:var(--border)} .border-strong{border-color:var(--border-strong)}
+.border-danger{border-color:var(--danger)} .border-danger-fg{border-color:var(--danger-fg)}
+.bg-danger{background:var(--danger)} .bg-danger-bg{background:var(--danger-bg)}
+.bg-success{background:var(--success)} .bg-success-bg{background:var(--success-bg)}
+.bg-warning-bg{background:var(--warning-bg)} .bg-info-bg{background:var(--info-bg)}
+.bg-primary{background:var(--primary)} .bg-frame{background:var(--frame)} .bg-bg{background:var(--bg)}
+.bg-surface{background:var(--surface)} .bg-surface-2{background:var(--surface-2)}
+.bg-tint-teal{background:var(--tint-teal)} .bg-tint-peach{background:var(--tint-peach)} .bg-tint-mint{background:var(--tint-mint)}
+.bg-tint-lilac{background:var(--tint-lilac)} .bg-tint-blush{background:var(--tint-blush)} .bg-tint-sand{background:var(--tint-sand)}
+.text-tint-teal-fg{color:var(--tint-teal-fg)} .text-tint-peach-fg{color:var(--tint-peach-fg)} .text-tint-mint-fg{color:var(--tint-mint-fg)}
+.text-tint-lilac-fg{color:var(--tint-lilac-fg)} .text-tint-blush-fg{color:var(--tint-blush-fg)}
 
-/* Surfaces */
-.surface-bg       { background: var(--bg); }
-.surface-1        { background: var(--surface); }
-.surface-2        { background: var(--surface-2); }
-.surface-frame    { background: var(--frame); }
-.surface-frame-2  { background: var(--frame-2); }
-
-/* Text colors */
-.text-default     { color: var(--text); }
-.text-muted       { color: var(--muted); }
-.text-muted-2     { color: var(--muted-2); }
-.text-on-dark     { color: var(--text-on-dark); }
-.text-primary     { color: var(--primary); }
-.text-danger      { color: var(--danger); }
-.text-danger-fg   { color: var(--danger-fg); }
-.text-success     { color: var(--success); }
-.text-warning     { color: var(--warning); }
-
-/* Borders */
-.border-faint     { border-color: var(--border); }
-.border-strong    { border-color: var(--border-strong); }
-.border-danger    { border-color: var(--danger); }
-.border-danger-fg { border-color: var(--danger-fg); }
-
-/* Backgrounds (semantic) */
-.bg-danger        { background: var(--danger); }
-.bg-danger-bg     { background: var(--danger-bg); }
-.bg-success       { background: var(--success); }
-.bg-success-bg    { background: var(--success-bg); }
-.bg-warning-bg    { background: var(--warning-bg); }
-.bg-info-bg       { background: var(--info-bg); }
-.bg-primary       { background: var(--primary); }
-.bg-frame         { background: var(--frame); }
-.bg-bg            { background: var(--bg); }
-.bg-surface       { background: var(--surface); }
-.bg-surface-2     { background: var(--surface-2); }
-
-/* Tint backgrounds */
-.bg-tint-teal   { background: var(--tint-teal); }
-.bg-tint-peach  { background: var(--tint-peach); }
-.bg-tint-mint   { background: var(--tint-mint); }
-.bg-tint-lilac  { background: var(--tint-lilac); }
-.bg-tint-blush  { background: var(--tint-blush); }
-.bg-tint-sand   { background: var(--tint-sand); }
-.text-tint-teal-fg   { color: var(--tint-teal-fg); }
-.text-tint-peach-fg  { color: var(--tint-peach-fg); }
-.text-tint-mint-fg   { color: var(--tint-mint-fg); }
-.text-tint-lilac-fg  { color: var(--tint-lilac-fg); }
-.text-tint-blush-fg  { color: var(--tint-blush-fg); }
-.text-on-dark        { color: var(--text-on-dark); }
-
-/* Buttons — dense ERP-style with a hair more weight than v1 so they don't feel
-   chiclet-thin. Pill kept on .btn-pill for the round cases (avatars). */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 12px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  transition: background var(--dur-fast) var(--ease-out),
-              color var(--dur-fast) var(--ease-out),
-              border-color var(--dur-fast) var(--ease-out),
-              box-shadow var(--dur-fast) var(--ease-out),
+/* ==========================================================================
+   Buttons — refined, a touch larger radius + soft press
+   ========================================================================== */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  padding:0 14px; border-radius:10px; font-size:13px; font-weight:600;
+  letter-spacing:-.006em; cursor:pointer; border:1px solid transparent; white-space:nowrap;
+  height:36px; line-height:1;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out),
               transform var(--dur-fast) var(--ease-out);
-  cursor: pointer;
-  border: 1px solid transparent;
-  white-space: nowrap;
-  height: 32px;
-  line-height: 1;
 }
-.btn:active { transform: translateY(1px); }
-.btn-sm { padding: 0 10px; font-size: 11.5px; gap: 4px; height: 28px; border-radius: 5px; }
-.btn-lg { padding: 0 18px; font-size: 13px; gap: 8px; height: 40px; border-radius: 7px; }
-.btn-pill { border-radius: var(--radius-pill); }
+.btn:active{ transform: translateY(1px); }
+.btn-sm{ padding:0 11px; font-size:12px; gap:5px; height:31px; border-radius:9px; }
+.btn-lg{ padding:0 20px; font-size:14px; gap:8px; height:44px; border-radius:12px; }
+.btn-pill{ border-radius:var(--radius-pill); }
 
-.btn-primary {
-  background: var(--primary);
-  color: var(--primary-fg);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 2px 6px rgba(47, 92, 104, 0.18); }
+.btn-primary{ background:var(--primary); color:var(--primary-fg); box-shadow:var(--shadow-sm); }
+.btn-primary:hover{ background:var(--primary-hover); box-shadow:var(--shadow-md); transform:translateY(-1px); }
+.btn-primary:active{ transform:translateY(0); }
 
-.btn-ghost {
-  background: var(--bg);
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-.btn-ghost:hover { background: var(--surface); border-color: var(--muted-2); }
+.btn-ghost{ background:var(--bg); color:var(--text); border-color:var(--border-strong); }
+.btn-ghost:hover{ background:var(--surface); border-color:var(--muted-2); }
 
-.btn-quiet {
-  background: transparent;
-  color: var(--muted);
-}
-.btn-quiet:hover { background: var(--surface); color: var(--text); }
+.btn-quiet{ background:transparent; color:var(--muted); }
+.btn-quiet:hover{ background:var(--surface); color:var(--text); }
 
-.btn-danger {
-  background: var(--danger);
-  color: var(--primary-fg);
-}
-.btn-danger:hover { background: color-mix(in srgb, var(--danger) 88%, black); }
+.btn-danger{ background:var(--danger); color:#fff; }
+.btn-danger:hover{ background:color-mix(in srgb, var(--danger) 86%, black); }
 
-.btn-disabled, .btn[disabled] {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
+.btn-disabled, .btn[disabled]{ opacity:.5; cursor:not-allowed; pointer-events:none; }
 
-/* Cards — dense ERP look with a hairline border and a barely-there shadow
-   so panels feel like actual surfaces, not painted rectangles. */
-.card {
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: 7px;
-  box-shadow: 0 1px 0 rgba(15, 23, 32, 0.02);
+/* ==========================================================================
+   Cards — soft elevation + warm hairline border, larger radius
+   ========================================================================== */
+.card{
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  box-shadow:var(--shadow-sm);
 }
-.card-lg { border-radius: 10px; }
+.card-lg{ border-radius:var(--radius-lg); box-shadow:var(--shadow-md); }
 
 /* KPI tint cards */
-.kpi { padding: 18px; border-radius: var(--radius-xl); }
-.kpi-teal   { background: var(--tint-teal);  color: var(--tint-teal-fg); }
-.kpi-peach  { background: var(--tint-peach); color: var(--tint-peach-fg); }
-.kpi-sand   { background: var(--tint-sand);  color: var(--tint-sand-fg); }
-.kpi-mint   { background: var(--tint-mint);  color: var(--tint-mint-fg); }
-.kpi-lilac  { background: var(--tint-lilac); color: var(--tint-lilac-fg); }
-.kpi-blush  { background: var(--tint-blush); color: var(--tint-blush-fg); }
+.kpi{ padding:18px; border-radius:var(--radius-lg); }
+.kpi-teal{ background:var(--tint-teal); color:var(--tint-teal-fg); }
+.kpi-peach{ background:var(--tint-peach); color:var(--tint-peach-fg); }
+.kpi-sand{ background:var(--tint-sand); color:var(--tint-sand-fg); }
+.kpi-mint{ background:var(--tint-mint); color:var(--tint-mint-fg); }
+.kpi-lilac{ background:var(--tint-lilac); color:var(--tint-lilac-fg); }
+.kpi-blush{ background:var(--tint-blush); color:var(--tint-blush-fg); }
 
-/* Inputs — comfortable but compact. A touch more height + hover state so the
-   form feels alive when the cursor passes over it. */
-.input {
-  width: 100%;
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  font-size: 13px;
-  height: 32px;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  transition: border-color var(--dur-fast) var(--ease-out),
-              box-shadow var(--dur-fast) var(--ease-out),
-              background var(--dur-fast) var(--ease-out);
+/* ==========================================================================
+   Inputs
+   ========================================================================== */
+.input{
+  width:100%; padding:0 12px; border:1px solid var(--border-strong); border-radius:10px;
+  font-size:13.5px; height:36px; background:var(--bg); color:var(--text); font-family:var(--font-sans);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
-textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; min-height: 36px; }
-select.input { padding-right: 28px; cursor: pointer; }
-.input::placeholder { color: var(--muted-2); }
-.input:hover { border-color: var(--muted-2); }
-.input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+textarea.input{ height:auto; padding:9px 12px; line-height:1.5; min-height:38px; }
+select.input{ padding-right:30px; cursor:pointer; }
+.input::placeholder{ color:var(--muted-2); }
+.input:hover{ border-color:var(--muted-2); }
+.input:focus{
+  outline:none; border-color:var(--primary);
+  box-shadow:0 0 0 3.5px color-mix(in srgb, var(--primary) 16%, transparent);
 }
-.input:disabled, .input[readonly] { background: var(--surface); color: var(--muted); cursor: not-allowed; }
+.input:disabled, .input[readonly]{ background:var(--surface); color:var(--muted); cursor:not-allowed; }
 
-.label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--muted);
-  margin-bottom: 5px;
-  display: block;
-}
+.label{ font-size:11.5px; font-weight:600; letter-spacing:.01em; color:var(--muted); margin-bottom:6px; display:block; }
 
-/* Badges — flatter, smaller, denser for ERP feel. */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 7px;
-  font-size: 10.5px;
-  font-weight: 600;
-  border-radius: 4px;
-  line-height: 1.4;
-  letter-spacing: -0.005em;
+/* ==========================================================================
+   Badges — pill, refined
+   ========================================================================== */
+.badge{
+  display:inline-flex; align-items:center; gap:4px; padding:3px 9px; font-size:11px; font-weight:600;
+  border-radius:var(--radius-pill); line-height:1.4; letter-spacing:-.004em;
 }
-.badge-success { background: var(--success-bg); color: var(--success-fg); }
-.badge-warning { background: var(--warning-bg); color: var(--warning-fg); }
-.badge-danger  { background: var(--danger-bg);  color: var(--danger-fg);  }
-.badge-info    { background: var(--info-bg);    color: var(--info-fg);    }
-.badge-tint-peach { background: var(--tint-peach); color: var(--tint-peach-fg); }
-.badge-tint-lilac { background: var(--tint-lilac); color: var(--tint-lilac-fg); }
-.badge-tint-mint  { background: var(--tint-mint);  color: var(--tint-mint-fg);  }
-.badge-tint-blush { background: var(--tint-blush); color: var(--tint-blush-fg); }
+.badge-success{ background:var(--success-bg); color:var(--success-fg); }
+.badge-warning{ background:var(--warning-bg); color:var(--warning-fg); }
+.badge-danger{ background:var(--danger-bg); color:var(--danger-fg); }
+.badge-info{ background:var(--info-bg); color:var(--info-fg); }
+.badge-tint-peach{ background:var(--tint-peach); color:var(--tint-peach-fg); }
+.badge-tint-lilac{ background:var(--tint-lilac); color:var(--tint-lilac-fg); }
+.badge-tint-mint{ background:var(--tint-mint); color:var(--tint-mint-fg); }
+.badge-tint-blush{ background:var(--tint-blush); color:var(--tint-blush-fg); }
 
-/* Focus visible — accessibility */
-:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
+/* Focus-visible accessibility */
+:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+
+/* Rounded-pill utility some components reference */
+.rounded-pill{ border-radius:var(--radius-pill); }
