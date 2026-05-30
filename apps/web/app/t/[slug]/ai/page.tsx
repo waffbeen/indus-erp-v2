@@ -123,7 +123,7 @@ export default function AiAssistantPage() {
 
       {configured === false && (
         <div className="rounded p-2.5 text-xs flex items-start gap-2" style={{ background: "var(--warning-bg)", color: "var(--warning-fg)" }}>
-          <Icon name="AlertTriangle" size={14} />
+          <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">
             The AI assistant isn&apos;t configured on the server yet (missing API key). You can still
             explore the interface — replies will explain this.

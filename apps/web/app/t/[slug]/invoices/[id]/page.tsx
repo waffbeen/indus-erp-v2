@@ -154,7 +154,7 @@ export default function InvoiceDetailPage() {
             )}
             {isOpen && (
               <button className="btn btn-primary btn-sm" onClick={() => { setOverride(false); setApproveOpen(true); }}>
-                <Icon name="CheckCircle2" size={14} /> Approve
+                <Icon name="CircleCheckBig" size={14} /> Approve
               </button>
             )}
             {isOpen && (

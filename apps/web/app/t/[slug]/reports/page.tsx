@@ -117,7 +117,7 @@ export default function ReportsPage() {
 
       {error && (
         <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
-          <Icon name="AlertTriangle" size={14} />
+          <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">{error}</span>
         </div>
       )}
@@ -129,7 +129,7 @@ export default function ReportsPage() {
             <div className="p-6 text-center text-xs text-muted">Loading…</div>
           ) : prAging.length === 0 ? (
             <div className="p-8 text-center">
-              <Icon name="CheckCircle2" size={20} className="mx-auto mb-1.5 text-muted" />
+              <Icon name="CircleCheckBig" size={20} className="mx-auto mb-1.5 text-muted" />
               <p className="text-xs text-muted">No pending requisitions — inbox zero.</p>
             </div>
           ) : (

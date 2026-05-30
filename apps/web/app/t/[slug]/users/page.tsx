@@ -313,7 +313,7 @@ export default function UsersPage() {
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 rounded-md grid place-items-center shrink-0" style={{ background: "var(--tint-mint)", color: "var(--tint-mint-fg)" }}>
-                <Icon name="CheckCircle2" size={18} />
+                <Icon name="CircleCheckBig" size={18} />
               </div>
               <div className="text-[12.5px] text-muted leading-relaxed">
                 Invite created. Share the link below — once the invitee opens it, they'll be asked to set a password and join.

@@ -67,7 +67,7 @@ export default function AcceptInvitePage() {
         {loadErr ? (
           <div className="text-center py-8">
             <div className="h-12 w-12 mx-auto mb-3 rounded-md grid place-items-center" style={{ background: "var(--tint-blush)", color: "var(--tint-blush-fg)" }}>
-              <Icon name="XCircle" size={22} />
+              <Icon name="CircleX" size={22} />
             </div>
             <h1 className="text-[15px] font-semibold mb-1">Invite unavailable</h1>
             <p className="text-[12px] text-muted">{loadErr}</p>

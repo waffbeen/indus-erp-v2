@@ -243,10 +243,10 @@ export default function PrDetailPage() {
                   <Icon name="Undo2" /> Send Back
                 </button>
                 <button className="btn btn-ghost" onClick={() => { setDecisionAction("reject"); setDecisionComment(""); }}>
-                  <Icon name="XCircle" /> Reject
+                  <Icon name="CircleX" /> Reject
                 </button>
                 <button className="btn btn-primary" onClick={() => { setDecisionAction("approve"); setDecisionComment(""); }}>
-                  <Icon name="CheckCircle2" /> Approve
+                  <Icon name="CircleCheckBig" /> Approve
                 </button>
               </>
             )}
@@ -281,7 +281,7 @@ export default function PrDetailPage() {
       {pr.status === "approved" && (
         <div className="card p-5 mb-5 flex items-center gap-4" style={{ background: "var(--tint-mint)" }}>
           <div className="h-12 w-12 rounded-2xl grid place-items-center shrink-0" style={{ background: "rgba(255,255,255,0.6)", color: "var(--tint-mint-fg)" }}>
-            <Icon name="CheckCircle2" size={24} />
+            <Icon name="CircleCheckBig" size={24} />
           </div>
           <div className="flex-1">
             <p className="font-bold" style={{ color: "var(--tint-mint-fg)" }}>Approved — next step: create the Purchase Order</p>
@@ -552,7 +552,7 @@ export default function PrDetailPage() {
               }}
             >
               <Icon
-                name={decisionAction === "approve" ? "CheckCircle2" : decisionAction === "send_back" ? "Undo2" : "XCircle"}
+                name={decisionAction === "approve" ? "CircleCheckBig" : decisionAction === "send_back" ? "Undo2" : "CircleX"}
                 size={22}
               />
             </div>
@@ -627,10 +627,10 @@ function AuditRow({ label, name, at }: { label: string; name?: string | null; at
 
 const ACTION_META: Record<string, { icon: IconProps["name"]; tint: string; tintFg: string; verb: string }> = {
   submit:          { icon: "Send",          tint: "var(--tint-lilac)", tintFg: "var(--tint-lilac-fg)", verb: "submitted" },
-  approve:         { icon: "CheckCircle2",  tint: "var(--tint-mint)",  tintFg: "var(--tint-mint-fg)",  verb: "approved" },
-  reject:          { icon: "XCircle",       tint: "var(--tint-blush)", tintFg: "var(--tint-blush-fg)", verb: "rejected" },
-  request_changes: { icon: "AlertCircle",   tint: "var(--tint-peach)", tintFg: "var(--tint-peach-fg)", verb: "requested changes on" },
-  escalate:        { icon: "AlertTriangle", tint: "var(--tint-peach)", tintFg: "var(--tint-peach-fg)", verb: "escalated" },
+  approve:         { icon: "CircleCheckBig",  tint: "var(--tint-mint)",  tintFg: "var(--tint-mint-fg)",  verb: "approved" },
+  reject:          { icon: "CircleX",       tint: "var(--tint-blush)", tintFg: "var(--tint-blush-fg)", verb: "rejected" },
+  request_changes: { icon: "CircleAlert",   tint: "var(--tint-peach)", tintFg: "var(--tint-peach-fg)", verb: "requested changes on" },
+  escalate:        { icon: "TriangleAlert", tint: "var(--tint-peach)", tintFg: "var(--tint-peach-fg)", verb: "escalated" },
   cancel:          { icon: "Ban",           tint: "var(--surface)",    tintFg: "var(--muted)",         verb: "cancelled" },
 };
 

@@ -138,7 +138,7 @@ export default function PrListPage() {
 
       {error && (
         <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
-          <Icon name="AlertTriangle" size={14} />
+          <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">{error}</span>
         </div>
       )}
@@ -207,7 +207,7 @@ export default function PrListPage() {
                   <td className="px-3 py-2 font-medium max-w-md truncate">{pr.title}</td>
                   <td className="px-3 py-2 text-muted">{pr.requesterName}</td>
                   <td className="px-3 py-2 tabular-nums text-right text-muted">{pr.itemsCount}</td>
-                  <td className="px-3 py-2 font-semibold tabular-nums text-right">{paiseToCompactINR(pr.estimatedTotalPaise as unknown as string)}</td>
+                  <td className="px-3 py-2 font-semibold tabular-nums text-right">{paiseToCompactINR((pr.estimatedTotal ?? 0) * 100)}</td>
                   <td className="px-3 py-2"><PriorityBadge priority={pr.priority} /></td>
                   <td className="px-3 py-2"><PrStatusBadge status={pr.status} /></td>
                   <td className="px-3 py-2 text-[11px] text-muted">{timeAgo(pr.createdAt)}</td>

@@ -6,12 +6,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
-  // Run typecheck/lint via `pnpm typecheck` in CI; don't block production builds on them.
-  // TODO(phase0-cleanup): remove both `ignoreBuildErrors` and `ignoreDuringBuilds`
-  // once `pnpm --filter @indus/web typecheck` is clean, so type/lint regressions
-  // fail the build instead of shipping silently. Left enabled for now because the
-  // web app may not type-check until the in-flight parallel modules land.
-  typescript: { ignoreBuildErrors: true },
+  // Type-safety restored (phase-0 cleanup, 2026-05-30): the web app type-checks
+  // clean, so TYPE ERRORS NOW FAIL THE BUILD instead of shipping silently.
+  // ESLint is still skipped at build time (run separately via `pnpm lint`).
   eslint: { ignoreDuringBuilds: true },
 };
 

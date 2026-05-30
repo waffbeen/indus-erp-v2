@@ -4,10 +4,10 @@ import { Icon, type IconProps } from "./Icon";
 import { useToastStore, type Toast, type ToastTone } from "@/lib/toast";
 
 const TONE_STYLE: Record<ToastTone, { bg: string; fg: string; iconBg: string; icon: IconProps["name"] }> = {
-  success: { bg: "var(--tint-mint)",  fg: "var(--tint-mint-fg)",  iconBg: "rgba(255,255,255,0.6)", icon: "CheckCircle2" },
-  error:   { bg: "var(--tint-blush)", fg: "var(--tint-blush-fg)", iconBg: "rgba(255,255,255,0.6)", icon: "XCircle" },
+  success: { bg: "var(--tint-mint)",  fg: "var(--tint-mint-fg)",  iconBg: "rgba(255,255,255,0.6)", icon: "CircleCheckBig" },
+  error:   { bg: "var(--tint-blush)", fg: "var(--tint-blush-fg)", iconBg: "rgba(255,255,255,0.6)", icon: "CircleX" },
   info:    { bg: "var(--tint-lilac)", fg: "var(--tint-lilac-fg)", iconBg: "rgba(255,255,255,0.6)", icon: "Info" },
-  warning: { bg: "var(--tint-peach)", fg: "var(--tint-peach-fg)", iconBg: "rgba(255,255,255,0.6)", icon: "AlertTriangle" },
+  warning: { bg: "var(--tint-peach)", fg: "var(--tint-peach-fg)", iconBg: "rgba(255,255,255,0.6)", icon: "TriangleAlert" },
 };
 
 export function Toaster() {

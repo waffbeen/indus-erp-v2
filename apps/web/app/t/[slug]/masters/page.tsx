@@ -72,7 +72,7 @@ const MASTERS: MasterDef[] = [
     hint: "F.O.R. delivery options shown on PO (Ex Works / FOR Plant / CIF / etc.).",
   },
   {
-    key: "cancel-reasons", label: "Cancellation Reasons", icon: "XCircle", group: "procurement",
+    key: "cancel-reasons", label: "Cancellation Reasons", icon: "CircleX", group: "procurement",
     endpoint: "/api/masters/cancel-reasons",
     columns: [{ field: "label", label: "Reason" }],
     fields: [{ name: "label", label: "Reason", required: true }],

@@ -18,12 +18,12 @@ interface NotificationRow {
 
 const KIND_ICON: Record<string, IconProps["name"]> = {
   pr_submitted:    "Inbox",
-  pr_approved:     "CheckCircle2",
-  pr_rejected:     "XCircle",
+  pr_approved:     "CircleCheckBig",
+  pr_rejected:     "CircleX",
   pr_sent_back:    "Undo2",
   po_submitted:    "Inbox",
-  po_approved:     "CheckCircle2",
-  po_rejected:     "XCircle",
+  po_approved:     "CircleCheckBig",
+  po_rejected:     "CircleX",
   po_sent_to_vendor: "Truck",
   grn_raised:      "PackageCheck",
   grn_cancelled:   "PackageX",
@@ -159,7 +159,7 @@ export function NotificationsBell() {
             ) : items.length === 0 ? (
               <div className="p-8 text-center">
                 <div className="h-10 w-10 mx-auto mb-2 rounded-md grid place-items-center" style={{ background: "var(--tint-mint)", color: "var(--tint-mint-fg)" }}>
-                  <Icon name="CheckCircle2" size={18} />
+                  <Icon name="CircleCheckBig" size={18} />
                 </div>
                 <p className="text-xs text-muted">All caught up.</p>
               </div>

@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
       {error && (
         <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
-          <Icon name="AlertTriangle" size={14} />
+          <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">{error}</span>
         </div>
       )}
@@ -304,7 +304,7 @@ export default function DashboardPage() {
           ) : (stats?.prAgingBuckets ?? []).every((b) => b.count === 0) ? (
             <div className="h-24 grid place-items-center text-xs text-muted text-center">
               <div>
-                <Icon name="CheckCircle2" size={18} className="mx-auto mb-1 text-success-fg" />
+                <Icon name="CircleCheckBig" size={18} className="mx-auto mb-1 text-success-fg" />
                 Inbox zero
               </div>
             </div>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
         ) : !stats?.recentPending.length ? (
           <div className="p-8 text-center">
             <div className="h-10 w-10 mx-auto mb-2 rounded-md grid place-items-center" style={{ background: "var(--tint-mint)", color: "var(--tint-mint-fg)" }}>
-              <Icon name="CheckCircle2" size={18} />
+              <Icon name="CircleCheckBig" size={18} />
             </div>
             <p className="text-xs text-muted">No requisitions waiting for approval. 🎉</p>
           </div>

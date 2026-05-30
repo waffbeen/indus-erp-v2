@@ -266,7 +266,7 @@ export default function EditPrPage() {
         </div>
         <div className="card p-6">
           <div className="rounded-lg p-3 bg-danger-bg text-danger-fg text-sm flex items-start gap-2">
-            <Icon name="AlertTriangle" size={16} />
+            <Icon name="TriangleAlert" size={16} />
             <span className="flex-1">{loadError}</span>
           </div>
           <div className="mt-4">
@@ -303,7 +303,7 @@ export default function EditPrPage() {
     >
       {errors.summary && (
         <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
-          <Icon name="AlertTriangle" size={14} />
+          <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">{errors.summary}</span>
         </div>
       )}

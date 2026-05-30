@@ -181,7 +181,7 @@ export default function StockCountDetailPage() {
                   <Icon name="Save" size={14} /> {saving ? "Saving…" : "Save"}
                 </button>
                 <button className="btn btn-primary btn-sm" onClick={post} disabled={posting}>
-                  <Icon name="CheckCircle2" size={14} /> {posting ? "Posting…" : "Post adjustments"}
+                  <Icon name="CircleCheckBig" size={14} /> {posting ? "Posting…" : "Post adjustments"}
                 </button>
               </>
             )}
@@ -192,7 +192,7 @@ export default function StockCountDetailPage() {
       <SummaryTiles
         tiles={[
           { label: "Lines", value: String(count.lines.length), icon: "List" },
-          { label: "With variance", value: String(preview.variances), icon: "AlertTriangle", tone: preview.variances > 0 ? "text-danger-fg" : undefined },
+          { label: "With variance", value: String(preview.variances), icon: "TriangleAlert", tone: preview.variances > 0 ? "text-danger-fg" : undefined },
           { label: "Net variance", value: preview.netScaled.toLocaleString("en-IN", { maximumFractionDigits: 3 }), icon: "Scale", tone: preview.netScaled < 0 ? "text-danger-fg" : preview.netScaled > 0 ? "text-success-fg" : undefined },
           { label: "Status", value: meta.label, icon: "ClipboardCheck" },
         ]}

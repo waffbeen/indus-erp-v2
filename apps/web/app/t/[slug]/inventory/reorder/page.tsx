@@ -139,7 +139,7 @@ function ReorderBoard({
     <>
       <SummaryTiles
         tiles={[
-          { label: "Items to reorder", value: String(data?.suggestions.length ?? 0), icon: "AlertTriangle", tone: (data?.suggestions.length ?? 0) > 0 ? "text-danger-fg" : undefined },
+          { label: "Items to reorder", value: String(data?.suggestions.length ?? 0), icon: "TriangleAlert", tone: (data?.suggestions.length ?? 0) > 0 ? "text-danger-fg" : undefined },
           { label: "Monitored", value: String(data?.monitored ?? 0), icon: "Eye", hint: "active policies" },
           { label: "Est. order value", value: paiseToINR(estValuePaise), icon: "IndianRupee", hint: "@ last purchase price" },
           { label: "Filtered", value: String(rows.length), icon: "Filter", hint: "rows shown" },
@@ -155,7 +155,7 @@ function ReorderBoard({
 
       {error && (
         <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
-          <Icon name="AlertTriangle" size={14} /><span className="flex-1">{error}</span>
+          <Icon name="TriangleAlert" size={14} /><span className="flex-1">{error}</span>
         </div>
       )}
 
@@ -164,7 +164,7 @@ function ReorderBoard({
           <div className="p-6 text-center text-xs text-muted">Loading…</div>
         ) : rows.length === 0 ? (
           <div className="p-8 text-center">
-            <Icon name="CheckCircle2" size={20} className="mx-auto mb-1.5 text-success-fg" />
+            <Icon name="CircleCheckBig" size={20} className="mx-auto mb-1.5 text-success-fg" />
             <p className="text-xs text-muted">
               {term ? "No items match." : (data?.monitored ?? 0) === 0
                 ? "No stocking policies yet. Add min/max/reorder levels under the Stocking policies tab to drive this board."

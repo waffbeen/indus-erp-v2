@@ -88,6 +88,7 @@ interface PoDetail {
   revisionRemark: string | null;
   sentToVendorAt: string | null;
   createdAt: string;
+  updatedAt: string | null;
   /** Legacy parity — header polish. */
   poType: string | null;
   forDelivery: string | null;
@@ -312,10 +313,10 @@ export default function PoDetailPage() {
             {canDecide && (
               <>
                 <button className="btn btn-ghost" onClick={() => { setDecision("reject"); setComment(""); }}>
-                  <Icon name="XCircle" /> Reject
+                  <Icon name="CircleX" /> Reject
                 </button>
                 <button className="btn btn-primary" onClick={() => { setDecision("approve"); setComment(""); }}>
-                  <Icon name="CheckCircle2" /> Approve
+                  <Icon name="CircleCheckBig" /> Approve
                 </button>
               </>
             )}
@@ -335,7 +336,7 @@ export default function PoDetailPage() {
                 onClick={() => { setShortCloseComment(""); setConfirmAction("short_close"); }}
                 title="Close the PO without waiting for full receipt"
               >
-                <Icon name="XSquare" /> Short Close
+                <Icon name="SquareX" /> Short Close
               </button>
             )}
             {po.amendmentCount > 0 && (
@@ -808,7 +809,7 @@ export default function PoDetailPage() {
               onClick={() => performAction("short_close")}
               disabled={!shortCloseComment.trim()}
             >
-              <Icon name="XSquare" /> Short close
+              <Icon name="SquareX" /> Short close
             </button>
           </>
         }
@@ -816,7 +817,7 @@ export default function PoDetailPage() {
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="h-12 w-12 rounded-2xl grid place-items-center shrink-0" style={{ background: "var(--tint-peach)", color: "var(--tint-peach-fg)" }}>
-              <Icon name="XSquare" size={22} />
+              <Icon name="SquareX" size={22} />
             </div>
             <div className="flex-1 pt-1 text-sm text-muted leading-relaxed">
               PO ko <strong className="text-text-default">closed</strong> mark kar denge — baki ka delivery wait nahi karenge.
@@ -869,7 +870,7 @@ export default function PoDetailPage() {
               className="h-12 w-12 rounded-2xl grid place-items-center shrink-0"
               style={{ background: decision === "approve" ? "var(--tint-mint)" : "var(--tint-blush)", color: decision === "approve" ? "var(--tint-mint-fg)" : "var(--tint-blush-fg)" }}
             >
-              <Icon name={decision === "approve" ? "CheckCircle2" : "XCircle"} size={22} />
+              <Icon name={decision === "approve" ? "CircleCheckBig" : "CircleX"} size={22} />
             </div>
             <div className="flex-1 pt-1 text-sm text-muted leading-relaxed">
               <strong className="text-text-default">{po.poNumber}</strong> — {paiseToINR(po.totalPaise)} to {po.vendor?.name}.
@@ -921,8 +922,8 @@ function AuditRow({ label, name, at }: { label: string; name?: string | null; at
 
 const ACTION_META: Record<string, { icon: IconProps["name"]; tint: string; tintFg: string; verb: string }> = {
   submit:  { icon: "Send", tint: "var(--tint-lilac)", tintFg: "var(--tint-lilac-fg)", verb: "submitted" },
-  approve: { icon: "CheckCircle2", tint: "var(--tint-mint)", tintFg: "var(--tint-mint-fg)", verb: "approved" },
-  reject:  { icon: "XCircle", tint: "var(--tint-blush)", tintFg: "var(--tint-blush-fg)", verb: "rejected" },
+  approve: { icon: "CircleCheckBig", tint: "var(--tint-mint)", tintFg: "var(--tint-mint-fg)", verb: "approved" },
+  reject:  { icon: "CircleX", tint: "var(--tint-blush)", tintFg: "var(--tint-blush-fg)", verb: "rejected" },
   cancel:  { icon: "Ban", tint: "var(--surface)", tintFg: "var(--muted)", verb: "cancelled" },
 };
 

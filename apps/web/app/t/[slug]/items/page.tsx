@@ -388,7 +388,7 @@ function ItemFormModal({
       <form id="item-form" onSubmit={handleSubmit} className="space-y-5">
         {errors.summary && (
           <div className="rounded-lg p-3 bg-danger-bg text-danger-fg text-sm flex items-start gap-2">
-            <Icon name="AlertTriangle" size={16} />
+            <Icon name="TriangleAlert" size={16} />
             <span className="flex-1">{errors.summary}</span>
           </div>
         )}

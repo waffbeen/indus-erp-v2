@@ -17,10 +17,10 @@ interface Props {
 }
 
 const TONE: Record<Tone, { iconName: IconProps["name"]; iconBg: string; iconFg: string; btnClass: string }> = {
-  danger:  { iconName: "AlertTriangle", iconBg: "var(--tint-blush)", iconFg: "var(--tint-blush-fg)", btnClass: "btn-danger" },
-  warning: { iconName: "AlertCircle",   iconBg: "var(--tint-peach)", iconFg: "var(--tint-peach-fg)", btnClass: "btn-primary" },
+  danger:  { iconName: "TriangleAlert", iconBg: "var(--tint-blush)", iconFg: "var(--tint-blush-fg)", btnClass: "btn-danger" },
+  warning: { iconName: "CircleAlert",   iconBg: "var(--tint-peach)", iconFg: "var(--tint-peach-fg)", btnClass: "btn-primary" },
   primary: { iconName: "Info",          iconBg: "var(--tint-lilac)", iconFg: "var(--tint-lilac-fg)", btnClass: "btn-primary" },
-  success: { iconName: "CheckCircle2",  iconBg: "var(--tint-mint)",  iconFg: "var(--tint-mint-fg)",  btnClass: "btn-primary" },
+  success: { iconName: "CircleCheckBig",  iconBg: "var(--tint-mint)",  iconFg: "var(--tint-mint-fg)",  btnClass: "btn-primary" },
 };
 
 export function ConfirmDialog({

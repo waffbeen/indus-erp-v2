@@ -51,7 +51,7 @@ const SOURCE_META: Record<string, { icon: IconProps["name"]; tint: string; label
   grn:           { icon: "PackageCheck",   tint: "badge-tint-mint",  label: "GRN" },
   grn_reversal:  { icon: "Undo2",          tint: "badge-tint-blush", label: "GRN reversed" },
   issue:         { icon: "ArrowDownToLine",tint: "badge-tint-peach", label: "Issued" },
-  adjustment:    { icon: "Sliders",        tint: "badge-tint-lilac", label: "Adjustment" },
+  adjustment:    { icon: "SlidersHorizontal",        tint: "badge-tint-lilac", label: "Adjustment" },
   opening:       { icon: "Layers",         tint: "badge-info",       label: "Opening" },
   transfer_in:   { icon: "ArrowDownToLine",tint: "badge-tint-mint",  label: "Transfer in" },
   transfer_out:  { icon: "ArrowUpFromLine",tint: "badge-tint-peach", label: "Transfer out" },

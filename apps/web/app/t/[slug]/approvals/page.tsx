@@ -36,13 +36,13 @@ export default function ApprovalsPage() {
       const prRows: ApprovalRow[] = prResp.items.map((p) => ({
         kind: "pr", id: p.id, number: p.prNumber, title: p.title,
         requester: p.requesterName,
-        amountPaise: p.estimatedTotalPaise as unknown as string,
+        amountPaise: String(Math.round((p.estimatedTotal ?? 0) * 100)),
         status: p.status, priority: p.priority, createdAt: p.createdAt,
       }));
       const poRows: ApprovalRow[] = poResp.items.map((p) => ({
         kind: "po", id: p.id, number: p.poNumber, title: p.title,
         vendor: p.vendorName,
-        amountPaise: p.totalPaise as unknown as string,
+        amountPaise: String(Math.round((p.total ?? 0) * 100)),
         status: p.status, priority: null, createdAt: p.createdAt,
       }));
       const combined = [...prRows, ...poRows].sort((a, b) =>
@@ -83,7 +83,7 @@ export default function ApprovalsPage() {
 
       {error && (
         <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
-          <Icon name="AlertTriangle" size={14} />
+          <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">{error}</span>
         </div>
       )}
@@ -111,7 +111,7 @@ export default function ApprovalsPage() {
           </table>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon="CheckCircle2"
+            icon="CircleCheckBig"
             iconTint="var(--tint-mint)"
             iconColor="var(--tint-mint-fg)"
             title={tab === "all" ? "Inbox zero — nothing waiting" : tab === "pr" ? "No pending requisitions" : "No pending purchase orders"}

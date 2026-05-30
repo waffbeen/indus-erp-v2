@@ -29,10 +29,10 @@ export function ThreeWayMatchPanel({
   items: MatchLine[];
 }) {
   const summary: Record<string, { tone: string; icon: string; text: string }> = {
-    matched: { tone: "text-success-fg", icon: "CheckCircle2", text: "All lines match the PO price and GRN quantity within tolerance." },
-    price_variance: { tone: "text-warning-fg", icon: "AlertTriangle", text: "One or more lines are billed above the PO price beyond tolerance." },
-    qty_variance: { tone: "text-warning-fg", icon: "AlertTriangle", text: "One or more lines bill more than the GRN accepted quantity." },
-    unmatched: { tone: "text-danger-fg", icon: "XCircle", text: hasPo ? "Some lines could not be matched to a PO line." : "No PO linked — this invoice cannot be 3-way matched." },
+    matched: { tone: "text-success-fg", icon: "CircleCheckBig", text: "All lines match the PO price and GRN quantity within tolerance." },
+    price_variance: { tone: "text-warning-fg", icon: "TriangleAlert", text: "One or more lines are billed above the PO price beyond tolerance." },
+    qty_variance: { tone: "text-warning-fg", icon: "TriangleAlert", text: "One or more lines bill more than the GRN accepted quantity." },
+    unmatched: { tone: "text-danger-fg", icon: "CircleX", text: hasPo ? "Some lines could not be matched to a PO line." : "No PO linked — this invoice cannot be 3-way matched." },
   };
   const s = summary[matchStatus] ?? summary.unmatched!;
 
@@ -44,7 +44,7 @@ export function ThreeWayMatchPanel({
       </div>
 
       <div className={`px-6 py-3 flex items-start gap-2 text-sm ${s.tone}`}>
-        <Icon name={s.icon as "CheckCircle2"} size={15} className="mt-0.5 shrink-0" />
+        <Icon name={s.icon as "CircleCheckBig"} size={15} className="mt-0.5 shrink-0" />
         <span>{s.text}</span>
       </div>
 

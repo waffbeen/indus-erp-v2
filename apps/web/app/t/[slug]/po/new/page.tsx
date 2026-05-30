@@ -493,7 +493,7 @@ export default function NewPoPage() {
     >
       {errors.summary && (
         <div className="mb-3 rounded p-2.5 bg-danger-bg text-danger-fg text-xs flex items-start gap-2">
-          <Icon name="AlertTriangle" size={14} />
+          <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">{errors.summary}</span>
         </div>
       )}
@@ -1310,6 +1310,7 @@ function emptyForm(): PoCreateInput {
         itemGroupName: null, itemSubGroupName: null, hsnCode: null,
         quantity: 1, uom: "nos", unitPrice: 0,
         discountPercent: 0, taxRate: 18,
+        tolerancePercent: 0, warrantyMonths: 0, isForStock: false, isRecoveryRate: false, deliverySchedule: [],
         committedDeliveryDate: null,
         itemNarration: "", notes: "", specifications: null,
         lineBuyerUserId: null,
