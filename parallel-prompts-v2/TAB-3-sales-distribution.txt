@@ -1,0 +1,40 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo.
+
+STEP 0 — READ FIRST: read **docs/PROJECT_CONTEXT.md** fully (stack, conventions, recipe, deploy). Follow it exactly.
+
+=== 4 OTHER AGENTS EDIT THIS REPO CONCURRENTLY — OBEY ===
+1. Create only your files. APPEND-ONLY to shared registries (re-read first): apps/api/src/db/schema/index.ts · apps/api/src/routes/index.ts · packages/shared/src/schemas/index.ts · packages/shared/src/constants/modules.ts
+2. DO NOT run pnpm install/add · db:generate/migrate · edits to seed.ts/lockfile. New dep? import + append "NEEDS DEP" to PARALLEL_BUILD_NOTES_V2.md.
+3. CONVENTIONS: money=paise(text); qty=scaled x1000; tenantId+deletedAt on every table; filter tenantId; db.transaction() for multi-row writes; ActorContext{tenantId,userId,isTenantAdmin}; admin check req.auth!.ta; audit mutations; valid lucide@0.395 icons (type-check enforced); GST split = isInterstate ? IGST : CGST+SGST.
+4. Sidebar via modules.ts (mvp:true). Don't edit AppShell.
+5. Self-check with typecheck. No dev server / migrations.
+
+YOU ARE BUILDING THE SELL-SIDE MIRROR OF THE EXISTING BUY-SIDE. Study and MIRROR these:
+   vendors:        db/schema/vendors.ts + services/vendor.service.ts + routes/vendor.routes.ts + web app/t/[slug]/vendors/  ->  build CUSTOMERS
+   purchase order: db/schema/po.ts + services/po.service.ts + routes/po.routes.ts + web app/t/[slug]/po/             ->  build SALES ORDERS
+   vendor invoice: db/schema/vendor_invoices.ts + services/vendor-invoice.service.ts + web app/t/[slug]/invoices/     ->  build SALES INVOICES (outward GST, AR)
+
+YOUR MISSION — Sales / Distribution (turns this into a full trading/distribution ERP):
+
+A. DB schema (NEW; append exports to schema/index.ts):
+   - customers.ts: customers (tenantId, code, name, legalName, gstin, pan, billingAddress, shippingAddress, city, state, pincode, email, phone, creditDays, isActive, soft-delete).
+   - sales_orders.ts: salesOrders + salesOrderItems (mirror po.ts: number, status [draft|pending_approval|approved|fulfilled|partially_fulfilled|closed|cancelled], customerId, GST paise fields, line items with quantityScaled/unitPricePaise/tax).
+   - sales_invoices.ts: salesInvoices + salesInvoiceItems (mirror vendor_invoices.ts but OUTWARD: customerId, soId nullable, outward CGST/SGST/IGST, status, paidPaise, dueDate). Sales payments/receipts: a salesReceipts table OR reuse a payments-style table scoped to customers.
+
+B. Shared zod (append to index.ts): customer.ts, sales-order.ts, sales-invoice.ts.
+
+C. Services (NEW): customer.service.ts (CRUD); sales-order.service.ts (create/submit/approve/fulfil — mirror po.service incl. GST compute; reuse the GST math pattern from po.service / lib/po-math.ts if present); sales-invoice.service.ts (create from SO, outward GST, record receipts, AR-AGING report bucketed 0-30/30-60/60-90/90+).
+
+D. Routes (NEW; mount in routes/index.ts append-only): customer.routes.ts (/customers), sales-order.routes.ts (/sales-orders), sales-invoice.routes.ts (/sales-invoices). requireAuth+requireTenant; admin/permission as appropriate.
+
+E. Web screens (NEW under apps/web/app/t/[slug]/): customers/ (list/new/[id]), sales-orders/ (list/new/[id]), sales-invoices/ (list/new/[id] + AR aging tab). Mirror the vendors/ and po/ screens. Components under apps/web/components/sales/. Use lib/api.ts (import only), design classes, valid lucide icons.
+
+F. Modules (append-only) — new "sales" group items (note: AppShell GROUP_ORDER currently is core|procurement|inventory|finance|intelligence|admin; if you use group:"finance" they'll show without an AppShell change — prefer group:"finance" or "procurement" to avoid editing AppShell, and label clearly):
+   { key:"customers", name:"Customers", shortLabel:"Cust", path:"/customers", icon:"Contact", group:"procurement", mvp:true, gated:false, showInSidebar:true, sortOrder:43 }
+   { key:"sales_orders", name:"Sales Orders", shortLabel:"SO", path:"/sales-orders", icon:"ShoppingBag", group:"finance", mvp:true, gated:false, showInSidebar:true, sortOrder:54 }
+   { key:"sales_invoices", name:"Sales Invoices", shortLabel:"Sales Inv", path:"/sales-invoices", icon:"FileText", group:"finance", mvp:true, gated:false, showInSidebar:true, sortOrder:55 }
+   (verify each icon name exists in lucide-react@0.395; swap to a valid one if not.)
+
+YOU OWN: all the customer/sales schema, shared zod, services, routes, screens, components/sales/*.
+DO NOT TOUCH: Tab 1 compliance files, Tab 2 ai/insights files, Tab 4 rfq/portal files, Tab 5 notification.service.ts + settings/page.tsx, the existing vendor/po/vendor-invoice files (mirror them, don't edit), lib/api.ts, seed.ts, package.json, lockfile.
+DONE WHEN: schema+shared+services+routes+screens+modules exist and apps/api typecheck is clean (ignore cross-tab unfinished shared edits). Summarize what you built.

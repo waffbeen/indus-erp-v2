@@ -1,0 +1,46 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS for Indian businesses. Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo.
+
+STEP 0 — READ FIRST: open and read **docs/PROJECT_CONTEXT.md** completely. It documents the stack, folder layout, all conventions, the "add a feature" recipe, and the deploy flow. Follow it exactly.
+
+=== 4 OTHER AGENTS EDIT THIS REPO CONCURRENTLY — OBEY ===
+1. Create only the files in your "YOU OWN" list. APPEND-ONLY to the shared registries (re-read before editing, add only your lines, never reorder/remove others'):
+   apps/api/src/db/schema/index.ts · apps/api/src/routes/index.ts · packages/shared/src/schemas/index.ts · packages/shared/src/constants/modules.ts
+2. DO NOT run: pnpm install/add · pnpm db:generate/migrate · edits to seed.ts or pnpm-lock.yaml. Need a dep? write the import + append "NEEDS DEP: <pkg>" to PARALLEL_BUILD_NOTES_V2.md (create if missing).
+3. CONVENTIONS (see context doc): money = paise (store as text); qty = scaled x1000; every table has tenantId + deletedAt; every query filters tenantId; multi-row writes in db.transaction(); services take ActorContext {tenantId,userId,isTenantAdmin}; admin check `if(!req.auth!.ta) throw Forbidden(...)`; audit important mutations; icons MUST be valid lucide-react@0.395 names (TYPE-CHECKING IS ENFORCED — a wrong icon fails the build); per-tenant secrets encrypted via apps/api/src/lib/crypto.ts (encryptSecret/decryptSecret) following the tenant_mail_settings pattern.
+4. New screens appear in the sidebar via a modules.ts entry (mvp:true). Don't edit AppShell.
+5. Self-check: pnpm --filter @indus/api typecheck (or web). Don't run the dev server or migrations.
+STUDY THESE PATTERNS FIRST: apps/api/src/services/vendor-invoice.service.ts (service shape), apps/api/src/services/mail-settings.service.ts + db/schema/tenant_mail_settings.ts + routes/mail.routes.ts (the per-tenant encrypted-settings pattern you'll reuse for GST credentials).
+
+YOUR MISSION — India GST Compliance Suite:
+
+A. Per-tenant GST/GSP credentials (encrypted, follow the per-tenant pattern):
+   - db/schema/tenant_gst_settings.ts: tenantAiSettings-style table — provider (text, e.g. "nic_sandbox"|"masters_india"|"cleartax"), username, passwordCipher, gstin, isActive, last test fields.
+   - service tenant-gst-settings.service.ts: get (masked) / update (encrypt) / resolve (decrypted, for API calls).
+   - Put the credentials UI on YOUR OWN /compliance screen's Settings tab — DO NOT edit app/t/[slug]/settings/page.tsx (Tab 5 owns it).
+
+B. E-Invoicing (IRN/QR):
+   - db/schema/e_invoices.ts: eInvoices (tenantId, sourceType "po"|"sales_invoice", sourceId, irn, ackNo, ackDate, signedQrBase64, status [pending|generated|cancelled|failed], requestJson, responseJson, errorMsg, soft-delete).
+   - service einvoice.service.ts: buildPayload(sourceType, sourceId) -> GST e-invoice JSON (schema v1.1) from a PO (reuse po.service.getPo). generate() -> call IRP/GSP behind an interface `IrpClient` (provide a SANDBOX/stub impl that validates + returns a deterministic IRN/QR + marks "generated"; structure the real HTTP call but don't require live creds). cancel().
+
+C. E-Way Bill:
+   - db/schema/e_way_bills.ts: eWayBills (tenantId, sourceId, ewbNo, transporterId, vehicleNo, distanceKm, validUpto, status, requestJson, responseJson). service eway.service.ts (generate/cancel, same stubbed-client approach).
+
+D. GST Returns + GSTR-2B reconciliation:
+   - db/schema/gst_returns.ts: gstReturns (tenantId, period "YYYY-MM", type [gstr1|gstr3b|gstr2b], status, summaryJson, generatedAt).
+   - service gst-return.service.ts: gstr1Summary (outward; from sales invoices if present else 0), gstr3bSummary, and **reconcile2b(period, vendorGstData)** — accept imported vendor-side data (JSON array) and MATCH against `vendorInvoices` by gstin + invoiceNumber + amount; return {matched, mismatched, missingInBooks, missingInPortal}. (vendorInvoices is read-only to you.)
+
+E. GSTIN verification:
+   - db/schema/gstin_verifications.ts: gstinVerifications (tenantId, gstin unique-ish, legalName, tradeName, status, lastCheckedAt, responseJson).
+   - service gstin.service.ts: validateFormat(gstin) (regex 15-char), verify(gstin) -> structure a govt/GSP lookup behind an interface, with a stub that returns format-valid + caches the row.
+
+F. Shared zod (packages/shared/src/schemas/, append each to index.ts): e-invoice.ts, e-way-bill.ts, gst-return.ts, gstin.ts, gst-settings.ts.
+
+G. Routes (NEW): compliance.routes.ts — Router with requireAuth+requireTenant, sub-paths /e-invoices, /e-way-bills, /returns (+ POST /returns/reconcile-2b), /gstin (+ POST /gstin/verify), /settings (admin). Mount in routes/index.ts at "/compliance" (append-only).
+
+H. Web screens (NEW under apps/web/app/t/[slug]/compliance/): a tabbed page — E-Invoices, E-Way Bills, GST Returns (+ 2B recon upload + result table), GSTIN check, Settings (the GST credentials form). Use lib/api.ts (import only), design classes, valid lucide icons.
+
+I. Module: add to modules.ts (append-only): { key:"compliance", name:"GST & Compliance", shortLabel:"GST", path:"/compliance", icon:"ReceiptIndianRupee" (verify it exists in lucide; else "FileCheck2"/"ShieldCheck"), group:"finance", mvp:true, gated:false, showInSidebar:true, sortOrder:53 }.
+
+YOU OWN: the schema/shared/service/route/screen files above + tenant-gst-settings.service.ts.
+DO NOT TOUCH: ai.service.ts/ai.routes.ts (Tab 2), notification.service.ts + settings/page.tsx (Tab 5), Tab 3 sales files, Tab 4 rfq/portal files, lib/api.ts, seed.ts, package.json, lockfile.
+DONE WHEN: schema+shared+services+routes+screens+module exist and `pnpm --filter @indus/api typecheck` is clean (ignore errors that come only from other tabs' unfinished shared edits). Summarize what you built + any NEEDS DEP.

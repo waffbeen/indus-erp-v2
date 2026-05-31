@@ -1,0 +1,37 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo.
+
+STEP 0 — READ FIRST: read **docs/PROJECT_CONTEXT.md** fully (stack, conventions, recipe, deploy). Follow it exactly.
+
+=== 4 OTHER AGENTS EDIT THIS REPO CONCURRENTLY — OBEY ===
+1. Create only your files. APPEND-ONLY to shared registries (re-read first): apps/api/src/db/schema/index.ts · apps/api/src/routes/index.ts · packages/shared/src/schemas/index.ts · packages/shared/src/constants/modules.ts
+2. DO NOT run pnpm install/add · db:generate/migrate · edits to seed.ts/lockfile. New dep? import + append "NEEDS DEP" to PARALLEL_BUILD_NOTES_V2.md.
+3. CONVENTIONS: money=paise(text); qty=scaled x1000; tenantId+deletedAt; filter tenantId; db.transaction(); ActorContext{tenantId,userId,isTenantAdmin}; admin check req.auth!.ta; audit mutations; valid lucide@0.395 icons (type-check enforced).
+4. Sidebar via modules.ts (mvp:true). Don't edit AppShell.
+5. Self-check with typecheck. No dev server / migrations.
+STUDY FIRST: services/invite.service.ts + db/schema/invites.ts (opaque-token pattern you'll reuse for vendor portal access), po.service.ts (award an RFQ -> draft PO), vendor.service.ts, the public app/invite/[token]/page.tsx (a NON-tenant public page — your vendor portal mirrors this pattern).
+
+YOUR MISSION — Vendor/Supplier Portal + RFQ (e-procurement; creates a network effect):
+
+A. DB schema (NEW; append exports to schema/index.ts):
+   - rfqs.ts: rfqs (tenantId, rfqNumber, title, description, status [draft|sent|closed|awarded|cancelled], dueDate, createdByUserId, soft-delete) + rfqItems (rfqId, itemId nullable, itemName, quantityScaled, uom) + rfqVendors (rfqId, vendorId, invitedAt) + rfqResponses (rfqId, vendorId, submittedAt, status, totalPaise, remarks) + rfqResponseItems (responseId, rfqItemId, unitPricePaise, deliveryDays, remarks).
+   - vendor_portal_access.ts: vendorPortalAccess (tenantId, vendorId, token unique opaque, scope, expiresAt, lastUsedAt, revokedAt).
+
+B. Shared zod (append to index.ts): rfq.ts, vendor-portal.ts.
+
+C. Services (NEW):
+   - rfq.service.ts: create RFQ, invite vendors, list, get; record a vendor quote; compareQuotes(rfqId) -> per-item best price + per-vendor totals; award(rfqId, vendorId) -> create a DRAFT PO via po.service.createPo. Audit.
+   - vendor-portal.service.ts: issueToken(tenantId, vendorId), resolveToken(token) -> {tenantId, vendorId} (validate not expired/revoked); vendor-facing reads scoped to that vendor: their open RFQs + their POs (po.service, filtered by vendorId), acknowledge a PO, submit a quote. SECURITY: every portal read/write MUST be constrained to the token's tenantId+vendorId — never trust a tenantId/vendorId from the request body.
+
+D. Routes (NEW):
+   - rfq.routes.ts: internal, requireAuth+requireTenant, mount "/rfq" (CRUD, invite, /:id/compare, /:id/award). Append to routes/index.ts.
+   - vendor-portal.routes.ts: PUBLIC (NO requireTenant). Mount at "/portal". Auth via the opaque token in the path/header -> resolveToken. Endpoints: GET /portal/:token (vendor dashboard data), POST /portal/:token/po/:poId/ack, GET /portal/:token/rfq/:rfqId, POST /portal/:token/rfq/:rfqId/quote. Append to routes/index.ts.
+
+E. Web screens:
+   - Internal: apps/web/app/t/[slug]/rfq/ (list/new/[id] with the quote-comparison + award UI). Components under apps/web/components/rfq/.
+   - PUBLIC vendor portal: NEW top-level route apps/web/app/portal/[token]/page.tsx (NOT under /t/[slug], NO AppShell/AuthGate). Vendor sees their POs + RFQs, can acknowledge a PO and submit a quote. Style with the design classes; keep it simple and clean.
+
+F. Module (append-only): { key:"rfq", name:"RFQ / Sourcing", shortLabel:"RFQ", path:"/rfq", icon:"GitCompareArrows" (verify in lucide; else "Scale"/"ClipboardList"), group:"procurement", mvp:true, gated:false, showInSidebar:true, sortOrder:24 }.
+
+YOU OWN: rfq + vendor_portal schema, shared zod, rfq.service/vendor-portal.service, rfq.routes/vendor-portal.routes, the /rfq screen, the public app/portal/[token] route, components/rfq/*.
+DO NOT TOUCH: Tab 1 compliance files, Tab 2 ai files, Tab 3 sales files, Tab 5 notification.service.ts + settings/page.tsx, the existing po/vendor/invite files (reuse via import, don't edit), lib/api.ts, seed.ts, package.json, lockfile.
+DONE WHEN: schema+shared+services+routes+internal screen+public portal+module exist and apps/api typecheck is clean (ignore cross-tab unfinished shared edits). Summarize + flag the portal-security approach you used.

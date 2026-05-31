@@ -1,0 +1,42 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo.
+
+STEP 0 — READ FIRST: read **docs/PROJECT_CONTEXT.md** fully (stack, conventions, recipe, deploy). Follow it exactly.
+
+=== 4 OTHER AGENTS EDIT THIS REPO CONCURRENTLY — OBEY ===
+1. Create only your files. APPEND-ONLY to shared registries (re-read before editing): apps/api/src/db/schema/index.ts · apps/api/src/routes/index.ts · packages/shared/src/schemas/index.ts · packages/shared/src/constants/modules.ts
+2. DO NOT run pnpm install/add · db:generate/migrate · edits to seed.ts/lockfile. New dep? import it + append "NEEDS DEP: <pkg>" to PARALLEL_BUILD_NOTES_V2.md.
+3. CONVENTIONS (context doc): money=paise(text); qty=scaled x1000; tenantId+deletedAt on every table; filter tenantId always; db.transaction() for multi-row writes; services take ActorContext{tenantId,userId,isTenantAdmin}; admin check req.auth!.ta; audit mutations; icons MUST be valid lucide@0.395 names (type-check enforced); per-tenant secrets via lib/crypto.
+4. Sidebar entries via modules.ts (mvp:true). Don't edit AppShell.
+5. Self-check with typecheck. No dev server / migrations.
+STUDY FIRST: apps/api/src/services/ai.service.ts (the existing per-tenant tool-calling assistant — YOU OWN IT this round), apps/api/src/services/dashboard.service.ts (reports you'll mine), grn.service.ts/po.service.ts (data for scorecards/anomalies).
+
+YOU OWN this round: apps/api/src/services/ai.service.ts AND apps/api/src/routes/ai.routes.ts (extend them freely). No other tab touches AI.
+
+YOUR MISSION — AI Procurement Copilot + Document AI (build on the existing per-tenant AI provider config; the tenant's key/provider is resolved inside ai.service — export a reusable `resolveAiConfig(tenantId)` + a thin `aiComplete({tenantId, system, messages, tools?, json?})` helper from ai.service.ts so your new services can call the model with the tenant's key):
+
+A. copilot.service.ts (agentic, advisory — never auto-mutates):
+   - draftPoFromPr(tenantId, prId): read the PR (pr.service) + vendor history; return a SUGGESTED PO (vendor, per-line prices, terms) as JSON for the user to review (do NOT create the PO).
+   - recommendVendors(tenantId, {itemId|prId}): rank vendors by past price / quality / lead-time from PO+GRN history; return ranked list with reasons.
+
+B. vendor-scorecard.service.ts (+ db/schema/vendor_scorecards.ts, or compute live):
+   per-vendor: onTimePct (GRN received vs PO committed date), qualityPct (GRN accepted/received), priceIndex (vs item avg), responsiveness; expose getScorecards(tenantId) + getVendorScore(tenantId, vendorId).
+
+C. anomaly.service.ts (+ db/schema/anomaly_flags.ts):
+   scan(tenantId) detects: price spike vs last-purchase, split POs just under an approval threshold, duplicate vendor invoice (same vendor+invoiceNumber+amount), round/just-under-limit amounts. Store flags (kind, severity, resourceType, resourceId, detail) + getFlags(tenantId).
+
+D. forecast.service.ts (+ db/schema/demand_forecasts.ts):
+   per-item consumption forecast from stockMovements (simple moving-average/trend); suggestedReorderQty; getForecasts(tenantId).
+
+E. ocr.service.ts: extractInvoice({tenantId, fileBase64, mimeType}) -> use the tenant's AI provider VISION capability (Gemini/OpenAI vision; the SDKs @google/generative-ai + openai are already installed) to extract {vendorName, invoiceNumber, invoiceDate, lineItems[], total} as JSON to PREFILL a vendor invoice. Graceful "AI not configured" when no key.
+
+F. Shared zod (append to index.ts): copilot.ts, scorecard.ts, anomaly.ts, forecast.ts, ocr.ts.
+
+G. Routes: extend ai.routes.ts OR new copilot.routes.ts (mount "/copilot" in routes/index.ts append-only): POST /copilot/draft-po, /copilot/recommend-vendors, GET /copilot/scorecards, GET /copilot/anomalies (+ POST /copilot/anomalies/scan), GET /copilot/forecasts, POST /copilot/ocr-invoice. All requireAuth+requireTenant.
+
+H. Web: extend apps/web/app/t/[slug]/ai/ with a "Copilot" section (draft-PO + vendor recommend), and a NEW apps/web/app/t/[slug]/insights/page.tsx (Anomaly feed + Vendor scorecards + Forecasts, tabbed). Components under apps/web/components/insights/. Use lib/api.ts (import only).
+
+I. Modules (append-only): set existing "ai_predict" to mvp:true/gated:false OR add { key:"insights", name:"Insights", shortLabel:"Insights", path:"/insights", icon:"Brain" (verify in lucide; else "ChartLine"/"Activity"), group:"intelligence", mvp:true, gated:false, showInSidebar:true, sortOrder:62 }.
+
+YOU OWN: ai.service.ts, ai.routes.ts, the new copilot/scorecard/anomaly/forecast/ocr services + their schema + shared zod + the /insights screen + components/insights/*.
+DO NOT TOUCH: Tab 1 compliance files, Tab 3 sales files, Tab 4 rfq/portal files, Tab 5's notification.service.ts + settings/page.tsx, lib/api.ts, seed.ts, package.json, lockfile.
+DONE WHEN: services+routes+screens+modules exist and apps/api typecheck is clean (ignore cross-tab unfinished shared edits). Summarize + NEEDS DEP notes.

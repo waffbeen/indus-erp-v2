@@ -1,0 +1,39 @@
+You are working in the "Prathvi's ERP" monorepo (indus-erp-v2): a multi-tenant procurement + inventory SaaS. Next.js 14 (apps/web) + Express/Drizzle/Postgres (apps/api) + shared Zod (packages/shared), pnpm + Turborepo.
+
+STEP 0 — READ FIRST: read **docs/PROJECT_CONTEXT.md** fully (stack, conventions, recipe, deploy). Follow it exactly.
+
+=== 4 OTHER AGENTS EDIT THIS REPO CONCURRENTLY — OBEY ===
+1. Create only your files. APPEND-ONLY to shared registries (re-read first): apps/api/src/db/schema/index.ts · apps/api/src/routes/index.ts · packages/shared/src/schemas/index.ts · packages/shared/src/constants/modules.ts
+2. DO NOT run pnpm install/add · db:generate/migrate · edits to seed.ts/lockfile. New dep? import + append "NEEDS DEP" to PARALLEL_BUILD_NOTES_V2.md. (Prefer calling the WhatsApp provider via `fetch` — no SDK dep needed.)
+3. CONVENTIONS: money=paise(text); qty=scaled x1000; tenantId+deletedAt; filter tenantId; db.transaction(); ActorContext{tenantId,userId,isTenantAdmin}; admin check req.auth!.ta; valid lucide@0.395 icons (type-check enforced); per-tenant secrets encrypted via apps/api/src/lib/crypto.ts.
+4. Self-check with typecheck. No dev server / migrations.
+
+YOU OWN this round: apps/api/src/services/notification.service.ts (extend it for multi-channel) AND apps/web/app/t/[slug]/settings/page.tsx (add the WhatsApp settings tab). No other tab touches these.
+
+STUDY FIRST — this is the EXACT template (WhatsApp = "email but on WhatsApp"):
+   apps/api/src/services/mail.service.ts + mail-settings.service.ts + db/schema/tenant_mail_settings.ts + routes/mail.routes.ts  (per-tenant encrypted config + test + send)
+   The "Email" tab in apps/web/app/t/[slug]/settings/page.tsx  (your WhatsApp settings UI mirrors it)
+   apps/api/src/services/notification.service.ts (notifyUsers/notifyTenantAdmins — you'll add channel fan-out)
+
+YOUR MISSION — WhatsApp + multi-channel notifications:
+
+A. Per-tenant WhatsApp config (encrypted, per-tenant pattern):
+   - db/schema/tenant_whatsapp_settings.ts: provider (text, default "meta_cloud"; also "gupshup"|"twilio"), phoneNumberId, apiTokenCipher, fromNumber, isActive, lastTestedAt, lastTestOk.
+   - service whatsapp-settings.service.ts: get (masked) / update (encrypt token) / resolve (decrypted) / test (send a test message).
+
+B. whatsapp.service.ts: sendWhatsApp({tenantId, to, body}) — resolve the tenant config, POST to the provider's REST API via fetch (default to Meta Cloud API: https://graph.facebook.com/v20.0/<phoneNumberId>/messages with the token; structure the gupshup/twilio variants behind a small switch). Graceful no-op + warn when unconfigured. NEVER throw into callers (fire-and-forget, returns boolean) — same contract as mail.service.sendMail.
+
+C. Extend notification.service.ts (multi-channel): after creating an in-app notification, ALSO fan out to email (sendMail) and WhatsApp (sendWhatsApp) for the target users WHO have a phone number and where the tenant has those channels configured. Add a lightweight preference concept: either a `notification_preferences.ts` table (tenantId, userId, channel, kind, enabled) OR a simple per-membership/user opt-in flag — keep it minimal and default-on for WhatsApp when a phone exists. Make all extra-channel sends best-effort (never block the in-app notification).
+
+D. Inbound webhook + approve-from-WhatsApp:
+   - routes/whatsapp.routes.ts: POST /whatsapp/webhook (PUBLIC — Meta verification GET challenge + POST for inbound messages/status; verify the signature/verify-token). Parse inbound text like "APPROVE PR-2026-0231" -> look up the PR by number for that tenant and, if the sender maps to an authorized approver, call prService.approvePr. (Keep this guarded + best-effort; log clearly.) Also GET/PUT /whatsapp/settings (tenant-admin) + POST /whatsapp/settings/test. Mount "/whatsapp" in routes/index.ts (append-only).
+
+E. Shared zod (append to index.ts): whatsapp-settings.ts.
+
+F. Settings UI — add a "WhatsApp" tab to apps/web/app/t/[slug]/settings/page.tsx (you own this file this round): mirror the existing "Email" tab exactly — provider, phone number id, API token (password), from number, a "Send test message" button + Save. Add it to the TABS array (icon "MessageCircle"; verify it exists in lucide). Keep all existing tabs intact.
+
+G. Module/settings: no big new screen required beyond the settings tab. (Optional: a /t/[slug]/notifications screen listing recent notifications — skip if time-constrained.)
+
+YOU OWN: tenant_whatsapp_settings schema + whatsapp-settings.service + whatsapp.service + whatsapp.routes + whatsapp-settings shared zod + notification.service.ts (extend) + settings/page.tsx (WhatsApp tab) + (optional) notification_preferences.ts.
+DO NOT TOUCH: Tab 1 compliance files, Tab 2 ai files, Tab 3 sales files, Tab 4 rfq/portal files, mail.service.ts/mail-settings.service.ts (import sendMail, don't edit), lib/api.ts, seed.ts, package.json, lockfile.
+DONE WHEN: schema+service+routes+settings tab exist, notification.service fans out to WhatsApp/email best-effort, apps/api + apps/web typecheck clean (ignore cross-tab unfinished shared edits). Summarize + NEEDS DEP (likely none — fetch-based).
