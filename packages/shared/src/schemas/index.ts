@@ -15,3 +15,22 @@ export * from "./vendor-invoice";
 export * from "./payment";
 export * from "./ai";
 export * from "./mail-settings";
+export * from "./whatsapp-settings";
+export * from "./rfq";
+export * from "./vendor-portal";
+// --- GST & Compliance suite ---
+export * from "./gst-settings";
+export * from "./e-invoice";
+export * from "./e-way-bill";
+export * from "./gst-return";
+export * from "./gstin";
+// --- Sales / Distribution (sell-side) ---
+export * from "./customer";
+export * from "./sales-order";
+export * from "./sales-invoice";
+// --- AI Procurement Copilot + Document AI + Insights ---
+export * from "./copilot";
+export * from "./scorecard";
+export * from "./anomaly";
+export * from "./forecast";
+export * from "./ocr";

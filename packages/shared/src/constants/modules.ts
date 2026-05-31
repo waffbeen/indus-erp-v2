@@ -67,6 +67,20 @@ export const MODULES: ModuleDef[] = [
 
   // ---- FINANCE (Phase 1 AP) ----
   { key: "invoices",            shortLabel: "Bills",   name: "Vendor Invoices", description: "Supplier bills & 3-way match",              icon: "ReceiptText",    path: "/invoices",            mvp: true, gated: false, group: "finance",   showInSidebar: true, sortOrder: 49 },
+
+  // ---- FINANCE (India GST Compliance) ----
+  { key: "compliance",          shortLabel: "GST",     name: "GST & Compliance", description: "E-invoicing, e-way bills, GST returns & GSTIN", icon: "ReceiptIndianRupee", path: "/compliance",      mvp: true, gated: false, group: "finance",   showInSidebar: true, sortOrder: 53 },
+
+  // ---- PROCUREMENT (e-Sourcing) ----
+  { key: "rfq",                 shortLabel: "RFQ",     name: "RFQ / Sourcing",  description: "Float RFQs, compare vendor quotes & award to a PO", icon: "GitCompareArrows", path: "/rfq",          mvp: true, gated: false, group: "procurement", showInSidebar: true, sortOrder: 24 },
+
+  // ---- INTELLIGENCE (AI Copilot + Insights) ----
+  { key: "insights",            shortLabel: "Insights", name: "Insights",       description: "Anomaly feed, vendor scorecards & demand forecasts", icon: "Brain", path: "/insights", mvp: true, gated: false, group: "intelligence", showInSidebar: true, sortOrder: 62 },
+
+  // ---- SALES / DISTRIBUTION (sell-side) ----
+  { key: "customers",      shortLabel: "Cust",      name: "Customers",      description: "Customer master, GSTIN & credit terms",        icon: "Contact",     path: "/customers",      mvp: true, gated: false, group: "procurement", showInSidebar: true, sortOrder: 43 },
+  { key: "sales_orders",   shortLabel: "SO",        name: "Sales Orders",   description: "Customer orders — approve, fulfil & invoice",   icon: "ShoppingBag", path: "/sales-orders",   mvp: true, gated: false, group: "finance",     showInSidebar: true, sortOrder: 54 },
+  { key: "sales_invoices", shortLabel: "Sales Inv", name: "Sales Invoices", description: "Outward GST invoices, receipts & AR ageing",    icon: "FileText",    path: "/sales-invoices", mvp: true, gated: false, group: "finance",     showInSidebar: true, sortOrder: 55 },
 ];
 
 export const MODULE_KEYS = MODULES.map((m) => m.key);

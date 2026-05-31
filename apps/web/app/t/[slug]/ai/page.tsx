@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { ChatMessage, type ChatMsg } from "@/components/ai/ChatMessage";
 import { ChatComposer } from "@/components/ai/ChatComposer";
+import { CopilotPanel } from "@/components/insights/CopilotPanel";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { AiChatMessage, AiChatResponse } from "@indus/shared";
@@ -25,6 +26,7 @@ function newId(): string {
 
 export default function AiAssistantPage() {
   const { me } = useAuth();
+  const [tab, setTab] = useState<"chat" | "copilot">("chat");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -105,23 +107,44 @@ export default function AiAssistantPage() {
           <div className="min-w-0">
             <h1 className="text-[16px] font-semibold tracking-tight leading-none">Ask your ERP</h1>
             <p className="text-[11.5px] text-muted mt-1 truncate">
-              Natural-language answers about your procurement &amp; inventory — read-only.
+              Natural-language answers plus an advisory procurement Copilot — read-only.
             </p>
           </div>
         </div>
-        {hasMessages && (
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => setMessages([])}
-            disabled={loading}
-            title="Start a new conversation"
-          >
-            <Icon name="RefreshCw" size={13} /> New chat
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Chat / Copilot switch */}
+          <div className="inline-flex rounded-pill p-0.5" style={{ background: "var(--surface)" }}>
+            {([
+              { key: "chat", label: "Assistant", icon: "Sparkles" },
+              { key: "copilot", label: "Copilot", icon: "Bot" },
+            ] as const).map((t) => {
+              const active = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[12px] font-semibold transition"
+                  style={active ? { background: "var(--bg)", color: "var(--text)", boxShadow: "var(--shadow-sm)" } : { color: "var(--muted)" }}
+                >
+                  <Icon name={t.icon} size={13} /> {t.label}
+                </button>
+              );
+            })}
+          </div>
+          {tab === "chat" && hasMessages && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setMessages([])}
+              disabled={loading}
+              title="Start a new conversation"
+            >
+              <Icon name="RefreshCw" size={13} /> New chat
+            </button>
+          )}
+        </div>
       </div>
 
-      {configured === false && (
+      {configured === false && tab === "chat" && (
         <div className="rounded p-2.5 text-xs flex items-start gap-2" style={{ background: "var(--warning-bg)", color: "var(--warning-fg)" }}>
           <Icon name="TriangleAlert" size={14} />
           <span className="flex-1">
@@ -131,28 +154,35 @@ export default function AiAssistantPage() {
         </div>
       )}
 
-      {/* Conversation surface */}
-      <div className="card flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
-          {!hasMessages ? (
-            <EmptyState firstName={firstName} onPick={(s) => void send(s)} disabled={loading} />
-          ) : (
-            <div className="space-y-4">
-              {messages.map((m) => (
-                <ChatMessage key={m.id} message={m} />
-              ))}
-            </div>
-          )}
+      {tab === "copilot" ? (
+        /* Advisory Copilot — draft POs & vendor recommendations from history */
+        <div className="flex-1 min-h-0 overflow-y-auto pr-0.5">
+          <CopilotPanel />
         </div>
+      ) : (
+        /* Conversation surface */
+        <div className="card flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+            {!hasMessages ? (
+              <EmptyState firstName={firstName} onPick={(s) => void send(s)} disabled={loading} />
+            ) : (
+              <div className="space-y-4">
+                {messages.map((m) => (
+                  <ChatMessage key={m.id} message={m} />
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* Composer */}
-        <div className="border-t border-border p-3 bg-bg">
-          <ChatComposer value={input} onChange={setInput} onSend={() => void send()} disabled={loading} />
-          <p className="text-[10.5px] text-muted mt-1.5 px-0.5">
-            The assistant can only read your own organisation&apos;s data and never makes changes. It may be imperfect — verify important figures.
-          </p>
+          {/* Composer */}
+          <div className="border-t border-border p-3 bg-bg">
+            <ChatComposer value={input} onChange={setInput} onSend={() => void send()} disabled={loading} />
+            <p className="text-[10.5px] text-muted mt-1.5 px-0.5">
+              The assistant can only read your own organisation&apos;s data and never makes changes. It may be imperfect — verify important figures.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

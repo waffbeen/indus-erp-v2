@@ -30,8 +30,20 @@ interface MailSettings {
   lastTestedAt: string | null;
   lastTestOk: boolean | null;
 }
+type WhatsappProvider = "meta_cloud" | "gupshup" | "twilio";
+interface WhatsappSettings {
+  provider: WhatsappProvider;
+  phoneNumberId: string | null;
+  fromNumber: string | null;
+  hasApiToken: boolean;
+  hasAppSecret: boolean;
+  verifyToken: string | null;
+  configured: boolean;
+  lastTestedAt: string | null;
+  lastTestOk: boolean | null;
+}
 
-type TabKey = "profile" | "ai" | "email" | "receiving" | "approvals" | "departments" | "appearance";
+type TabKey = "profile" | "ai" | "email" | "whatsapp" | "receiving" | "approvals" | "departments" | "appearance";
 
 export default function SettingsPage() {
   const { me } = useAuth();
@@ -68,6 +80,18 @@ export default function SettingsPage() {
   const [mailSaving, setMailSaving] = useState(false);
   const [mailTesting, setMailTesting] = useState(false);
 
+  // WhatsApp
+  const [wa, setWa] = useState<WhatsappSettings | null>(null);
+  const [waProvider, setWaProvider] = useState<WhatsappProvider>("meta_cloud");
+  const [waPhoneId, setWaPhoneId] = useState("");
+  const [waToken, setWaToken] = useState("");
+  const [waFrom, setWaFrom] = useState("");
+  const [waAppSecret, setWaAppSecret] = useState("");
+  const [waVerifyToken, setWaVerifyToken] = useState("");
+  const [waTestTo, setWaTestTo] = useState("");
+  const [waSaving, setWaSaving] = useState(false);
+  const [waTesting, setWaTesting] = useState(false);
+
   useEffect(() => {
     api<TenantSettings>("/api/tenant/settings").then(setSettings).catch(() => setSettings({}));
     refreshDepartments();
@@ -85,6 +109,15 @@ export default function SettingsPage() {
         setMailFrom(m.fromAddress ?? "");
       })
       .catch(() => setMail(null));
+    api<WhatsappSettings>("/api/whatsapp/settings")
+      .then((w) => {
+        setWa(w);
+        setWaProvider(w.provider);
+        setWaPhoneId(w.phoneNumberId ?? "");
+        setWaFrom(w.fromNumber ?? "");
+        setWaVerifyToken(w.verifyToken ?? "");
+      })
+      .catch(() => setWa(null));
   }, []);
 
   function refreshDepartments() {
@@ -224,6 +257,65 @@ export default function SettingsPage() {
     }
   }
 
+  function waBody() {
+    return {
+      provider: waProvider,
+      phoneNumberId: waPhoneId.trim(),
+      fromNumber: waFrom.trim() || null,
+      verifyToken: waVerifyToken.trim() || null,
+      ...(waToken.trim() ? { apiToken: waToken.trim() } : {}),
+      ...(waAppSecret.trim() ? { appSecret: waAppSecret.trim() } : {}),
+    };
+  }
+
+  async function testWhatsApp() {
+    if (waTesting) return;
+    if (!waPhoneId.trim() || !(waToken.trim() || wa?.hasApiToken)) {
+      toast.error("Almost there", "Enter the phone number ID and API token to test.");
+      return;
+    }
+    if (!waTestTo.trim()) {
+      toast.error("Add a number", "Enter a WhatsApp number to send the test message to.");
+      return;
+    }
+    setWaTesting(true);
+    try {
+      const res = await api<{ ok: boolean; message: string }>("/api/whatsapp/settings/test", {
+        method: "POST",
+        body: JSON.stringify({
+          provider: waProvider,
+          phoneNumberId: waPhoneId.trim(),
+          fromNumber: waFrom.trim() || null,
+          sendTo: waTestTo.trim(),
+          ...(waToken.trim() ? { apiToken: waToken.trim() } : {}),
+        }),
+      });
+      if (res.ok) toast.success("Test message sent ✓", res.message);
+      else toast.error("Test failed", res.message);
+    } catch (err) {
+      toast.error("Test failed", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setWaTesting(false);
+    }
+  }
+
+  async function saveWhatsApp(e: FormEvent) {
+    e.preventDefault();
+    if (waSaving) return;
+    setWaSaving(true);
+    try {
+      const next = await api<WhatsappSettings>("/api/whatsapp/settings", { method: "PUT", body: JSON.stringify(waBody()) });
+      setWa(next);
+      setWaToken("");
+      setWaAppSecret("");
+      toast.success("WhatsApp settings saved", "Notifications can now send via WhatsApp.");
+    } catch (err) {
+      toast.error("Could not save", err instanceof ApiError ? err.message : "Try again");
+    } finally {
+      setWaSaving(false);
+    }
+  }
+
   const batchOn = settings?.grn?.batchMode ?? false;
   const prLevels = settings?.approval?.prLevels ?? 1;
 
@@ -231,6 +323,7 @@ export default function SettingsPage() {
     { key: "profile", label: "Profile", icon: "User" },
     { key: "ai", label: "AI Assistant", icon: "Sparkles", adminOnly: true },
     { key: "email", label: "Email", icon: "Mail", adminOnly: true },
+    { key: "whatsapp", label: "WhatsApp", icon: "MessageCircle", adminOnly: true },
     { key: "receiving", label: "Receiving", icon: "PackageCheck" },
     { key: "approvals", label: "Approvals", icon: "ClipboardCheck" },
     { key: "departments", label: "Departments", icon: "Building2" },
@@ -434,6 +527,101 @@ export default function SettingsPage() {
             </Card>
           )}
 
+          {tab === "whatsapp" && isAdmin && (
+            <Card
+              title={<span className="flex items-center gap-2"><Icon name="MessageCircle" size={16} /> WhatsApp</span>}
+              subtitle="Send approval &amp; receipt alerts to WhatsApp — and let approvers reply “APPROVE PR-…” to act on the go. Test before saving."
+            >
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {wa?.configured ? (
+                  <span className="badge badge-success text-[11px]">Configured — {wa.phoneNumberId}</span>
+                ) : (
+                  <span className="badge badge-warning text-[11px]">Not configured</span>
+                )}
+                {wa?.lastTestedAt && (
+                  <span className={`badge text-[11px] ${wa.lastTestOk ? "badge-success" : "badge-danger"}`}>
+                    Last test {wa.lastTestOk ? "passed" : "failed"}
+                  </span>
+                )}
+              </div>
+
+              <form onSubmit={saveWhatsApp} className="space-y-3">
+                <div className="flex flex-wrap gap-3">
+                  <div className="w-52">
+                    <label className="label">Provider</label>
+                    <select className="input" value={waProvider} onChange={(e) => setWaProvider(e.target.value as WhatsappProvider)}>
+                      <option value="meta_cloud">Meta WhatsApp Cloud</option>
+                      <option value="gupshup">Gupshup</option>
+                      <option value="twilio">Twilio</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[220px]">
+                    <label className="label">{waPhoneIdLabel(waProvider)}</label>
+                    <input
+                      className="input font-mono"
+                      placeholder={waProvider === "meta_cloud" ? "1234567890" : waProvider === "twilio" ? "ACxxxxxxxx" : "your-app-name"}
+                      value={waPhoneId}
+                      onChange={(e) => setWaPhoneId(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex-1 min-w-[220px]">
+                    <label className="label">{waTokenLabel(waProvider)}</label>
+                    <input
+                      type="password"
+                      className="input font-mono"
+                      autoComplete="new-password"
+                      placeholder={wa?.hasApiToken ? "•••••••• saved — leave blank to keep" : waProvider === "twilio" ? "Twilio Auth Token" : "Access token / API key"}
+                      value={waToken}
+                      onChange={(e) => setWaToken(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[220px]">
+                    <label className="label">{waFromLabel(waProvider)}</label>
+                    <input className="input font-mono" placeholder="+919876543210" value={waFrom} onChange={(e) => setWaFrom(e.target.value)} />
+                  </div>
+                </div>
+                {waProvider === "meta_cloud" && (
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex-1 min-w-[220px]">
+                      <label className="label">App secret <span className="text-muted font-normal">(optional)</span></label>
+                      <input
+                        type="password"
+                        className="input font-mono"
+                        autoComplete="new-password"
+                        placeholder={wa?.hasAppSecret ? "•••••••• saved — leave blank to keep" : "Verifies inbound webhooks"}
+                        value={waAppSecret}
+                        onChange={(e) => setWaAppSecret(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[220px]">
+                      <label className="label">Webhook verify token</label>
+                      <input className="input font-mono" placeholder="any-string-you-choose" value={waVerifyToken} onChange={(e) => setWaVerifyToken(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="label">Send test to</label>
+                  <input className="input font-mono" placeholder="+919876543210" value={waTestTo} onChange={(e) => setWaTestTo(e.target.value)} />
+                  <p className="text-[11px] text-muted mt-1">
+                    Enter a WhatsApp number to receive the test message. For inbound “APPROVE PR-…” replies, point your provider webhook at{" "}
+                    <strong className="text-text-default">/api/whatsapp/webhook</strong> on your API domain and use the verify token above.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => void testWhatsApp()} disabled={waTesting || waSaving}>
+                    <Icon name="Send" size={13} /> {waTesting ? "Testing…" : "Send test message"}
+                  </button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={waSaving || waTesting}>
+                    <Icon name="Save" size={13} /> {waSaving ? "Saving…" : "Save WhatsApp settings"}
+                  </button>
+                </div>
+              </form>
+            </Card>
+          )}
+
           {tab === "receiving" && (
             <Card title="Goods Receipt (GRN)" subtitle="Batch tracking for pharma / FMCG / spares teams. Small single-receipt shops can leave it off.">
               <label className={`flex items-start gap-3 p-4 rounded-xl border ${batchOn ? "border-primary bg-tint-mint/30" : "border-border bg-surface"} cursor-pointer hover:border-border-strong transition`}>
@@ -529,6 +717,16 @@ export default function SettingsPage() {
       </div>
     </div>
   );
+}
+
+function waPhoneIdLabel(p: WhatsappProvider): string {
+  return p === "twilio" ? "Account SID" : p === "gupshup" ? "App name" : "Phone number ID";
+}
+function waTokenLabel(p: WhatsappProvider): string {
+  return p === "twilio" ? "Auth token" : p === "gupshup" ? "API key" : "Access token";
+}
+function waFromLabel(p: WhatsappProvider): string {
+  return p === "gupshup" ? "Source number" : "Sender number (E.164)";
 }
 
 function Card({ title, subtitle, children }: { title: ReactNode; subtitle?: ReactNode; children: ReactNode }) {

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenerativeAI, SchemaType, type FunctionDeclaration } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, type FunctionDeclaration, type Part } from "@google/generative-ai";
 import OpenAI from "openai";
 import { eq } from "drizzle-orm";
 import type { AiChatMessage, AiChatResponse, AiSettingsUpdate, AiSettingsView } from "@indus/shared";
@@ -28,7 +28,7 @@ import * as prService from "./pr.service";
  * Supported providers: Google Gemini (default) and Anthropic Claude.
  */
 
-type Provider = "gemini" | "anthropic" | "openai";
+export type Provider = "gemini" | "anthropic" | "openai";
 
 /** Hard cap on tool-call rounds per request, so a confused model can't loop forever. */
 const MAX_STEPS = 6;
@@ -217,7 +217,7 @@ async function runTool(name: string, input: Record<string, unknown>, tenantId: s
 // Config resolution — per-tenant key (DB) first, platform env key as fallback.
 // ---------------------------------------------------------------------------
 
-interface AiConfig {
+export interface AiConfig {
   provider: Provider;
   apiKey: string;
   model: string | null;
@@ -245,7 +245,7 @@ function platformConfig(): AiConfig | null {
   return null;
 }
 
-async function resolveAiConfig(tenantId: string): Promise<AiConfig | null> {
+export async function resolveAiConfig(tenantId: string): Promise<AiConfig | null> {
   const [row] = await db
     .select()
     .from(tenantAiSettings)
@@ -469,6 +469,213 @@ async function chatAnthropic(cfg: AiConfig, input: ChatInput, toolsUsed: string[
   }
 
   return { reply: ROUNDS_FALLBACK, configured: true, toolsUsed: unique(toolsUsed) };
+}
+
+// ---------------------------------------------------------------------------
+// Reusable single-shot completion — the shared "call the model with the
+// tenant's key" primitive that the Copilot / Document-AI services build on.
+//
+// Unlike `chat()` (which runs the read-only tool loop for the conversational
+// assistant), `aiComplete()` is a stateless one-turn completion: you give it a
+// system prompt + message(s) + optional image attachments, optionally ask for
+// strict JSON, and get back the model's text (and parsed JSON when requested).
+// Tenant scoping is enforced the same way — the key/provider is resolved from
+// `tenant_ai_settings` (platform env as fallback) by tenantId.
+// ---------------------------------------------------------------------------
+
+/** Thrown when a caller asks the model to run but no tenant/platform key exists.
+ *  Services catch this to return a graceful "AI not configured" response. */
+export class AiNotConfiguredError extends Error {
+  public readonly code = "ai_not_configured";
+  constructor(message = NOT_CONFIGURED_MSG) {
+    super(message);
+    this.name = "AiNotConfiguredError";
+  }
+}
+
+/** An image attachment for vision-capable completions (OCR, etc.). */
+export interface AiImageInput {
+  /** Raw base64 (no `data:` prefix). */
+  base64: string;
+  /** e.g. "image/png", "image/jpeg", "application/pdf" (provider-dependent). */
+  mimeType: string;
+}
+
+export interface AiCompleteInput {
+  tenantId: string;
+  /** Frozen instruction prompt (kept cache-friendly — no per-request values). */
+  system: string;
+  /** Conversation turns, oldest first. Usually a single user message. */
+  messages: AiChatMessage[];
+  /** Ask the model for strict JSON and return it parsed in `.json`. */
+  json?: boolean;
+  /** Vision attachments, applied to the LAST user message. */
+  images?: AiImageInput[];
+  /** Output token ceiling (default 4000). */
+  maxTokens?: number;
+  /** Reserved for future tool-calling completions; ignored by the single-shot path. */
+  tools?: unknown;
+}
+
+export interface AiCompleteResult {
+  text: string;
+  /** Parsed object/array when `json:true` and parsing succeeded, else null. */
+  json: unknown | null;
+  provider: Provider;
+  source: "tenant" | "platform";
+}
+
+const DEFAULT_COMPLETE_TOKENS = 4000;
+
+/** Pull the first balanced JSON object/array out of a model reply, tolerating
+ *  ```json fences and surrounding prose. Returns null when nothing parses. */
+function extractJson(text: string): unknown | null {
+  if (!text) return null;
+  const cleaned = text
+    .replace(/^\s*```(?:json)?/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    /* fall through to brace-scan */
+  }
+  const firstObj = cleaned.indexOf("{");
+  const firstArr = cleaned.indexOf("[");
+  let start = -1;
+  let open = "{";
+  let close = "}";
+  if (firstObj === -1 && firstArr === -1) return null;
+  if (firstArr !== -1 && (firstObj === -1 || firstArr < firstObj)) {
+    start = firstArr;
+    open = "[";
+    close = "]";
+  } else {
+    start = firstObj;
+  }
+  const end = cleaned.lastIndexOf(close);
+  if (start === -1 || end === -1 || end < start) return null;
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve the tenant's model and run a single completion. Throws
+ * `AiNotConfiguredError` when no key is available so callers can degrade
+ * gracefully (e.g. fall back to a heuristic, or tell the user to add a key).
+ */
+export async function aiComplete(input: AiCompleteInput): Promise<AiCompleteResult> {
+  const cfg = await resolveAiConfig(input.tenantId);
+  if (!cfg) throw new AiNotConfiguredError();
+
+  const maxTokens = input.maxTokens ?? DEFAULT_COMPLETE_TOKENS;
+  let text = "";
+  if (cfg.provider === "gemini") text = await completeGemini(cfg, input, maxTokens);
+  else if (cfg.provider === "anthropic") text = await completeAnthropic(cfg, input, maxTokens);
+  else if (cfg.provider === "openai") text = await completeOpenAI(cfg, input, maxTokens);
+
+  return {
+    text: text.trim(),
+    json: input.json ? extractJson(text) : null,
+    provider: cfg.provider,
+    source: cfg.source,
+  };
+}
+
+async function completeGemini(cfg: AiConfig, input: AiCompleteInput, maxTokens: number): Promise<string> {
+  const genAI = new GoogleGenerativeAI(cfg.apiKey);
+  const model = genAI.getGenerativeModel({
+    model: cfg.model || env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
+    systemInstruction: input.system,
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      ...(input.json ? { responseMimeType: "application/json" as const } : {}),
+    },
+  });
+
+  const lastIdx = input.messages.length - 1;
+  const contents = input.messages.map((m, i) => {
+    const parts: Part[] = [{ text: m.content }];
+    if (i === lastIdx && input.images?.length) {
+      for (const img of input.images) {
+        parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
+      }
+    }
+    return { role: m.role === "assistant" ? ("model" as const) : ("user" as const), parts };
+  });
+
+  const result = await model.generateContent({ contents });
+  return result.response.text() || "";
+}
+
+async function completeAnthropic(cfg: AiConfig, input: AiCompleteInput, maxTokens: number): Promise<string> {
+  const client = new Anthropic({ apiKey: cfg.apiKey });
+  const lastIdx = input.messages.length - 1;
+  const messages: Anthropic.MessageParam[] = input.messages.map((m, i) => {
+    if (i === lastIdx && m.role === "user" && input.images?.length) {
+      const content: Anthropic.ContentBlockParam[] = input.images.map((img) => ({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: img.mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+          data: img.base64,
+        },
+      }));
+      content.push({ type: "text", text: m.content });
+      return { role: "user", content };
+    }
+    return { role: m.role, content: m.content };
+  });
+
+  const system = input.json
+    ? `${input.system}\n\nIMPORTANT: Respond with ONLY valid JSON — no markdown fences, no commentary.`
+    : input.system;
+
+  const response = await client.messages.create({
+    model: cfg.model || env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
+    max_tokens: maxTokens,
+    system,
+    messages,
+  });
+  return response.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+}
+
+async function completeOpenAI(cfg: AiConfig, input: AiCompleteInput, maxTokens: number): Promise<string> {
+  const client = new OpenAI({ apiKey: cfg.apiKey });
+  const lastIdx = input.messages.length - 1;
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: input.system },
+  ];
+  input.messages.forEach((m, i) => {
+    if (i === lastIdx && m.role === "user" && input.images?.length) {
+      const content: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
+        { type: "text", text: m.content },
+      ];
+      for (const img of input.images) {
+        content.push({
+          type: "image_url",
+          image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
+        });
+      }
+      messages.push({ role: "user", content });
+    } else {
+      messages.push({ role: m.role, content: m.content });
+    }
+  });
+
+  const resp = await client.chat.completions.create({
+    model: cfg.model || DEFAULT_OPENAI_MODEL,
+    messages,
+    max_tokens: maxTokens,
+    ...(input.json ? { response_format: { type: "json_object" as const } } : {}),
+  });
+  return resp.choices[0]?.message?.content || "";
 }
 
 async function chatOpenAI(cfg: AiConfig, input: ChatInput, toolsUsed: string[]): Promise<AiChatResponse> {

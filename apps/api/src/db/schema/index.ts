@@ -40,3 +40,23 @@ export * from "./payments";
 export * from "./ai_conversations";
 export * from "./tenant_ai_settings";
 export * from "./tenant_mail_settings";
+// --- GST & Compliance suite ---
+export * from "./tenant_gst_settings";
+export * from "./e_invoices";
+export * from "./e_way_bills";
+export * from "./gst_returns";
+export * from "./gstin_verifications";
+// --- RFQ / Sourcing + Vendor Portal ---
+export * from "./rfqs";
+export * from "./vendor_portal_access";
+// --- WhatsApp & multi-channel notifications ---
+export * from "./tenant_whatsapp_settings";
+export * from "./notification_preferences";
+// --- Sales / Distribution (sell-side) ---
+export * from "./customers";
+export * from "./sales_orders";
+export * from "./sales_invoices";
+// --- AI Procurement Copilot + Insights ---
+export * from "./vendor_scorecards";
+export * from "./anomaly_flags";
+export * from "./demand_forecasts";

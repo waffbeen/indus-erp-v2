@@ -18,12 +18,25 @@ import { vendorInvoiceRoutes } from "./vendor-invoice.routes";
 import { paymentRoutes } from "./payment.routes";
 import { aiRoutes } from "./ai.routes";
 import { mailRoutes } from "./mail.routes";
+import { whatsappRoutes } from "./whatsapp.routes";
+import { rfqRoutes } from "./rfq.routes";
+import { vendorPortalRoutes } from "./vendor-portal.routes";
+// Sales / Distribution (sell-side)
+import { customerRoutes } from "./customer.routes";
+import { salesOrderRoutes } from "./sales-order.routes";
+import { salesInvoiceRoutes } from "./sales-invoice.routes";
+// GST & Compliance suite
+import { complianceRoutes } from "./compliance.routes";
+// AI Procurement Copilot + Insights + Document AI
+import { copilotRoutes } from "./copilot.routes";
 
 export const apiRouter: Router = Router();
 
 // Public
 apiRouter.use(healthRoutes);
 apiRouter.use("/auth", authRoutes);
+// Public vendor/supplier portal — auth is the opaque token in the path
+apiRouter.use("/portal", vendorPortalRoutes);
 
 // Tenant-scoped (middleware applied inside each module's router)
 apiRouter.use("/tenant", tenantMetaRoutes);
@@ -47,3 +60,13 @@ apiRouter.use("/vendor-invoices", vendorInvoiceRoutes);
 apiRouter.use("/payments", paymentRoutes);
 apiRouter.use("/ai", aiRoutes);
 apiRouter.use("/mail", mailRoutes);
+apiRouter.use("/whatsapp", whatsappRoutes);
+apiRouter.use("/rfq", rfqRoutes);
+// Sales / Distribution (sell-side)
+apiRouter.use("/customers", customerRoutes);
+apiRouter.use("/sales-orders", salesOrderRoutes);
+apiRouter.use("/sales-invoices", salesInvoiceRoutes);
+// GST & Compliance suite
+apiRouter.use("/compliance", complianceRoutes);
+// AI Procurement Copilot + Insights + Document AI
+apiRouter.use("/copilot", copilotRoutes);
